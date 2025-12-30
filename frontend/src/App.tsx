@@ -1,0 +1,138 @@
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import * as Sentry from "@sentry/react";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { FeatureFlagsProvider } from "./contexts/FeatureFlagsContext";
+import { MainLayout } from "./components/layout/MainLayout";
+import { RequireAdminGuard } from "./components/guards/RequireAdminGuard";
+import { AdminLayout } from "./components/layout/AdminLayout";
+import { ErrorFallback } from "./components/ErrorFallback";
+
+// Auth pages
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import AcceptInvite from "./pages/auth/AcceptInvite";
+import Terms from "./pages/Terms";
+
+// App pages
+import Dashboard from "./pages/Dashboard";
+import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
+import ProjectMembers from "./pages/ProjectMembers";
+import ReleaseDetailPage from "./pages/ReleaseDetailPage";
+import ReleaseHealthDashboard from "./pages/ReleaseHealthDashboard";
+import Tasks from "./pages/Tasks";
+import Sprints from "./pages/Sprints";
+import Teams from "./pages/Teams";
+import Metrics from "./pages/Metrics";
+import Insights from "./pages/Insights";
+import Agents from "./pages/Agents";
+import Backlog from "./pages/Backlog";
+import Defects from "./pages/Defects";
+import Profile from "./pages/Profile";
+import Users from "./pages/Users";
+import NotFound from "./pages/NotFound";
+
+// Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPermissions from "./pages/admin/AdminPermissions";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminSystemHealth from "./pages/admin/AdminSystemHealth";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AIGovernance from "./pages/admin/AIGovernance";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
+
+const App = () => (
+  <Sentry.ErrorBoundary fallback={ErrorFallback}>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <FeatureFlagsProvider>
+            <TooltipProvider>
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/invite/accept/:token" element={<AcceptInvite />} />
+                <Route path="/terms" element={<Terms />} />
+
+                {/* Protected routes */}
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route
+                    path="/projects/:projectId/releases/:releaseId"
+                    element={<ReleaseDetailPage />}
+                  />
+                  <Route
+                    path="/projects/:projectId/releases/health"
+                    element={<ReleaseHealthDashboard />}
+                  />
+                  <Route path="/projects/:id" element={<ProjectDetail />} />
+                  <Route path="/projects/:id/members" element={<ProjectMembers />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/sprints" element={<Sprints />} />
+                  <Route path="/backlog" element={<Backlog />} />
+                  <Route path="/defects" element={<Defects />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/users" element={<Users />} />
+                  <Route path="/metrics" element={<Metrics />} />
+                  <Route path="/insights" element={<Insights />} />
+                  <Route path="/agents" element={<Agents />} />
+                </Route>
+
+                {/* Admin routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <RequireAdminGuard>
+                      <AdminLayout />
+                    </RequireAdminGuard>
+                  }
+                >
+                  <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="permissions" element={<AdminPermissions />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                  <Route path="audit-logs" element={<AdminAuditLogs />} />
+                  <Route path="system-health" element={<AdminSystemHealth />} />
+                  <Route path="ai-governance" element={<AIGovernance />} />
+                </Route>
+
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+          </FeatureFlagsProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </Sentry.ErrorBoundary>
+);
+
+export default App;

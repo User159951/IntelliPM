@@ -1,0 +1,157 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
+using IntelliPM.Application.Settings.Queries;
+using IntelliPM.Application.Settings.Commands;
+using SendTestEmailCommand = IntelliPM.Application.Settings.Commands.SendTestEmailCommand;
+using SendTestEmailResponse = IntelliPM.Application.Settings.Commands.SendTestEmailResponse;
+using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Exceptions;
+using IntelliPM.API.Authorization;
+
+namespace IntelliPM.API.Controllers;
+
+[ApiController]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
+[Authorize]
+public class SettingsController : BaseApiController
+{
+    private readonly IMediator _mediator;
+    private readonly ILogger<SettingsController> _logger;
+    private readonly ICurrentUserService _currentUserService;
+
+    public SettingsController(IMediator mediator, ILogger<SettingsController> logger, ICurrentUserService currentUserService)
+    {
+        _mediator = mediator;
+        _logger = logger;
+        _currentUserService = currentUserService;
+    }
+
+    /// <summary>
+    /// Get all global settings (admin only)
+    /// </summary>
+    [HttpGet]
+    [RequirePermission("admin.settings.update")] // Admin only
+    [ProducesResponseType(typeof(Dictionary<string, string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetAllSettings(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Ensure only admins can access this endpoint
+            if (!_currentUserService.IsAdmin())
+            {
+                return Forbid();
+            }
+
+            var category = Request.Query.ContainsKey("category") ? Request.Query["category"].ToString() : null;
+            var query = new GetSettingsQuery(category);
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving settings");
+            return Problem(
+                title: "Error retrieving settings",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Update a global setting (admin only)
+    /// </summary>
+    [HttpPut("{key}")]
+    [RequirePermission("admin.settings.update")] // Admin only
+    [ProducesResponseType(typeof(UpdateSettingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateSetting(
+        string key,
+        [FromBody] UpdateSettingRequest req,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Ensure only admins can access this endpoint
+            if (!_currentUserService.IsAdmin())
+            {
+                return Forbid();
+            }
+
+            var category = req.Category;
+            var cmd = new UpdateSettingCommand(key, req.Value, category);
+            var result = await _mediator.Send(cmd, cancellationToken);
+            return Ok(result);
+        }
+        catch (UnauthorizedException)
+        {
+            return Forbid();
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { error = ex.Message, errors = ex.Errors });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating setting {Key}", key);
+            return Problem(
+                title: "Error updating setting",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Send a test email (admin only)
+    /// </summary>
+    [HttpPost("test-email")]
+    [ProducesResponseType(typeof(SendTestEmailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> SendTestEmail(
+        [FromBody] SendTestEmailRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!_currentUserService.IsAdmin())
+            {
+                return Forbid();
+            }
+
+            var cmd = new SendTestEmailCommand(request.Email);
+            var result = await _mediator.Send(cmd, cancellationToken);
+            
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+            else
+            {
+                return BadRequest(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending test email to {Email}", request.Email);
+            return Problem(
+                title: "Error sending test email",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+}
+
+public record UpdateSettingRequest(string Value, string? Category = null);
+public record SendTestEmailRequest(string Email);
+

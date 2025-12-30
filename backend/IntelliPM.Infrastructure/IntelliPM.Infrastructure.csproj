@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- EF Core -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+		
+		<!-- Configuration (for Design-Time DbContext Factories) -->
+		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.1" />
+		
+		<!-- HTTP Client Factory -->
+		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+		<!-- HTTP Context Accessor for CurrentUserService -->
+		<PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+		
+		<!-- SQL Server (transactional data) -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+		<PackageReference Include="Microsoft.SemanticKernel" Version="1.68.0" />
+		<PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.68.0-alpha" />
+		<PackageReference Include="MediatR" Version="14.0.0" />
+
+		<!-- PostgreSQL + pgvector (agent memory) -->
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+		<PackageReference Include="Pgvector" Version="0.2.0" />
+		<PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.2.0" />
+
+		<!-- Design-time only -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+
+		<!-- JWT core libs (for token generation - auth middleware is in API project) -->
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.0" />
+
+		<!-- Logging -->
+		<PackageReference Include="Serilog" Version="3.1.1" />
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+		
+		<!-- Email -->
+		<PackageReference Include="MailKit" Version="4.8.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\IntelliPM.Application\IntelliPM.Application.csproj" />
+		<ProjectReference Include="..\IntelliPM.Domain\IntelliPM.Domain.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Copy email templates to output directory -->
+		<None Include="EmailTemplates\*.html">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+</Project>

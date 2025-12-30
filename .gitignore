@@ -1,0 +1,81 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+*.env.local
+*.env.*.local
+
+# User Secrets (ASP.NET Core)
+**/secrets.json
+**/*secrets*.json
+
+# Configuration files with secrets
+# Ignore ALL appsettings files (they may contain connection strings, API keys, passwords)
+# Only allow example/template files
+**/appsettings.json
+**/appsettings.*.json
+!**/appsettings.Example.json
+!**/appsettings.*.Example.json
+!**/appsettings.template.json
+!**/appsettings.*.template.json
+
+# Explicitly ignore sensitive configuration files
+**/appsettings.Production.json
+**/appsettings.Testing.json
+**/appsettings.Staging.json
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# Database files with potential credentials
+*.db
+*.sqlite
+*.sqlite3
+healthchecks.db
+
+# API Keys and tokens
+**/api-keys.json
+**/tokens.json
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+
+# Docker secrets
+docker-compose.override.yml
+docker-compose.prod.yml
+
+# Build outputs
+**/bin/
+**/obj/
+**/dist/
+
+# Node modules (ignored everywhere in the project)
+node_modules/
+**/node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vs/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.old
+*.backup

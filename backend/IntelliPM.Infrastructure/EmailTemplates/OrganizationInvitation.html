@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                  color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; background: #667eea; color: white; 
+                  padding: 15px 30px; text-decoration: none; border-radius: 5px; 
+                  font-weight: bold; margin: 20px 0; }
+        .button:hover { background: #5568d3; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+        .info-box { background: white; padding: 15px; border-left: 4px solid #667eea; 
+                    margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Bienvenue sur IntelliPM!</h1>
+        </div>
+        <div class="content">
+            <p>Bonjour <strong>{{FirstName}} {{LastName}}</strong>,</p>
+            
+            <p>Vous avez été invité(e) à rejoindre <strong>{{OrganizationName}}</strong> sur IntelliPM 
+               par <strong>{{InviterName}}</strong>.</p>
+            
+            <div class="info-box">
+                <strong>📝 Votre rôle:</strong> {{Role}}<br>
+                <strong>📧 Email:</strong> {{Email}}<br>
+                <strong>⏰ Expiration:</strong> Cette invitation expire dans 72 heures
+            </div>
+            
+            <p>Pour accepter cette invitation et créer votre compte, cliquez sur le bouton ci-dessous:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{InvitationLink}}" class="button">✨ Accepter l'invitation</a>
+            </div>
+            
+            <p><small>Ou copiez ce lien dans votre navigateur:<br>
+            <a href="{{InvitationLink}}">{{InvitationLink}}</a></small></p>
+            
+            <p><strong>Que faire ensuite?</strong></p>
+            <ol>
+                <li>Cliquez sur le lien d'invitation</li>
+                <li>Choisissez votre nom d'utilisateur unique</li>
+                <li>Créez un mot de passe sécurisé</li>
+                <li>Confirmez votre mot de passe</li>
+                <li>Commencez à utiliser IntelliPM! 🚀</li>
+            </ol>
+            
+            <p style="color: #d32f2f; font-size: 14px;">
+                ⚠️ <strong>Important:</strong> Ce lien est personnel et ne peut être utilisé qu'une seule fois. 
+                Ne le partagez avec personne.
+            </p>
+        </div>
+        <div class="footer">
+            <p>© 2024 IntelliPM - Gestion de projet intelligente<br>
+            Si vous n'êtes pas {{FirstName}} {{LastName}}, ignorez cet email.</p>
+        </div>
+    </div>
+</body>
+</html>
+
