@@ -12,6 +12,7 @@ using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using MockQueryable.Moq;
+using IntelliPM.Infrastructure.Outbox;
 
 namespace IntelliPM.Tests.Unit.Permissions;
 
@@ -336,6 +337,11 @@ public class PermissionTests
         mockActivityRepo.Setup(r => r.AddAsync(It.IsAny<IntelliPM.Domain.Entities.Activity>(), It.IsAny<CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.CompletedTask);
 
+        // Setup OutboxMessage repository for event publishing
+        var mockOutboxRepo = new Mock<IRepository<OutboxMessage>>();
+        mockOutboxRepo.Setup(r => r.AddAsync(It.IsAny<OutboxMessage>(), It.IsAny<CancellationToken>()))
+            .Returns(System.Threading.Tasks.Task.CompletedTask);
+
         // Setup UnitOfWork to return appropriate repositories
         mockUnitOfWork.Setup(u => u.Repository<User>()).Returns(mockUserRepo.Object);
         mockUnitOfWork.Setup(u => u.Repository<GlobalSetting>()).Returns(mockSettingsRepo.Object);
@@ -343,6 +349,7 @@ public class PermissionTests
         mockUnitOfWork.Setup(u => u.Repository<ProjectMember>()).Returns(mockMemberRepo.Object);
         mockUnitOfWork.Setup(u => u.Repository<Notification>()).Returns(mockNotificationRepo.Object);
         mockUnitOfWork.Setup(u => u.Repository<IntelliPM.Domain.Entities.Activity>()).Returns(mockActivityRepo.Object);
+        mockUnitOfWork.Setup(u => u.Repository<OutboxMessage>()).Returns(mockOutboxRepo.Object);
         mockUnitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCache.Object);
@@ -402,6 +409,13 @@ public class PermissionTests
         mockProjectRepo.Setup(r => r.Query()).Returns(projectsQueryable);
 
         mockUnitOfWork.Setup(u => u.Repository<Project>()).Returns(mockProjectRepo.Object);
+        
+        // Setup OutboxMessage repository for event publishing
+        var mockOutboxRepo = new Mock<IRepository<OutboxMessage>>();
+        mockOutboxRepo.Setup(r => r.AddAsync(It.IsAny<OutboxMessage>(), It.IsAny<CancellationToken>()))
+            .Returns(System.Threading.Tasks.Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Repository<OutboxMessage>()).Returns(mockOutboxRepo.Object);
+        mockUnitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         mockMediator
             .Setup(m => m.Send(
@@ -535,6 +549,13 @@ public class PermissionTests
         SetupEmptyRepository<UserStory>(mockUnitOfWork);
 
         mockUnitOfWork.Setup(u => u.Repository<Project>()).Returns(mockProjectRepo.Object);
+        
+        // Setup OutboxMessage repository for event publishing
+        var mockOutboxRepo = new Mock<IRepository<OutboxMessage>>();
+        mockOutboxRepo.Setup(r => r.AddAsync(It.IsAny<OutboxMessage>(), It.IsAny<CancellationToken>()))
+            .Returns(System.Threading.Tasks.Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Repository<OutboxMessage>()).Returns(mockOutboxRepo.Object);
+        
         mockUnitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         mockMediator

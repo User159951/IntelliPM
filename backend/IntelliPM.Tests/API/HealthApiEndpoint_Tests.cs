@@ -46,7 +46,11 @@ public class HealthApiEndpoint_Tests
                 .Protected()
                 .Setup<Task<HttpResponseMessage>>(
                     "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains(endpoint)),
+                    ItExpr.Is<HttpRequestMessage>(req => 
+                        req.RequestUri != null && 
+                        (req.RequestUri.AbsolutePath == endpoint || 
+                         req.RequestUri.AbsolutePath.EndsWith(endpoint) ||
+                         req.RequestUri.PathAndQuery.Contains(endpoint))),
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(new HttpResponseMessage
                 {
@@ -54,6 +58,19 @@ public class HealthApiEndpoint_Tests
                     Content = new StringContent(string.Empty)
                 });
         }
+        
+        // Setup default handler for any unmatched requests
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.NotFound,
+                Content = new StringContent(string.Empty)
+            });
 
         return handlerMock;
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
@@ -617,6 +618,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Set environment variables BEFORE any configuration is loaded
+        // This ensures JWT SecretKey is available when Program.cs executes
+        Environment.SetEnvironmentVariable("Jwt__SecretKey", "YourSecureSecretKeyOfAt32CharactersMinimumForTesting!");
+        Environment.SetEnvironmentVariable("Jwt__Issuer", "TestIssuer");
+        Environment.SetEnvironmentVariable("Jwt__Audience", "TestAudience");
+        
         // Configure app configuration - this MUST run before Program.cs executes
         // The issue is that ConfigureAppConfiguration may run after Program.cs checks the config
         // So we use a simpler approach: just add in-memory config which should work

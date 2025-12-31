@@ -65,6 +65,14 @@ public class CreateProjectCommandHandlerTests
         mockUnitOfWork.Setup(u => u.Repository<Activity>())
             .Returns(mockActivityRepo.Object);
 
+        // Setup OutboxMessage repository for event publishing
+        var mockOutboxRepo = new Mock<IRepository<IntelliPM.Infrastructure.Outbox.OutboxMessage>>();
+        mockOutboxRepo.Setup(r => r.AddAsync(It.IsAny<IntelliPM.Infrastructure.Outbox.OutboxMessage>(), It.IsAny<CancellationToken>()))
+            .Returns(System.Threading.Tasks.Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Repository<IntelliPM.Infrastructure.Outbox.OutboxMessage>())
+            .Returns(mockOutboxRepo.Object);
+        mockUnitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
         // Setup cache service
         mockCacheService.Setup(c => c.RemoveByPrefixAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.CompletedTask);
@@ -201,6 +209,14 @@ public class CreateProjectCommandHandlerTests
             .Returns(mockNotificationRepo.Object);
         mockUnitOfWork.Setup(u => u.Repository<Activity>())
             .Returns(mockActivityRepo.Object);
+
+        // Setup OutboxMessage repository for event publishing
+        var mockOutboxRepo = new Mock<IRepository<IntelliPM.Infrastructure.Outbox.OutboxMessage>>();
+        mockOutboxRepo.Setup(r => r.AddAsync(It.IsAny<IntelliPM.Infrastructure.Outbox.OutboxMessage>(), It.IsAny<CancellationToken>()))
+            .Returns(System.Threading.Tasks.Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Repository<IntelliPM.Infrastructure.Outbox.OutboxMessage>())
+            .Returns(mockOutboxRepo.Object);
+        mockUnitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         // Setup cache service
         mockCacheService.Setup(c => c.RemoveByPrefixAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
