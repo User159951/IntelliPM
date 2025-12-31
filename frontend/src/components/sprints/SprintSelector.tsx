@@ -79,7 +79,7 @@ export default function SprintSelector({
     enabled: !!projectId,
   });
 
-  const sprints = sprintsData?.sprints || [];
+  const sprints = useMemo(() => sprintsData?.sprints || [], [sprintsData?.sprints]);
 
   // Filter sprints based on filter prop
   const filteredSprints = useMemo(() => {

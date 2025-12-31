@@ -63,7 +63,6 @@ export default function AssignTeamModal({
   });
 
   // Fetch project to get already assigned teams
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data: _project } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => projectsApi.getById(projectId),

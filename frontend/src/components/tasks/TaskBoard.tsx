@@ -147,7 +147,6 @@ const priorityColors: Record<TaskPriority, string> = {
  */
 export default function TaskBoard({
   projectId,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   sprintId: _sprintId,
   tasks,
   isLoading = false,

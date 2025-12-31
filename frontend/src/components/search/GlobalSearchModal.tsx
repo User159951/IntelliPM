@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -52,12 +52,12 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
     enabled: debouncedQuery.length >= 2,
   });
 
-  const results = data?.results || [];
-  const groupedResults = {
+  const results = useMemo(() => data?.results || [], [data?.results]);
+  const groupedResults = useMemo(() => ({
     projects: results.filter(r => r.type === 'project'),
     tasks: results.filter(r => r.type === 'task'),
     users: results.filter(r => r.type === 'user'),
-  };
+  }), [results]);
 
   // Reset selected index when results change
   useEffect(() => {

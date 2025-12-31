@@ -184,7 +184,6 @@ export default function ReleaseDetailPage() {
   const [isDeployOpen, setIsDeployOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isNotesViewerOpen, setIsNotesViewerOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_notesMode, setNotesMode] = useState<'notes' | 'changelog'>('notes');
 
   // Fetch release data
