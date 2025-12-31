@@ -205,7 +205,7 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
-              ) : activityData?.activities && activityData.activities.length > 0 ? (
+              ) : activityData && activityData.length > 0 ? (
                 <div className="space-y-4">
                   <Table>
                     <TableHeader>

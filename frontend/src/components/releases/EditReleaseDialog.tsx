@@ -65,13 +65,18 @@ export function EditReleaseDialog({
 }: EditReleaseDialogProps) {
   const queryClient = useQueryClient();
 
+  const getValidStatus = (status: string): FormData['status'] => {
+    const validStatuses: FormData['status'][] = ['Planned', 'InProgress', 'Testing', 'ReadyForDeployment', 'Cancelled'];
+    return validStatuses.includes(status as FormData['status']) ? (status as FormData['status']) : 'Planned';
+  };
+
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: release.name,
       description: release.description || '',
       plannedDate: release.plannedDate ? format(new Date(release.plannedDate), 'yyyy-MM-dd') : '',
-      status: release.status,
+      status: getValidStatus(release.status),
       isPreRelease: release.isPreRelease,
       tagName: release.tagName || '',
     },
@@ -84,7 +89,7 @@ export function EditReleaseDialog({
         name: release.name,
         description: release.description || '',
         plannedDate: release.plannedDate ? format(new Date(release.plannedDate), 'yyyy-MM-dd') : '',
-        status: release.status,
+        status: getValidStatus(release.status),
         isPreRelease: release.isPreRelease,
         tagName: release.tagName || '',
       });

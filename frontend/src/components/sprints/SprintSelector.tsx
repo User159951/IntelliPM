@@ -79,9 +79,10 @@ export default function SprintSelector({
     enabled: !!projectId,
   });
 
+  const sprints = sprintsData?.sprints || [];
+
   // Filter sprints based on filter prop
   const filteredSprints = useMemo(() => {
-    const sprints = sprintsData?.sprints || [];
     if (!sprints.length) return [];
 
     switch (filter) {
@@ -92,7 +93,7 @@ export default function SprintSelector({
       default:
         return sprints;
     }
-  }, [sprintsData?.sprints, filter]);
+  }, [sprints, filter]);
 
   // Sort sprints: active first, then by start date descending
   const sortedSprints = useMemo(() => {

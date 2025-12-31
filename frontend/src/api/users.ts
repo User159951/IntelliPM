@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { PagedResponse } from './projects';
+import type { PagedResponse, ProjectListDto } from './projects';
 
 export interface User {
   id: number;

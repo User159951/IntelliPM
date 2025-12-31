@@ -268,7 +268,7 @@ export function CreateReleaseDialog({
                         onCheckedChange={() => toggleSprint(sprint.id)}
                       />
                       <div className="flex-1">
-                        <div className="font-medium">{sprint.name || `Sprint ${sprint.number}`}</div>
+                        <div className="font-medium">{sprint.name}</div>
                         <div className="text-sm text-muted-foreground">
                           {sprint.startDate && sprint.endDate
                             ? `${format(new Date(sprint.startDate), 'MMM dd')} - ${format(new Date(sprint.endDate), 'MMM dd')}`
