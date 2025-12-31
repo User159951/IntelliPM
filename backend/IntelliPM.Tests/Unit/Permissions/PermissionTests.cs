@@ -534,6 +534,7 @@ public class PermissionTests
         SetupEmptyRepository<KPISnapshot>(mockUnitOfWork);
         SetupEmptyRepository<Sprint>(mockUnitOfWork);
         SetupEmptyRepository<ProjectMember>(mockUnitOfWork);
+        SetupEmptyRepository<ProjectTeam>(mockUnitOfWork);
         SetupEmptyRepository<Risk>(mockUnitOfWork);
         SetupEmptyRepository<Defect>(mockUnitOfWork);
         SetupEmptyRepository<Insight>(mockUnitOfWork);

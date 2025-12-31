@@ -303,7 +303,7 @@ builder.Services.AddHealthChecks()
     }, tags: new[] { "memory" });
 
 // Health Checks UI (optional) - using SQLite file storage
-var healthChecksDbPath = builder.Environment.IsDevelopment() 
+var healthChecksDbPath = (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Testing")
     ? Path.Combine(builder.Environment.ContentRootPath, "healthchecks.db")
     : "/app/data/healthchecks.db"; // For Docker, use /app/data directory
 

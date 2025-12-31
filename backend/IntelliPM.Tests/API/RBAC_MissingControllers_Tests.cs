@@ -298,6 +298,11 @@ public class RBAC_WebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Configure content root to use a temporary directory to avoid /app permission issues
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        builder.UseContentRoot(tempDir);
+        
         // Set environment variables BEFORE any configuration is loaded
         // This ensures JWT SecretKey is available when Program.cs executes
         Environment.SetEnvironmentVariable("Jwt__SecretKey", "YourSecureSecretKeyOfAt32CharactersMinimumForTesting!");

@@ -40,17 +40,17 @@ public class HealthApiEndpoint_Tests
     {
         var handlerMock = new Mock<HttpMessageHandler>();
 
+        // Setup specific endpoints first (more specific matches come first in Moq)
         foreach (var (endpoint, statusCode) in endpointResponses)
         {
+            var endpointToMatch = endpoint; // Capture for closure
             handlerMock
                 .Protected()
                 .Setup<Task<HttpResponseMessage>>(
                     "SendAsync",
                     ItExpr.Is<HttpRequestMessage>(req => 
                         req.RequestUri != null && 
-                        (req.RequestUri.AbsolutePath == endpoint || 
-                         req.RequestUri.AbsolutePath.EndsWith(endpoint) ||
-                         req.RequestUri.PathAndQuery.Contains(endpoint))),
+                        req.RequestUri.AbsolutePath == endpointToMatch),
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(new HttpResponseMessage
                 {
@@ -59,7 +59,7 @@ public class HealthApiEndpoint_Tests
                 });
         }
         
-        // Setup default handler for any unmatched requests
+        // Setup default handler for any unmatched requests (comes after specific ones)
         handlerMock
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
