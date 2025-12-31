@@ -36,7 +36,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { format } from 'date-fns';
 import {
   Loader2,
@@ -146,7 +146,7 @@ export function CreateTaskDialog({
       resetForm();
       showSuccess("Task created successfully");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to create task');
     },
   });

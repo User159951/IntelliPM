@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showError, showSuccess } from "@/lib/sweetalert";
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -69,7 +69,7 @@ export default function AdminPermissions() {
       }
       return { prev };
     },
-    onError: (error, _variables, context) => {
+    onError: (_error, _variables, context) => {
       if (context?.prev) {
         queryClient.setQueryData(['permissions-matrix'], context.prev);
       }

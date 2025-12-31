@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, CheckCircle2, Circle, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess } from "@/lib/sweetalert";
 const notificationIcons: Record<string, React.ReactNode> = {
   task_assigned: <Circle className="h-3 w-3 text-blue-500" />,
   task_completed: <CheckCircle2 className="h-3 w-3 text-green-500" />,

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { Loader2 } from 'lucide-react';
 
 interface EditUserDialogProps {
@@ -43,12 +43,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
       onOpenChange(false);
       showSuccess("User updated", "The user has been successfully updated.");
     },
-    onError: (error: unknown) => {
-      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
-      const errorMessage =
-        apiError?.response?.data?.error ||
-        (apiError?.message) ||
-        'Please try again';
+    onError: () => {
       showError('Failed to update user');
     },
   });

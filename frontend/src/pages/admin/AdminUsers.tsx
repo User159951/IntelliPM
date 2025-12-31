@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showToast, showSuccess, showError } from "@/lib/sweetalert";
 import {
   Search,
   Pencil,
@@ -34,8 +34,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  CheckSquare,
-  Square,
   Eye,
 } from 'lucide-react';
 import { EditUserDialog } from '@/components/admin/EditUserDialog';
@@ -136,7 +134,7 @@ export default function AdminUsers() {
         showError('Some errors occurred', result.errors.join(', '));
       }
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to update users');
     },
   });
@@ -223,7 +221,7 @@ export default function AdminUsers() {
       setDeletingUser(null);
       showSuccess("User deleted", "The user has been successfully deleted.");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to delete user');
     },
   });

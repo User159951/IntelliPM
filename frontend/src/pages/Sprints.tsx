@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import type { Project } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { Plus, Loader2, Play, CheckCircle2, Calendar, ListPlus } from 'lucide-react';
 import { SprintPlanningAssistant } from '@/components/agents/SprintPlanningAssistant';
 import { StartSprintDialog } from '@/components/sprints/StartSprintDialog';
@@ -59,7 +59,7 @@ export default function Sprints() {
       setFormData({ name: '', startDate: '', endDate: '', capacity: 40, goal: '' });
       showSuccess("Sprint created");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to create sprint');
     },
   });
@@ -72,7 +72,7 @@ export default function Sprints() {
       setStartingSprint(null);
       showSuccess("Sprint started successfully");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to start sprint');
     },
   });
@@ -86,7 +86,7 @@ export default function Sprints() {
       setCompletingSprint(null);
       showSuccess("Sprint completed successfully");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to complete sprint');
     },
   });

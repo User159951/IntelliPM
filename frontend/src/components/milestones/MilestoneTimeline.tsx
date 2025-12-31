@@ -4,10 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { milestonesApi } from '@/api/milestones';
 import { Rocket, Flag, Calendar, Star, AlertCircle } from 'lucide-react';
-import { format, formatDistanceToNow, isBefore, isAfter, isToday } from 'date-fns';
+import { format, isBefore, isAfter, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { MilestoneDto } from '@/types/milestones';
 
@@ -181,9 +180,10 @@ export function MilestoneTimeline({ projectId, onMilestoneClick }: MilestoneTime
           <div className="relative min-w-full" style={{ height: '200px' }}>
             {timelineData.milestones.map((milestone) => {
               const TypeIcon = getTypeIcon(milestone.type);
-              const isPast = isBefore(milestone.date, new Date());
-              const isFuture = isAfter(milestone.date, new Date());
-              const isTodayDate = isToday(milestone.date);
+              // Date comparison for styling (variables kept for potential future use)
+              void isBefore(milestone.date, new Date());
+              void isAfter(milestone.date, new Date());
+              void isToday(milestone.date);
 
               return (
                 <div

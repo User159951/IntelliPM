@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare } from 'lucide-react';
-import { commentsApi, type Comment } from '@/api/comments';
+import { commentsApi } from '@/api/comments';
 import { showToast, showError } from '@/lib/sweetalert';
 import CommentForm from './CommentForm';
 import CommentItem from './CommentItem';
@@ -40,7 +40,7 @@ function EmptyState() {
 export default function CommentSection({ entityType, entityId }: CommentSectionProps) {
   const queryClient = useQueryClient();
 
-  const { data: comments, isLoading, refetch } = useQuery({
+  const { data: comments, isLoading } = useQuery({
     queryKey: ['comments', entityType, entityId],
     queryFn: () => commentsApi.getAll(entityType, entityId),
     staleTime: 1000 * 30, // 30 seconds

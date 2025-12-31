@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showToast, showError } from "@/lib/sweetalert";
 import { useDebounce } from '@/hooks/use-debounce';
 import { Loader2, AlertTriangle, Search, CheckSquare, Square } from 'lucide-react';
 import type { Sprint } from '@/types';
@@ -141,7 +141,7 @@ export function AddTasksToSprintDialog({
       onOpenChange(false);
       showToast(`${selectedTaskIds.size} task(s) successfully assigned to ${sprint.name}`, 'success');
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to add tasks');
     },
   });

@@ -7,8 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { releasesApi } from '@/api/releases';
-import { Package, Calendar, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
-import { format, isPast, isFuture, parseISO } from 'date-fns';
+import { Package, Calendar } from 'lucide-react';
+import { format, parseISO, isPast } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { ReleaseDto } from '@/types/releases';
 

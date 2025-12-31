@@ -30,7 +30,6 @@ import { cn } from '@/lib/utils';
 import { releasesApi } from '@/api/releases';
 import { showToast } from '@/lib/sweetalert';
 import { DeployReleaseDialog } from './DeployReleaseDialog';
-import type { ReleaseDto } from '@/types/releases';
 
 interface NextReleaseWidgetProps {
   projectId: number;

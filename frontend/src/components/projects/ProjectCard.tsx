@@ -18,7 +18,6 @@ import {
   Users,
   CheckCircle2,
   Clock,
-  Folder,
   Trello,
   Pencil,
   Trash2,

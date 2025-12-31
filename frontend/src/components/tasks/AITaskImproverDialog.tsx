@@ -10,7 +10,7 @@ import { Loader2, Sparkles, Plus, Trash2 } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
 import { tasksApi } from '@/api/tasks';
 import type { AgentResponse, ImprovedTaskData, TaskPriority, CreateTaskRequest } from '@/types';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 interface AITaskImproverDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

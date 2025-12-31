@@ -54,7 +54,7 @@ export default function AttachmentUpload({
         setUploadProgress((prev) => ({ ...prev, [file.name]: progress }));
       });
     },
-    onSuccess: (data, file) => {
+    onSuccess: (_data, file) => {
       showToast(`${file.name} uploaded successfully`, 'success');
       setSelectedFiles((prev) => prev.filter((f) => f.name !== file.name));
       setUploadProgress((prev) => {

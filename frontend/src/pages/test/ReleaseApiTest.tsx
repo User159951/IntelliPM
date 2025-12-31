@@ -7,9 +7,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { CheckCircle2, XCircle, MinusCircle, Loader2 } from 'lucide-react';
 import { ReleaseApiConnectivityTester } from '@/utils/testReleaseApiConnectivity';
 
+interface ResultItem {
+  name: string;
+  status: string;
+  message?: string;
+  endpoint?: string;
+  method?: string;
+  statusCode?: number;
+  error?: string;
+}
+
 export const ReleaseApiTestPage: React.FC = () => {
   const [testing, setTesting] = useState(false);
-  const [results, setResults] = useState<Array<{ name: string; status: string; message?: string }>>([]);
+  const [results, setResults] = useState<ResultItem[]>([]);
   const [summary, setSummary] = useState<{ success: number; failed: number; skipped: number; total: number } | null>(null);
 
   const runTests = async (createTestData: boolean) => {
@@ -22,7 +32,15 @@ export const ReleaseApiTestPage: React.FC = () => {
       await tester.runAllTests(createTestData);
       const testResults = tester.getResults();
 
-      setResults(testResults);
+      setResults(testResults.map((r): ResultItem => ({
+        name: r.endpoint || r.message,
+        status: r.status,
+        message: r.message,
+        endpoint: r.endpoint,
+        method: r.method,
+        statusCode: r.statusCode,
+        error: r.error,
+      })));
       setSummary({
         total: testResults.length,
         success: testResults.filter(r => r.status === 'SUCCESS').length,

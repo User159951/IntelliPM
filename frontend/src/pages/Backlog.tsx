@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { showToast, showSuccess, showError, showWarning, showConfirm } from "@/lib/sweetalert";
-import { Plus, Loader2, ChevronRight, Layers, FileText, BookOpen, GripVertical, AlertTriangle } from 'lucide-react';
+import { Plus, Loader2, ChevronRight, Layers, FileText, BookOpen, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CreateFeatureRequest, CreateStoryRequest, Project, Sprint } from '@/types';
 import type { BacklogTaskDto } from '@/api/backlog';
@@ -86,7 +86,7 @@ export default function Backlog() {
     },
     onError: (error: unknown) => {
       const apiError = error as { message?: string };
-      showError('Failed to add task to sprint', apiError.message || 'An error occurred');
+      showError('Failed to add task to sprint', apiError?.message || 'An error occurred');
       queryClient.invalidateQueries({ queryKey: ['backlog'] });
     },
   });
@@ -102,7 +102,7 @@ export default function Backlog() {
     },
     onError: (error: unknown) => {
       const apiError = error as { message?: string };
-      showError('Failed to remove task from sprint', apiError.message || 'An error occurred');
+      showError('Failed to remove task from sprint', apiError?.message || 'An error occurred');
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
     },
   });
@@ -220,7 +220,7 @@ export default function Backlog() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to create epic');
     },
   });
@@ -232,7 +232,7 @@ export default function Backlog() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to create feature');
     },
   });
@@ -244,7 +244,7 @@ export default function Backlog() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to create story');
     },
   });

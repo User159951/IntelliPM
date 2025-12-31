@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { Search, Loader2 } from 'lucide-react';
 import type { User } from '@/api/users';
 
@@ -63,7 +63,7 @@ export function AddMemberDialog({
       setSelectedRole('Member');
       showSuccess("Member added to project");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to add member');
     },
   });

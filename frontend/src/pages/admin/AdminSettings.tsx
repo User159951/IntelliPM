@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showToast, showSuccess, showError } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Settings, Lock, Mail, Flag } from 'lucide-react';
 
@@ -52,9 +52,7 @@ export default function AdminSettings() {
       queryClient.invalidateQueries({ queryKey: ['settings', variables.category] });
       showSuccess("Settings updated", "Settings have been successfully updated.");
     },
-    onError: (error: unknown) => {
-      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
-      const errorMessage = apiError.response?.data?.error || apiError.message || 'Failed to update settings';
+    onError: () => {
       showError('Failed to update settings');
     },
   });
@@ -694,8 +692,7 @@ export default function AdminSettings() {
                               } else {
                                 showError('Failed to send test email');
                               }
-                            } catch (error: unknown) {
-                              const apiError = error as { message?: string };
+                            } catch {
                               showError('Error');
                             }
                           }}

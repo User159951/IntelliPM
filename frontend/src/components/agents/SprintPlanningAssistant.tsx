@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Sparkles } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showToast, showError } from "@/lib/sweetalert";
 interface Props {
   sprintId: number;
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usersApi, type UserListDto } from '@/api/users';
-import type { PagedResponse, ProjectListDto } from '@/api/projects';
+import type { ProjectListDto } from '@/api/projects';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, Calendar, Briefcase, History, Clock } from 'lucide-react';
+import { Mail, Calendar, Briefcase, History, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 

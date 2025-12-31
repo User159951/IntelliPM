@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { Loader2 } from 'lucide-react';
 import type { Project, UpdateProjectRequest, ProjectType, ProjectStatus } from '@/types';
 
@@ -55,7 +55,7 @@ export function EditProjectDialog({ open, onOpenChange, project }: EditProjectDi
       onOpenChange(false);
       showSuccess("Project updated", "Your project has been successfully updated.");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to update project');
     },
   });

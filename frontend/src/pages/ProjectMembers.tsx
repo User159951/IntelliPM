@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showToast, showSuccess, showError } from "@/lib/sweetalert";
 import { Plus, Loader2, MoreVertical, UserX, ArrowLeft } from 'lucide-react';
 import { InviteMemberModal } from '@/components/projects/InviteMemberModal';
 import type { ProjectMember, ProjectRole } from '@/types';
@@ -95,7 +95,7 @@ export default function ProjectMembers() {
       setMemberToRemove(null);
       showSuccess("Member removed", "The member has been removed from the project.");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to remove member');
     },
   });
@@ -108,7 +108,7 @@ export default function ProjectMembers() {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       showToast('Role updated', "success");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to update role');
     },
   });

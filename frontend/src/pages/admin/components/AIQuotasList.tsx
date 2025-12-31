@@ -101,7 +101,8 @@ function QuotaGauge({ quota, compact = false }: { quota: AIQuota; compact?: bool
 
 export function AIQuotasList() {
   const [page, setPage] = useState(1);
-  const [selectedOrg, setSelectedOrg] = useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_selectedOrg, setSelectedOrg] = useState<number | null>(null);
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
   const [disableReason, setDisableReason] = useState('');
   const [orgToDisable, setOrgToDisable] = useState<{ id: number; name: string } | null>(null);

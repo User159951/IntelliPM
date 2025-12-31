@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { adminApi, type SystemHealthDto, type ExternalServiceStatus } from '@/api/admin';
+import { adminApi } from '@/api/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Cpu, HardDrive, Database, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Cpu, HardDrive, Database, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';

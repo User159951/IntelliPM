@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { MoreVertical, UserPlus, User, Briefcase, X, Crown } from 'lucide-react';
 import { InviteMemberModal } from './InviteMemberModal';
 import RoleBadge from './RoleBadge';

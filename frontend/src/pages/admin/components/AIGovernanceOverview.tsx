@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { aiGovernanceApi } from '@/api/aiGovernance';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle } from 'lucide-react';
 

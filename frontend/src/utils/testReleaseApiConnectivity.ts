@@ -1,6 +1,6 @@
 import { releasesApi } from '../api/releases';
 
-interface TestResult {
+export interface TestResult {
   endpoint: string;
   method: string;
   status: 'SUCCESS' | 'FAIL' | 'SKIP';

@@ -12,6 +12,7 @@ import {
   MarkerType,
   useReactFlow,
   ReactFlowProvider,
+  type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -102,7 +103,7 @@ function CustomTaskNode({ data }: { data: CustomTaskNodeData }) {
 
 const nodeTypes = {
   custom: CustomTaskNode,
-};
+} satisfies NodeTypes;
 
 /**
  * Inner component that uses ReactFlow hooks (must be inside ReactFlowProvider)
@@ -114,7 +115,7 @@ function DependencyGraphFlow({
 }: {
   nodes: Node[];
   edges: Edge[];
-  nodeTypes: Record<string, React.ComponentType<unknown>>;
+  nodeTypes: NodeTypes;
 }) {
   const { fitView } = useReactFlow();
   

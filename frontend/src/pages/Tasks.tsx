@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showError } from "@/lib/sweetalert";
 import { Plus, GripVertical, AlertTriangle, Sparkles, ArrowUpDown, Search, X, LayoutGrid, List, Calendar } from 'lucide-react';
 import { AITaskImproverDialog } from '@/components/tasks/AITaskImproverDialog';
 import { TaskDetailSheet } from '@/components/tasks/TaskDetailSheet';
@@ -83,7 +83,7 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to update task');
     },
   });

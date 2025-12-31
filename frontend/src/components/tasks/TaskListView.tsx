@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showToast, showSuccess, showError } from "@/lib/sweetalert";
 import { ArrowUpDown, MoreHorizontal, Trash2, Edit, ArrowUp, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Task, TaskStatus, TaskPriority } from '@/types';
@@ -90,7 +90,7 @@ export function TaskListView({
       setEditingTaskId(null);
       setEditingField(null);
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to update status');
     },
   });
@@ -103,7 +103,7 @@ export function TaskListView({
       setEditingTaskId(null);
       setEditingField(null);
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to update priority');
     },
   });
@@ -118,7 +118,7 @@ export function TaskListView({
       setSelectedTaskIds(new Set());
       showToast(`Updated status for ${selectedTaskIds.size} task(s)`, 'success');
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to update tasks');
     },
   });
@@ -132,7 +132,7 @@ export function TaskListView({
       setSelectedTaskIds(new Set());
       showToast(`Updated priority for ${selectedTaskIds.size} task(s)`, 'success');
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to update tasks');
     },
   });
@@ -144,7 +144,7 @@ export function TaskListView({
       setDeleteTaskId(null);
       showSuccess("Task deleted");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to delete task');
     },
   });

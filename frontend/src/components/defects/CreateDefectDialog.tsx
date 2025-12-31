@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { Loader2 } from 'lucide-react';
 import type { CreateDefectRequest, DefectSeverity } from '@/types';
 
@@ -65,7 +65,7 @@ export function CreateDefectDialog({
       onOpenChange(false);
       showSuccess("Defect reported successfully");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to report defect');
     },
   });

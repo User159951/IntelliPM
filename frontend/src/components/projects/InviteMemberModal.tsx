@@ -29,7 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { Loader2 } from 'lucide-react';
 import type { ProjectRole } from '@/types';
 
@@ -73,7 +73,7 @@ export function InviteMemberModal({ projectId, isOpen, onClose, onSuccess }: Inv
       onSuccess();
       onClose();
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to invite member');
     },
   });

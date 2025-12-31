@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showToast, showError } from "@/lib/sweetalert";
+import type { AgentResponse } from '@/types';
 import { 
   Bot, 
   Loader2, 
@@ -26,7 +27,7 @@ interface AgentConfig {
   name: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  runFn: (projectId: number) => Promise<unknown>;
+  runFn: (projectId: number) => Promise<AgentResponse>;
 }
 
 export default function Agents() {
@@ -85,11 +86,11 @@ export default function Agents() {
     setRunningAgents((prev) => new Set(prev).add(agent.id));
     
     try {
-      const result = await agent.runFn(parseInt(projectId));
+      const result: AgentResponse = await agent.runFn(parseInt(projectId));
       setAgentResults((prev) => ({
         ...prev,
         [agent.id]: {
-          result: result.message || JSON.stringify(result.data, null, 2),
+          result: result.content || JSON.stringify(result.metadata || {}, null, 2),
           timestamp: new Date(),
         },
       }));

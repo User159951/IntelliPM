@@ -1,9 +1,8 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
-import { Mail, LogIn, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Mail, LogIn, Edit, Trash2 } from 'lucide-react';
 import { RoleBadge } from './RoleBadge';
 import { cn } from '@/lib/utils';
 import type { UserListDto } from '@/api/users';

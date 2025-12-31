@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showToast, showError } from "@/lib/sweetalert";
 import { authApi } from '@/api/auth';
 import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
 
@@ -83,8 +83,7 @@ export default function ResetPassword() {
       } else {
         showError('Erreur');
       }
-    } catch (error: unknown) {
-      const apiError = error as { message?: string };
+    } catch {
       showError('Erreur');
     } finally {
       setIsLoading(false);

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2, Users, Settings } from 'lucide-react';
 import type { RegisterTeamRequest } from '@/types';
@@ -37,7 +37,7 @@ export default function Teams() {
       setFormData({ name: '', memberIds: [], totalCapacity: 100 });
       showSuccess("Team created");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to create team');
     },
   });

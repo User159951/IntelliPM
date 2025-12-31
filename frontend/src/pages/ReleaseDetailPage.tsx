@@ -44,11 +44,10 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { releasesApi } from '@/api/releases';
 import { projectsApi } from '@/api/projects';
 import { showToast } from '@/lib/sweetalert';
-import type { ReleaseDto, ReleaseSprintDto } from '@/types/releases';
+import type { ReleaseSprintDto } from '@/types/releases';
 import { QualityGatesPanel } from '@/components/releases/QualityGatesPanel';
 import { EditReleaseDialog } from '@/components/releases/EditReleaseDialog';
 import { DeployReleaseDialog } from '@/components/releases/DeployReleaseDialog';
@@ -185,7 +184,8 @@ export default function ReleaseDetailPage() {
   const [isDeployOpen, setIsDeployOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isNotesViewerOpen, setIsNotesViewerOpen] = useState(false);
-  const [notesMode, setNotesMode] = useState<'notes' | 'changelog'>('notes');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_notesMode, setNotesMode] = useState<'notes' | 'changelog'>('notes');
 
   // Fetch release data
   const {

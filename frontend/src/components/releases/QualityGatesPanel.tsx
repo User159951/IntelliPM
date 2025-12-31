@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import { releasesApi } from '@/api/releases';
 import { showToast } from '@/lib/sweetalert';
-import type { ReleaseDto, QualityGateDto } from '@/types/releases';
+import type { ReleaseDto } from '@/types/releases';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 

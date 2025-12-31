@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Link } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { ArrowLeft, Settings, Play, CheckCircle2, Sparkles, Plus, Pencil, Trash2, Package } from 'lucide-react';
 import { ProjectInsightPanel } from '@/components/agents/ProjectInsightPanel';
 import { RiskDetectionPanel } from '@/components/agents/RiskDetectionPanel';
@@ -88,7 +88,7 @@ export default function ProjectDetail() {
       showSuccess("Project archived");
       navigate('/projects');
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to archive project');
     },
   });

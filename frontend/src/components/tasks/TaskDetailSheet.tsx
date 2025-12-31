@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { showToast, showSuccess, showError, showWarning } from "@/lib/sweetalert";
+import { showSuccess, showError } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
 import { tasksApi } from '@/api/tasks';
 import { sprintsApi } from '@/api/sprints';
@@ -125,7 +125,7 @@ export function TaskDetailSheet({
           queryClient.invalidateQueries({ queryKey: ['task', localTask.id] });
           queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
           onTaskUpdated?.();
-        } catch (error) {
+        } catch {
           showError('Failed to save');
         } finally {
           setIsSaving(false);
@@ -156,7 +156,7 @@ export function TaskDetailSheet({
       onOpenChange(false);
       onTaskDeleted?.();
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to delete task');
     },
   });
@@ -168,7 +168,7 @@ export function TaskDetailSheet({
       setNewComment('');
       showSuccess("Comment added");
     },
-    onError: (error) => {
+    onError: () => {
       showError('Failed to add comment');
     },
   });
@@ -182,7 +182,7 @@ export function TaskDetailSheet({
         fileInputRef.current.value = '';
       }
     },
-    onError: (error) => {
+    onError: () => {
       showError('Upload failed');
     },
   });
@@ -528,7 +528,7 @@ export function TaskDetailSheet({
                       queryClient.invalidateQueries({ queryKey: ['task', localTask.id] });
                       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
                       onTaskUpdated?.();
-                    }).catch((error) => {
+                    }).catch(() => {
                       showError('Failed to update status');
                     });
                   }

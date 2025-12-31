@@ -26,7 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showToast, showError, showConfirm } from '@/lib/sweetalert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { X, Loader2, Users, Settings } from 'lucide-react';
-import type { Team, ProjectRole } from '@/types';
+import type { ProjectRole } from '@/types';
 
 interface AssignTeamModalProps {
   projectId: number;
@@ -63,7 +63,8 @@ export default function AssignTeamModal({
   });
 
   // Fetch project to get already assigned teams
-  const { data: project } = useQuery({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data: _project } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => projectsApi.getById(projectId),
     enabled: isOpen && projectId > 0,
