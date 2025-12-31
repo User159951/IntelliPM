@@ -12,7 +12,6 @@ using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using MockQueryable.Moq;
-using IntelliPM.Infrastructure.Outbox;
 
 namespace IntelliPM.Tests.Unit.Permissions;
 
