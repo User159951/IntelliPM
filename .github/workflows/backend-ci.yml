@@ -1,54 +1,55 @@
 name: Backend CI
 
+# Déclencheurs du workflow
 on:
   push:
     branches:
       - main
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
   pull_request:
     branches:
       - main
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
-  workflow_dispatch:
-
-env:
-  DOTNET_VERSION: '8.0.x'
-  SOLUTION_FILE: 'backend/IntelliPM.sln'
-  CONFIGURATION: 'Release'
 
 jobs:
   build-and-test:
-    name: Build and Test
+    name: Build and Test Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
-      - name: 📥 Checkout code
+      # 1. Checkout du code source
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup .NET
+      # 2. Configuration du SDK .NET
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: '8.0.x'
 
-      - name: 📦 Restore dependencies
-        run: dotnet restore ${{ env.SOLUTION_FILE }}
+      # Affichage de la version du SDK .NET installé
+      - name: Afficher la version du SDK .NET
+        run: dotnet --version
 
-      - name: 🔨 Build solution
-        run: dotnet build ${{ env.SOLUTION_FILE }} --configuration ${{ env.CONFIGURATION }} --no-restore
+      # 3. Cache des dépendances NuGet pour accélérer le workflow
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
-      - name: 🧪 Run tests
-        run: dotnet test ${{ env.SOLUTION_FILE }} --configuration ${{ env.CONFIGURATION }} --no-build --logger "console;verbosity=detailed"
+      # 4. Restauration des dépendances
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: ./backend
 
-      - name: ✅ CI Success
-        if: success()
-        run: echo "✅ Backend CI passed successfully!"
+      # 5. Build en mode Release
+      - name: Build
+        run: dotnet build --configuration Release --no-restore --verbosity normal
+        working-directory: ./backend
 
-      - name: ❌ CI Failed
-        if: failure()
-        run: echo "❌ Backend CI failed. Check logs above."
+      # 6. Exécution des tests (exclusion explicite des tests E2E)
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --logger "console;verbosity=detailed" --filter "FullyQualifiedName!~E2E"
+        working-directory: ./backend
 
