@@ -168,4 +168,31 @@ public class NotificationsController : BaseApiController
             );
         }
     }
+
+    /// <summary>
+    /// Get count of unread notifications for current user
+    /// </summary>
+    /// <returns>Unread notification count</returns>
+    [HttpGet("unread-count")]
+    [ProducesResponseType(typeof(GetUnreadNotificationCountResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetUnreadCount(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var query = new GetUnreadNotificationCountQuery();
+            var result = await _mediator.Send(query, cancellationToken);
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting unread notification count");
+            return Problem(
+                title: "Error retrieving unread notification count",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
 }

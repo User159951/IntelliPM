@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -23,7 +23,7 @@ import { notificationsApi } from '@/api/notifications';
 import { showToast } from '@/lib/sweetalert';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Notification, PagedNotifications } from '@/api/notifications';
+import type { Notification, GetNotificationsResponse } from '@/api/notifications';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -85,22 +85,38 @@ function NotificationItem({ notification, onClick }: NotificationItemProps) {
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   // Fetch notifications - only when authenticated
-  const { data: notifications, refetch } = useQuery<PagedNotifications>({
+  const { data: notificationsData, refetch } = useQuery<GetNotificationsResponse>({
     queryKey: ['notifications'],
-    queryFn: () => notificationsApi.getAll({ page: 1, pageSize: 10, unreadOnly: false }),
+    queryFn: () => notificationsApi.getAll({ limit: 10, unreadOnly: false }),
     enabled: isAuthenticated && !isAuthLoading, // Only fetch when authenticated
     staleTime: 1000 * 30, // 30 seconds
     refetchInterval: isAuthenticated ? 1000 * 60 : false, // Poll every minute only when authenticated
   });
+
+  const notifications = notificationsData?.notifications ?? [];
+
+  // ✅ New query for unread count using dedicated endpoint
+  const { data: unreadData } = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => notificationsApi.getUnreadCount(),
+    enabled: isAuthenticated && !isAuthLoading,
+    refetchInterval: isAuthenticated ? 1000 * 30 : false, // Refresh every 30 seconds
+    staleTime: 1000 * 10, // Cache valid for 10 seconds
+  });
+
+  const unreadCount = unreadData?.unreadCount ?? 0;
 
   // Mark notification as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: (notificationId: number) => notificationsApi.markAsRead(notificationId),
     onSuccess: () => {
       refetch();
+      // Invalidate unread count query to refresh the badge
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 
@@ -110,10 +126,10 @@ export default function NotificationBell() {
     onSuccess: () => {
       showToast('All notifications marked as read', 'success');
       refetch();
+      // Invalidate unread count query to refresh the badge
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
-
-  const unreadCount = (notifications?.items ?? []).filter((n) => !n.isRead).length;
 
   const handleNotificationClick = (notification: Notification) => {
     // Mark as read
@@ -171,9 +187,9 @@ export default function NotificationBell() {
         </div>
 
         <ScrollArea className="h-[400px]">
-          {notifications?.items && notifications.items.length > 0 ? (
+          {notifications.length > 0 ? (
             <div className="divide-y">
-              {notifications.items.map((notification) => (
+              {notifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}

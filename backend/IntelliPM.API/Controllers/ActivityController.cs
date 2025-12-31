@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Activity.Queries;
+using IntelliPM.API.Authorization;
 using System.Security.Claims;
 
 namespace IntelliPM.API.Controllers;
@@ -25,6 +26,7 @@ public class ActivityController : BaseApiController
     /// <summary>
     /// Get recent activities for user's projects
     /// </summary>
+    [RequirePermission("activity.view")]
     [HttpGet("recent")]
     [ProducesResponseType(typeof(GetRecentActivityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]

@@ -3,6 +3,11 @@ import * as Sentry from "@sentry/react";
 import App from "./App.tsx";
 import "./index.css";
 
+// Load API connectivity tester for console usage (development only)
+if (import.meta.env.DEV) {
+  import('./utils/testReleaseApiConnectivity');
+}
+
 // Initialize Sentry if DSN is configured
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({

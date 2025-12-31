@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Insights.Queries;
+using IntelliPM.API.Authorization;
 
 namespace IntelliPM.API.Controllers;
 
@@ -30,6 +31,7 @@ public class InsightsController : ControllerBase
     /// <response code="200">Insights retrieved successfully</response>
     /// <response code="404">Project not found</response>
     /// <response code="500">Error retrieving insights</response>
+    [RequirePermission("insights.view")]
     [HttpGet]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

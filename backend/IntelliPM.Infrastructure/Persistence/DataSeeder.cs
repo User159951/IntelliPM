@@ -678,6 +678,56 @@ public class DataSeeder
                 Category = "Milestones",
                 CreatedAt = DateTimeOffset.UtcNow
             },
+            // Releases
+            new Permission
+            {
+                Name = "releases.view",
+                Description = "View releases and release details",
+                Category = "Releases",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "releases.create",
+                Description = "Create new releases",
+                Category = "Releases",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "releases.edit",
+                Description = "Edit releases and manage sprints",
+                Category = "Releases",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "releases.delete",
+                Description = "Delete releases",
+                Category = "Releases",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "releases.deploy",
+                Description = "Deploy releases to production",
+                Category = "Releases",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "releases.notes.edit",
+                Description = "Generate and edit release notes and changelog",
+                Category = "Releases",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "releases.quality-gates.approve",
+                Description = "Approve quality gates for releases",
+                Category = "Releases",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
             // Sprints
             new Permission
             {
@@ -800,6 +850,38 @@ public class DataSeeder
                 Description = "View team availability and capacity",
                 Category = "Teams",
                 CreatedAt = DateTimeOffset.UtcNow
+            },
+            // Activity
+            new Permission
+            {
+                Name = "activity.view",
+                Description = "View activity feed",
+                Category = "Activity",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            // Search
+            new Permission
+            {
+                Name = "search.use",
+                Description = "Use global search",
+                Category = "Search",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            // Metrics
+            new Permission
+            {
+                Name = "metrics.view",
+                Description = "View project metrics and analytics",
+                Category = "Metrics",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            // Insights
+            new Permission
+            {
+                Name = "insights.view",
+                Description = "View project insights",
+                Category = "Insights",
+                CreatedAt = DateTimeOffset.UtcNow
             }
         };
 
@@ -880,7 +962,16 @@ public class DataSeeder
             "teams.create",
             "teams.edit",
             "teams.view.availability",
-            "users.view"
+            "users.view",
+            // Releases permissions (basic view permission for all users)
+            // Note: ProjectRole-specific permissions (ProductOwner, ScrumMaster, etc.) are handled
+            // in application code, not in database RolePermission table which only supports GlobalRole
+            "releases.view",
+            // Activity, Search, Metrics, Insights permissions
+            "activity.view",
+            "search.use",
+            "metrics.view",
+            "insights.view"
         };
 
         foreach (var permissionName in userPermissions)

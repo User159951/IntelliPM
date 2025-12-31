@@ -5,6 +5,7 @@ using Asp.Versioning;
 using IntelliPM.Application.Queries.Metrics;
 using IntelliPM.Application.Sprints.Queries;
 using IntelliPM.Application.Common.Exceptions;
+using IntelliPM.API.Authorization;
 
 namespace IntelliPM.API.Controllers;
 
@@ -26,6 +27,7 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Get metrics summary for all projects or a specific project
     /// </summary>
+    [RequirePermission("metrics.view")]
     [HttpGet]
     [ProducesResponseType(typeof(MetricsSummaryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -53,6 +55,7 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Get sprint velocity chart data (last 6 completed sprints)
     /// </summary>
+    [RequirePermission("metrics.view")]
     [HttpGet("sprint-velocity-chart")]
     [ProducesResponseType(typeof(SprintVelocityChartResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -80,6 +83,7 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Get task distribution by status
     /// </summary>
+    [RequirePermission("metrics.view")]
     [HttpGet("task-distribution")]
     [ProducesResponseType(typeof(TaskDistributionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -107,6 +111,7 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Get sprint burndown chart data
     /// </summary>
+    [RequirePermission("metrics.view")]
     [HttpGet("sprint-burndown")]
     [ProducesResponseType(typeof(SprintBurndownResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -144,6 +149,7 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Get defects by severity
     /// </summary>
+    [RequirePermission("metrics.view")]
     [HttpGet("defects-by-severity")]
     [ProducesResponseType(typeof(DefectsBySeverityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -171,6 +177,7 @@ public class MetricsController : ControllerBase
     /// <summary>
     /// Get team velocity trend over time
     /// </summary>
+    [RequirePermission("metrics.view")]
     [HttpGet("team-velocity")]
     [ProducesResponseType(typeof(TeamVelocityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -209,6 +216,7 @@ public class MetricsController : ControllerBase
     /// <response code="403">Forbidden - User doesn't have access to this project</response>
     /// <response code="404">Not Found - Project or sprint not found</response>
     /// <response code="500">Internal server error</response>
+    [RequirePermission("metrics.view")]
     [HttpGet("velocity")]
     [ProducesResponseType(typeof(SprintVelocityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

@@ -59,48 +59,17 @@ export const notificationsApi = {
     apiClient.patch(`/Notifications/mark-all-read`, {}),
 
   /**
-   * Get unread notification count
-   * Tries to use the dedicated endpoint first, falls back to getAll() if it fails.
+   * Get count of unread notifications for current user
+   * Uses the dedicated endpoint: GET /Notifications/unread-count
    * 
-   * Fallback strategy:
-   * 1. Try dedicated endpoint: GET /Notifications/unread-count
-   * 2. Fallback: GET /Notifications?unreadOnly=true&limit=1000
-   *    - Uses unreadCount from response (more accurate than counting items)
-   *    - If unreadCount is not available, counts the returned items
-   * 
-   * @returns Object with count of unread notifications
+   * @returns Promise with unread notification count
    * 
    * @example
-   * const { count } = await notificationsApi.getUnreadCount();
-   * console.log(`You have ${count} unread notifications`);
+   * const { unreadCount } = await notificationsApi.getUnreadCount();
+   * console.log(`You have ${unreadCount} unread notifications`);
    */
-  getUnreadCount: async (): Promise<{ count: number }> => {
-    try {
-      // Primary: Try to use the dedicated unread-count endpoint
-      return await apiClient.get<{ count: number }>(`/Notifications/unread-count`);
-    } catch (error) {
-      // Fallback: get all unread notifications with large limit (equivalent to pageSize: 1000)
-      // The backend's GetAll endpoint returns unreadCount directly in the response
-      try {
-        const result = await notificationsApi.getAll({ unreadOnly: true, limit: 1000 });
-        
-        // Use unreadCount from response (most accurate - total count from database)
-        // If unreadCount is not available, fall back to counting returned items
-        if (result.unreadCount !== undefined && result.unreadCount !== null) {
-          return { count: result.unreadCount };
-        } else {
-          // Last resort: count the items returned (may be limited by limit parameter)
-          return { count: result.notifications.length };
-        }
-      } catch (fallbackError) {
-        // If fallback also fails, return 0 as a safe default
-        console.warn(
-          '[Notifications API] Failed to get unread count, both primary and fallback methods failed:',
-          fallbackError
-        );
-        return { count: 0 };
-      }
-    }
+  getUnreadCount: async (): Promise<{ unreadCount: number }> => {
+    return apiClient.get<{ unreadCount: number }>('/Notifications/unread-count');
   },
 
   // Legacy methods for backward compatibility

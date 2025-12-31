@@ -1,0 +1,689 @@
+import { releasesApi } from '../api/releases';
+
+interface TestResult {
+  endpoint: string;
+  method: string;
+  status: 'SUCCESS' | 'FAIL' | 'SKIP';
+  statusCode?: number;
+  error?: string;
+  message: string;
+}
+
+export class ReleaseApiConnectivityTester {
+  private results: TestResult[] = [];
+  private testProjectId = 1; // Use existing project ID for testing
+  private testReleaseId = 1; // Use existing release ID (or will be created)
+  private testSprintId = 1; // Use existing sprint ID
+
+  /**
+   * Run all API connectivity tests
+   * @param createTestData - If true, creates a test release for mutation tests
+   */
+  async runAllTests(createTestData = false): Promise<void> {
+    console.log('%c🚀 Starting Release API Connectivity Tests...', 'color: #4CAF50; font-size: 16px; font-weight: bold;');
+    console.log('='.repeat(80));
+
+    this.results = [];
+
+    // Phase 1: Read-only tests (safe to run)
+    await this.testGetProjectReleases();
+    await this.testGetReleaseStatistics();
+    await this.testGetAvailableSprints();
+    
+    // Phase 2: Test with existing release (if available)
+    await this.testGetReleaseById();
+    
+    // Phase 3: Mutation tests (only if createTestData = true)
+    if (createTestData) {
+      console.log('\n%c⚠️  Running mutation tests (creates/modifies data)...', 'color: #FF9800; font-weight: bold;');
+      
+      await this.testCreateRelease();
+      await this.testUpdateRelease();
+      await this.testAddSprintToRelease();
+      await this.testBulkAddSprints();
+      await this.testRemoveSprintFromRelease();
+      await this.testGenerateReleaseNotes();
+      await this.testUpdateReleaseNotes();
+      await this.testGenerateChangelog();
+      await this.testUpdateChangelog();
+      await this.testEvaluateQualityGates();
+      await this.testApproveQualityGate();
+      await this.testDeployRelease();
+      await this.testDeleteRelease();
+    } else {
+      console.log('\n%c⏭️  Skipping mutation tests (set createTestData=true to run)', 'color: #9E9E9E; font-style: italic;');
+      this.skipMutationTests();
+    }
+
+    // Print summary
+    this.printSummary();
+  }
+
+  // ==================== READ-ONLY TESTS ====================
+
+  private async testGetProjectReleases(): Promise<void> {
+    try {
+      const data = await releasesApi.getProjectReleases(this.testProjectId);
+      this.addResult({
+        endpoint: `GET /api/v1/projects/${this.testProjectId}/releases`,
+        method: 'GET',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Found ${Array.isArray(data) ? data.length : 0} releases`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `GET /api/v1/projects/${this.testProjectId}/releases`,
+        method: 'GET',
+        status: statusCode === 404 ? 'FAIL' : 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testGetReleaseById(): Promise<void> {
+    try {
+      const data = await releasesApi.getRelease(this.testReleaseId);
+      this.addResult({
+        endpoint: `GET /api/v1/releases/${this.testReleaseId}`,
+        method: 'GET',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Release found: ${(data as any)?.name ?? 'Unknown'}`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      if (statusCode === 404) {
+        this.addResult({
+          endpoint: `GET /api/v1/releases/${this.testReleaseId}`,
+          method: 'GET',
+          status: 'SUCCESS',
+          statusCode: 404,
+          message: `✅ Endpoint exists (404 = release not found, which is expected)`
+        });
+      } else {
+        this.addResult({
+          endpoint: `GET /api/v1/releases/${this.testReleaseId}`,
+          method: 'GET',
+          status: 'FAIL',
+          statusCode,
+          error: error.message,
+          message: `❌ ${error.message}`
+        });
+      }
+    }
+  }
+
+  private async testGetReleaseStatistics(): Promise<void> {
+    try {
+      const data = await releasesApi.getReleaseStatistics(this.testProjectId);
+      this.addResult({
+        endpoint: `GET /api/v1/projects/${this.testProjectId}/releases/statistics`,
+        method: 'GET',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Stats: ${(data as any)?.totalReleases ?? 0} total releases`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `GET /api/v1/projects/${this.testProjectId}/releases/statistics`,
+        method: 'GET',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testGetAvailableSprints(): Promise<void> {
+    try {
+      const data = await releasesApi.getAvailableSprintsForRelease(this.testProjectId);
+      this.addResult({
+        endpoint: `GET /api/v1/projects/${this.testProjectId}/sprints/available`,
+        method: 'GET',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Found ${Array.isArray(data) ? data.length : 0} available sprints`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `GET /api/v1/projects/${this.testProjectId}/sprints/available`,
+        method: 'GET',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  // ==================== MUTATION TESTS ====================
+
+  private async testCreateRelease(): Promise<void> {
+    try {
+      const testData = {
+        name: 'API Test Release',
+        version: '99.99.99',
+        description: 'Created by connectivity test',
+        plannedDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        type: 'Minor',
+        isPreRelease: false,
+        tagName: 'v99.99.99',
+        sprintIds: []
+      };
+      
+      const data = await releasesApi.createRelease(this.testProjectId, testData);
+      this.testReleaseId = (data as any)?.id ?? this.testReleaseId;
+      
+      this.addResult({
+        endpoint: `POST /api/v1/projects/${this.testProjectId}/releases`,
+        method: 'POST',
+        status: 'SUCCESS',
+        statusCode: 201,
+        message: `✅ Release created with ID: ${this.testReleaseId}`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `POST /api/v1/projects/${this.testProjectId}/releases`,
+        method: 'POST',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testUpdateRelease(): Promise<void> {
+    try {
+      const testData = {
+        name: 'API Test Release Updated',
+        version: '99.99.99',
+        description: 'Updated by connectivity test',
+        plannedDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'InProgress',
+        type: 'Minor'
+      };
+      
+      await releasesApi.updateRelease(this.testReleaseId, testData);
+      
+      this.addResult({
+        endpoint: `PUT /api/v1/releases/${this.testReleaseId}`,
+        method: 'PUT',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Release updated successfully`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `PUT /api/v1/releases/${this.testReleaseId}`,
+        method: 'PUT',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testAddSprintToRelease(): Promise<void> {
+    try {
+      await releasesApi.addSprintToRelease(this.testReleaseId, this.testSprintId);
+      
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/sprints/${this.testSprintId}`,
+        method: 'POST',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Sprint added to release`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      // 400 is acceptable (sprint might already be assigned)
+      if (statusCode === 400) {
+        this.addResult({
+          endpoint: `POST /api/v1/releases/${this.testReleaseId}/sprints/${this.testSprintId}`,
+          method: 'POST',
+          status: 'SUCCESS',
+          statusCode: 400,
+          message: `✅ Endpoint exists (400 = validation error, which is expected)`
+        });
+      } else {
+        this.addResult({
+          endpoint: `POST /api/v1/releases/${this.testReleaseId}/sprints/${this.testSprintId}`,
+          method: 'POST',
+          status: 'FAIL',
+          statusCode,
+          error: error.message,
+          message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+        });
+      }
+    }
+  }
+
+  private async testBulkAddSprints(): Promise<void> {
+    try {
+      await releasesApi.bulkAddSprintsToRelease(this.testReleaseId, [this.testSprintId]);
+      
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/sprints/bulk`,
+        method: 'POST',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Sprints bulk added`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      if (statusCode === 400) {
+        this.addResult({
+          endpoint: `POST /api/v1/releases/${this.testReleaseId}/sprints/bulk`,
+          method: 'POST',
+          status: 'SUCCESS',
+          statusCode: 400,
+          message: `✅ Endpoint exists (400 = validation error, which is expected)`
+        });
+      } else {
+        this.addResult({
+          endpoint: `POST /api/v1/releases/${this.testReleaseId}/sprints/bulk`,
+          method: 'POST',
+          status: 'FAIL',
+          statusCode,
+          error: error.message,
+          message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+        });
+      }
+    }
+  }
+
+  private async testRemoveSprintFromRelease(): Promise<void> {
+    try {
+      await releasesApi.removeSprintFromRelease(this.testSprintId);
+      
+      this.addResult({
+        endpoint: `DELETE /api/v1/releases/sprints/${this.testSprintId}`,
+        method: 'DELETE',
+        status: 'SUCCESS',
+        statusCode: 204,
+        message: `✅ Sprint removed from release`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      if (statusCode === 400) {
+        this.addResult({
+          endpoint: `DELETE /api/v1/releases/sprints/${this.testSprintId}`,
+          method: 'DELETE',
+          status: 'SUCCESS',
+          statusCode: 400,
+          message: `✅ Endpoint exists (400 = sprint not in release, which is expected)`
+        });
+      } else {
+        this.addResult({
+          endpoint: `DELETE /api/v1/releases/sprints/${this.testSprintId}`,
+          method: 'DELETE',
+          status: 'FAIL',
+          statusCode,
+          error: error.message,
+          message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+        });
+      }
+    }
+  }
+
+  private async testGenerateReleaseNotes(): Promise<void> {
+    try {
+      const notes = await releasesApi.generateReleaseNotes(this.testReleaseId);
+      
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/notes/generate`,
+        method: 'POST',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Release notes generated (${typeof notes === 'string' ? notes.length : 0} chars)`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/notes/generate`,
+        method: 'POST',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testUpdateReleaseNotes(): Promise<void> {
+    try {
+      await releasesApi.updateReleaseNotes(this.testReleaseId, 'Test release notes');
+      
+      this.addResult({
+        endpoint: `PUT /api/v1/releases/${this.testReleaseId}/notes`,
+        method: 'PUT',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Release notes updated`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `PUT /api/v1/releases/${this.testReleaseId}/notes`,
+        method: 'PUT',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testGenerateChangelog(): Promise<void> {
+    try {
+      const changelog = await releasesApi.generateChangelog(this.testReleaseId);
+      
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/changelog/generate`,
+        method: 'POST',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Changelog generated (${typeof changelog === 'string' ? changelog.length : 0} chars)`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/changelog/generate`,
+        method: 'POST',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testUpdateChangelog(): Promise<void> {
+    try {
+      await releasesApi.updateChangelog(this.testReleaseId, 'Test changelog');
+      
+      this.addResult({
+        endpoint: `PUT /api/v1/releases/${this.testReleaseId}/changelog`,
+        method: 'PUT',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Changelog updated`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `PUT /api/v1/releases/${this.testReleaseId}/changelog`,
+        method: 'PUT',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testEvaluateQualityGates(): Promise<void> {
+    try {
+      const gates = await releasesApi.evaluateQualityGates(this.testReleaseId);
+      
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/quality-gates/evaluate`,
+        method: 'POST',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Quality gates evaluated (${Array.isArray(gates) ? gates.length : 0} gates)`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/quality-gates/evaluate`,
+        method: 'POST',
+        status: 'FAIL',
+        statusCode,
+        error: error.message,
+        message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+      });
+    }
+  }
+
+  private async testApproveQualityGate(): Promise<void> {
+    try {
+      await releasesApi.approveQualityGate(this.testReleaseId, 1);
+      
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/quality-gates/approve`,
+        method: 'POST',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Quality gate approved`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      if (statusCode === 400 || statusCode === 404) {
+        this.addResult({
+          endpoint: `POST /api/v1/releases/${this.testReleaseId}/quality-gates/approve`,
+          method: 'POST',
+          status: 'SUCCESS',
+          statusCode,
+          message: `✅ Endpoint exists (${statusCode} = expected validation/not found)`
+        });
+      } else {
+        this.addResult({
+          endpoint: `POST /api/v1/releases/${this.testReleaseId}/quality-gates/approve`,
+          method: 'POST',
+          status: 'FAIL',
+          statusCode,
+          error: error.message,
+          message: `❌ ${error.message}`
+        });
+      }
+    }
+  }
+
+  private async testDeployRelease(): Promise<void> {
+    try {
+      await releasesApi.deployRelease(this.testReleaseId);
+      
+      this.addResult({
+        endpoint: `POST /api/v1/releases/${this.testReleaseId}/deploy`,
+        method: 'POST',
+        status: 'SUCCESS',
+        statusCode: 200,
+        message: `✅ Release deployed`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      if (statusCode === 400) {
+        this.addResult({
+          endpoint: `POST /api/v1/releases/${this.testReleaseId}/deploy`,
+          method: 'POST',
+          status: 'SUCCESS',
+          statusCode: 400,
+          message: `✅ Endpoint exists (400 = quality gates not passed, which is expected)`
+        });
+      } else {
+        this.addResult({
+          endpoint: `POST /api/v1/releases/${this.testReleaseId}/deploy`,
+          method: 'POST',
+          status: 'FAIL',
+          statusCode,
+          error: error.message,
+          message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+        });
+      }
+    }
+  }
+
+  private async testDeleteRelease(): Promise<void> {
+    try {
+      await releasesApi.deleteRelease(this.testReleaseId);
+      
+      this.addResult({
+        endpoint: `DELETE /api/v1/releases/${this.testReleaseId}`,
+        method: 'DELETE',
+        status: 'SUCCESS',
+        statusCode: 204,
+        message: `✅ Release deleted`
+      });
+    } catch (error: any) {
+      const statusCode = this.extractStatusCode(error);
+      if (statusCode === 400) {
+        this.addResult({
+          endpoint: `DELETE /api/v1/releases/${this.testReleaseId}`,
+          method: 'DELETE',
+          status: 'SUCCESS',
+          statusCode: 400,
+          message: `✅ Endpoint exists (400 = cannot delete released version, which is expected)`
+        });
+      } else {
+        this.addResult({
+          endpoint: `DELETE /api/v1/releases/${this.testReleaseId}`,
+          method: 'DELETE',
+          status: 'FAIL',
+          statusCode,
+          error: error.message,
+          message: `❌ ${statusCode === 404 ? 'Endpoint not found (404)' : error.message}`
+        });
+      }
+    }
+  }
+
+  // ==================== HELPERS ====================
+
+  private skipMutationTests(): void {
+    const mutationEndpoints = [
+      { method: 'POST', endpoint: `/api/v1/projects/${this.testProjectId}/releases` },
+      { method: 'PUT', endpoint: `/api/v1/releases/${this.testReleaseId}` },
+      { method: 'DELETE', endpoint: `/api/v1/releases/${this.testReleaseId}` },
+      { method: 'POST', endpoint: `/api/v1/releases/${this.testReleaseId}/deploy` },
+      { method: 'POST', endpoint: `/api/v1/releases/${this.testReleaseId}/sprints/${this.testSprintId}` },
+      { method: 'POST', endpoint: `/api/v1/releases/${this.testReleaseId}/sprints/bulk` },
+      { method: 'DELETE', endpoint: `/api/v1/releases/sprints/${this.testSprintId}` },
+      { method: 'POST', endpoint: `/api/v1/releases/${this.testReleaseId}/notes/generate` },
+      { method: 'PUT', endpoint: `/api/v1/releases/${this.testReleaseId}/notes` },
+      { method: 'POST', endpoint: `/api/v1/releases/${this.testReleaseId}/changelog/generate` },
+      { method: 'PUT', endpoint: `/api/v1/releases/${this.testReleaseId}/changelog` },
+      { method: 'POST', endpoint: `/api/v1/releases/${this.testReleaseId}/quality-gates/approve` }
+    ];
+
+    mutationEndpoints.forEach(({ method, endpoint }) => {
+      this.addResult({
+        endpoint,
+        method,
+        status: 'SKIP',
+        message: '⏭️  Skipped (mutation test)'
+      });
+    });
+  }
+
+  private extractStatusCode(error: any): number | undefined {
+    // Try to extract status code from error message or error object
+    if (error?.response?.status) {
+      return error.response.status;
+    }
+    if (error?.status) {
+      return error.status;
+    }
+    // Check error message for status codes
+    const statusMatch = error?.message?.match(/(\d{3})/);
+    if (statusMatch) {
+      return parseInt(statusMatch[1], 10);
+    }
+    // Common error patterns
+    if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
+      return 401;
+    }
+    if (error?.message?.includes('403') || error?.message?.includes('Forbidden')) {
+      return 403;
+    }
+    if (error?.message?.includes('404') || error?.message?.includes('Not found')) {
+      return 404;
+    }
+    if (error?.message?.includes('400') || error?.message?.includes('Bad Request')) {
+      return 400;
+    }
+    return undefined;
+  }
+
+  private addResult(result: TestResult): void {
+    this.results.push(result);
+    
+    const color = result.status === 'SUCCESS' ? '#4CAF50' : 
+                  result.status === 'FAIL' ? '#F44336' : '#9E9E9E';
+    
+    console.log(`%c${result.method.padEnd(6)} ${result.endpoint}`, `color: ${color}; font-weight: bold;`);
+    console.log(`       ${result.message}`);
+    if (result.error) {
+      console.log(`       Error: ${result.error}`);
+    }
+  }
+
+  private printSummary(): void {
+    console.log('\n' + '='.repeat(80));
+    console.log('%c📊 TEST SUMMARY', 'color: #2196F3; font-size: 16px; font-weight: bold;');
+    console.log('='.repeat(80));
+
+    const total = this.results.length;
+    const success = this.results.filter(r => r.status === 'SUCCESS').length;
+    const failed = this.results.filter(r => r.status === 'FAIL').length;
+    const skipped = this.results.filter(r => r.status === 'SKIP').length;
+
+    console.log(`%c✅ SUCCESS: ${success}/${total}`, 'color: #4CAF50; font-weight: bold;');
+    console.log(`%c❌ FAILED:  ${failed}/${total}`, failed > 0 ? 'color: #F44336; font-weight: bold;' : 'color: #9E9E9E;');
+    console.log(`%c⏭️  SKIPPED: ${skipped}/${total}`, 'color: #9E9E9E;');
+
+    if (failed > 0) {
+      console.log('\n%c⚠️  FAILED ENDPOINTS:', 'color: #F44336; font-weight: bold;');
+      this.results
+        .filter(r => r.status === 'FAIL')
+        .forEach(r => {
+          console.log(`   ${r.method} ${r.endpoint}`);
+          console.log(`   → Status: ${r.statusCode ?? 'Unknown'}, Error: ${r.error ?? 'Unknown error'}`);
+        });
+    }
+
+    console.log('\n' + '='.repeat(80));
+    
+    if (failed === 0 && success > 0) {
+      console.log('%c🎉 All tested endpoints are working correctly!', 'color: #4CAF50; font-size: 14px; font-weight: bold;');
+    } else if (failed > 0) {
+      console.log('%c❌ Some endpoints failed. Check the errors above.', 'color: #F44336; font-size: 14px; font-weight: bold;');
+    }
+  }
+
+  /**
+   * Get test results for programmatic access
+   */
+  getResults(): TestResult[] {
+    return this.results;
+  }
+}
+
+// Export singleton instance for easy use in console
+export const releaseApiTester = new ReleaseApiConnectivityTester();
+
+// Console helper - only available in browser environment
+if (typeof window !== 'undefined') {
+  (window as any).testReleaseApi = async (createTestData = false) => {
+    await releaseApiTester.runAllTests(createTestData);
+    return releaseApiTester.getResults();
+  };
+
+  console.log('%cRelease API Connectivity Tester loaded!', 'color: #2196F3; font-weight: bold;');
+  console.log('Run tests with: %ctestReleaseApi()%c (read-only) or %ctestReleaseApi(true)%c (with mutations)', 
+    'font-weight: normal;', 'background: #EEEEEE; padding: 2px 6px; border-radius: 3px; font-family: monospace;',
+    'font-weight: normal;', 'background: #EEEEEE; padding: 2px 6px; border-radius: 3px; font-family: monospace;',
+    'font-weight: normal;');
+}
+

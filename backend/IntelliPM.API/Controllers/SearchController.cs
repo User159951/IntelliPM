@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Search.Queries;
+using IntelliPM.API.Authorization;
 using System.Security.Claims;
 
 namespace IntelliPM.API.Controllers;
@@ -25,6 +26,7 @@ public class SearchController : BaseApiController
     /// <summary>
     /// Global search across projects, tasks, and users
     /// </summary>
+    [RequirePermission("search.use")]
     [HttpGet]
     [ProducesResponseType(typeof(SearchResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]

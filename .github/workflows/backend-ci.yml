@@ -1,0 +1,54 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  SOLUTION_FILE: 'backend/IntelliPM.sln'
+  CONFIGURATION: 'Release'
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: 🔨 Build solution
+        run: dotnet build ${{ env.SOLUTION_FILE }} --configuration ${{ env.CONFIGURATION }} --no-restore
+
+      - name: 🧪 Run tests
+        run: dotnet test ${{ env.SOLUTION_FILE }} --configuration ${{ env.CONFIGURATION }} --no-build --logger "console;verbosity=detailed"
+
+      - name: ✅ CI Success
+        if: success()
+        run: echo "✅ Backend CI passed successfully!"
+
+      - name: ❌ CI Failed
+        if: failure()
+        run: echo "❌ Backend CI failed. Check logs above."
+
