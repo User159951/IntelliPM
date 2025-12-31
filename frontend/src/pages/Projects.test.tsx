@@ -270,6 +270,7 @@ describe('Projects Page', () => {
     await userEvent.type(nameInput, 'New Project')
 
     // Mock create API to return the new project
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockCreate.mockResolvedValueOnce(mockProjectsAfterCreate[0] as any)
 
     // Mock getAll to return the new project after creation

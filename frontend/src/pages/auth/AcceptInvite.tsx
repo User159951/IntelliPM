@@ -76,8 +76,9 @@ export default function AcceptInvite() {
       try {
         const data = await authApi.validateInviteToken(token);
         setInviteData(data);
-      } catch (err: any) {
-        const errorMessage = err.response?.data?.detail || err.message || 'Invitation invalide ou expirée';
+      } catch (err: unknown) {
+        const apiError = err as { response?: { data?: { detail?: string } }; message?: string };
+        const errorMessage = apiError.response?.data?.detail || apiError.message || 'Invitation invalide ou expirée';
         setError(errorMessage);
       } finally {
         setIsValidating(false);
@@ -139,8 +140,9 @@ export default function AcceptInvite() {
       setTimeout(() => {
         navigate('/dashboard');
       }, 1000);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.response?.data?.error || err.message || 'Échec de l\'acceptation de l\'invitation';
+    } catch (err: unknown) {
+      const apiError = err as { response?: { data?: { detail?: string; error?: string } }; message?: string };
+      const errorMessage = apiError.response?.data?.detail || apiError.response?.data?.error || apiError.message || 'Échec de l\'acceptation de l\'invitation';
       showError('Échec de l\'acceptation de l\'invitation', errorMessage);
     } finally {
       setIsLoading(false);

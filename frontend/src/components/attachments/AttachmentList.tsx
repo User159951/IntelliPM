@@ -66,8 +66,9 @@ export default function AttachmentList({
       showToast('Attachment deleted successfully', 'success');
       refetch();
     },
-    onError: (error: any) => {
-      showError('Failed to delete attachment', error.message || 'An error occurred');
+    onError: (error: unknown) => {
+      const apiError = error as { message?: string };
+      showError('Failed to delete attachment', apiError.message || 'An error occurred');
     },
   });
 

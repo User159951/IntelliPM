@@ -23,11 +23,13 @@ interface AllProvidersProps {
   children: ReactNode
   queryClient?: QueryClient
   initialAuthState?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     user?: any
     isAuthenticated?: boolean
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 const AllProviders = ({ 
   children, 
   queryClient = createTestQueryClient()
@@ -48,6 +50,7 @@ const AllProviders = ({
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   queryClient?: QueryClient
   initialAuthState?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     user?: any
     isAuthenticated?: boolean
   }
@@ -86,6 +89,7 @@ export const renderWithAuth = (
   })
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export * from '@testing-library/react'
 export { customRender as render }
 

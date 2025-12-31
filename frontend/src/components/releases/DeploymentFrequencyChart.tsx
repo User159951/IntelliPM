@@ -76,7 +76,7 @@ export function DeploymentFrequencyChart({
           acc[month] = { month, Major: 0, Minor: 0, Patch: 0, Hotfix: 0 };
         }
         const type = release.type as 'Major' | 'Minor' | 'Patch' | 'Hotfix';
-        if (acc[month].hasOwnProperty(type)) {
+        if (Object.prototype.hasOwnProperty.call(acc[month], type)) {
           acc[month][type]++;
         }
         return acc;

@@ -240,6 +240,7 @@ export default memo(StatusBadge);
  * </span>
  * ```
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getStatusColor(status: TaskStatus): string {
   return statusConfig[status]?.color.text || 'text-gray-700 dark:text-gray-300';
 }
@@ -255,6 +256,7 @@ export function getStatusColor(status: TaskStatus): string {
  * <span>{getStatusLabel(task.status)}</span>
  * ```
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getStatusLabel(status: TaskStatus): string {
   return statusConfig[status]?.label || status;
 }
@@ -271,6 +273,7 @@ export function getStatusLabel(status: TaskStatus): string {
  * <StatusIcon className="h-4 w-4" />
  * ```
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getStatusIcon(status: TaskStatus): LucideIcon {
   return statusConfig[status]?.icon || Circle;
 }

@@ -49,6 +49,11 @@ const mockPermissions = {
   canEditTasks: true,
   canDeleteTasks: true,
   canManageSprints: true,
+  canViewMilestones: true,
+  canCreateMilestone: true,
+  canEditMilestone: true,
+  canCompleteMilestone: true,
+  canDeleteMilestone: true,
   isViewer: false,
   isProductOwner: true,
   isScrumMaster: false,
@@ -144,6 +149,7 @@ describe('TeamMembersList', () => {
       },
     ]
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetMembers.mockResolvedValue(mockMembers as any)
 
     render(<TeamMembersList projectId={1} ownerId={1} />)
@@ -201,6 +207,7 @@ describe('TeamMembersList', () => {
       },
     ]
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetMembers.mockResolvedValue(mockMembers as any)
 
     // Test with permissions
@@ -263,6 +270,7 @@ describe('TeamMembersList', () => {
         invitedAt: '2024-01-03T00:00:00Z',
         invitedByName: 'Admin',
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any)
 
     // Click mock invite success button
@@ -290,6 +298,7 @@ describe('TeamMembersList', () => {
       },
     ]
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetMembers.mockResolvedValue(mockMembers as any)
     mockUpdateMemberRole.mockResolvedValueOnce(undefined)
 
@@ -352,6 +361,7 @@ describe('TeamMembersList', () => {
       },
     ]
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetMembers.mockResolvedValue(mockMembers as any)
     mockRemoveMember.mockResolvedValueOnce(undefined)
 

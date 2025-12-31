@@ -137,7 +137,7 @@ class ReadModelService {
    * @returns Task board with pre-grouped tasks
    */
   async getTaskBoard(projectId: number): Promise<TaskBoardDto> {
-    const response = await apiClient.get<any>(`${this.basePath}/task-board/${projectId}`);
+    const response = await apiClient.get<Record<string, unknown>>(`${this.basePath}/task-board/${projectId}`);
     // Normalize response to handle both PascalCase and camelCase
     return {
       projectId: response.projectId ?? response.ProjectId,
@@ -163,7 +163,7 @@ class ReadModelService {
    * @returns Sprint summary with pre-calculated metrics
    */
   async getSprintSummary(sprintId: number): Promise<SprintSummaryDto> {
-    const response = await apiClient.get<any>(`${this.basePath}/sprint-summary/${sprintId}`);
+    const response = await apiClient.get<Record<string, unknown>>(`${this.basePath}/sprint-summary/${sprintId}`);
     // Normalize response to handle both PascalCase and camelCase
     return {
       sprintId: response.sprintId ?? response.SprintId,
@@ -198,7 +198,7 @@ class ReadModelService {
    * @returns Project overview with aggregated metrics
    */
   async getProjectOverview(projectId: number): Promise<ProjectOverviewDto> {
-    const response = await apiClient.get<any>(`${this.basePath}/project-overview/${projectId}`);
+    const response = await apiClient.get<Record<string, unknown>>(`${this.basePath}/project-overview/${projectId}`);
     // Normalize response to handle both PascalCase and camelCase
     return {
       projectId: response.projectId ?? response.ProjectId,

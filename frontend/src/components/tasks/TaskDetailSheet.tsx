@@ -214,13 +214,7 @@ export function TaskDetailSheet({
     addCommentMutation.mutate(newComment.trim());
   };
 
-  if (!localTask) return null;
-
-  const comments = commentsData?.comments || [];
-  const attachments = attachmentsData?.attachments || [];
-  const activities = activityData?.activities || [];
-
-  // Check if task is blocked by dependencies
+  // Check if task is blocked by dependencies (must be called before any early returns)
   const { isBlocked, blockedByCount, blockingTasks } = useTaskDependencies(
     localTask?.id ?? 0,
     // Build task map from fullTask if available
@@ -228,6 +222,12 @@ export function TaskDetailSheet({
       ? new Map([[fullTask.id, { status: fullTask.status, title: fullTask.title }]])
       : undefined
   );
+
+  if (!localTask) return null;
+
+  const comments = commentsData?.comments || [];
+  const attachments = attachmentsData?.attachments || [];
+  const activities = activityData?.activities || [];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

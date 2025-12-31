@@ -23,6 +23,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { dependenciesApi } from '@/api/dependencies';
 import type { DependencyGraphNodeDto, DependencyGraphEdgeDto } from '@/types/dependencies';
+import type { TaskStatus } from '@/types';
 import StatusBadge from './StatusBadge';
 import { cn } from '@/lib/utils';
 import dagre from 'dagre';
@@ -34,7 +35,7 @@ interface DependencyGraphProps {
 // Custom node component
 interface CustomTaskNodeData {
   label: string;
-  status: string;
+  status: TaskStatus;
   assigneeName: string | null;
 }
 
@@ -72,7 +73,7 @@ function CustomTaskNode({ data }: { data: CustomTaskNodeData }) {
         
         {/* Status badge */}
         <div>
-          <StatusBadge status={data.status as any} size="sm" />
+          <StatusBadge status={data.status} size="sm" />
         </div>
         
         {/* Assignee */}
@@ -113,7 +114,7 @@ function DependencyGraphFlow({
 }: {
   nodes: Node[];
   edges: Edge[];
-  nodeTypes: any;
+  nodeTypes: Record<string, React.ComponentType<unknown>>;
 }) {
   const { fitView } = useReactFlow();
   

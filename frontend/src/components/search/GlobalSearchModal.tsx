@@ -52,17 +52,10 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
     enabled: debouncedQuery.length >= 2,
   });
 
-  const results = data?.results || [];
-  const groupedResults = {
-    projects: results.filter(r => r.type === 'project'),
-    tasks: results.filter(r => r.type === 'task'),
-    users: results.filter(r => r.type === 'user'),
-  };
-
   // Reset selected index when results change
   useEffect(() => {
     setSelectedIndex(0);
-  }, [results.length]);
+  }, [data?.results?.length]);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -76,6 +69,7 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
   useEffect(() => {
     if (!open) return;
 
+    const results = data?.results || [];
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -98,7 +92,7 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, results, selectedIndex, navigate, onOpenChange]);
+  }, [open, data?.results, selectedIndex, navigate, onOpenChange]);
 
   const handleResultClick = (result: SearchResult) => {
     if (result.url) {

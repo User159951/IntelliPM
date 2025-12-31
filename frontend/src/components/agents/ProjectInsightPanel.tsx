@@ -18,8 +18,9 @@ export function ProjectInsightPanel({ projectId }: Props) {
     try {
       const response = await agentsApi.analyzeProject(projectId);
       // Backend returns Semantic Kernel AgentResponse (Content, ExecutionTimeMs, etc.)
-      const content = (response as any).content ?? (response as any).Content;
-      const time = (response as any).executionTimeMs ?? (response as any).ExecutionTimeMs;
+      const apiResponse = response as { content?: string; Content?: string; executionTimeMs?: number; ExecutionTimeMs?: number };
+      const content = apiResponse.content ?? apiResponse.Content;
+      const time = apiResponse.executionTimeMs ?? apiResponse.ExecutionTimeMs;
 
       setInsight(content || 'No summary generated');
       showToast(time ? `Analysis Complete - Completed in ${time}ms` : 'Analysis Complete', 'success');

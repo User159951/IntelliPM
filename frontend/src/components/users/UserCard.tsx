@@ -149,7 +149,7 @@ export function UserCard({ user, onClick, showActions = false, className }: User
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h3 className="font-semibold text-base truncate">{fullName}</h3>
-              <RoleBadge role={normalizedUser.role} size="sm" />
+              {normalizedUser.role && <RoleBadge role={normalizedUser.role} size="sm" />}
             </div>
             <p className="text-sm text-muted-foreground truncate">@{normalizedUser.username}</p>
           </div>

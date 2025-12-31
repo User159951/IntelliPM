@@ -28,8 +28,7 @@ export const milestonesApi = {
     if (status) params.append('status', status);
     if (includeCompleted !== undefined) params.append('includeCompleted', includeCompleted.toString());
 
-    const response = await apiClient.get(`/api/v1/projects/${projectId}/milestones?${params}`);
-    return response.data;
+    return apiClient.get<MilestoneDto[]>(`/api/v1/projects/${projectId}/milestones?${params}`);
   },
 
   /**
@@ -39,10 +38,10 @@ export const milestonesApi = {
    */
   getNextMilestone: async (projectId: number): Promise<MilestoneDto | null> => {
     try {
-      const response = await apiClient.get(`/api/v1/projects/${projectId}/milestones/next`);
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) return null;
+      return await apiClient.get<MilestoneDto | null>(`/api/v1/projects/${projectId}/milestones/next`);
+    } catch (error: unknown) {
+      const apiError = error as { response?: { status?: number } };
+      if (apiError?.response?.status === 404) return null;
       throw error;
     }
   },
@@ -53,8 +52,7 @@ export const milestonesApi = {
    * @returns The milestone
    */
   getMilestone: async (id: number): Promise<MilestoneDto> => {
-    const response = await apiClient.get(`/api/v1/milestones/${id}`);
-    return response.data;
+    return apiClient.get<MilestoneDto>(`/api/v1/milestones/${id}`);
   },
 
   /**
@@ -67,8 +65,7 @@ export const milestonesApi = {
     projectId: number,
     data: CreateMilestoneRequest
   ): Promise<MilestoneDto> => {
-    const response = await apiClient.post(`/api/v1/projects/${projectId}/milestones`, data);
-    return response.data;
+    return apiClient.post<MilestoneDto>(`/api/v1/projects/${projectId}/milestones`, data);
   },
 
   /**
@@ -81,8 +78,7 @@ export const milestonesApi = {
     id: number,
     data: UpdateMilestoneRequest
   ): Promise<MilestoneDto> => {
-    const response = await apiClient.put(`/api/v1/milestones/${id}`, data);
-    return response.data;
+    return apiClient.put<MilestoneDto>(`/api/v1/milestones/${id}`, data);
   },
 
   /**
@@ -95,8 +91,7 @@ export const milestonesApi = {
     id: number,
     data?: CompleteMilestoneRequest
   ): Promise<MilestoneDto> => {
-    const response = await apiClient.post(`/api/v1/milestones/${id}/complete`, data || {});
-    return response.data;
+    return apiClient.post<MilestoneDto>(`/api/v1/milestones/${id}/complete`, data || {});
   },
 
   /**
@@ -113,8 +108,7 @@ export const milestonesApi = {
    * @returns Milestone statistics
    */
   getMilestoneStatistics: async (projectId: number): Promise<MilestoneStatistics> => {
-    const response = await apiClient.get(`/api/v1/projects/${projectId}/milestones/statistics`);
-    return response.data;
+    return apiClient.get<MilestoneStatistics>(`/api/v1/projects/${projectId}/milestones/statistics`);
   },
 
   /**
@@ -122,8 +116,7 @@ export const milestonesApi = {
    * @returns Array of overdue milestones
    */
   getOverdueMilestones: async (): Promise<MilestoneDto[]> => {
-    const response = await apiClient.get('/api/v1/milestones/overdue');
-    return response.data;
+    return apiClient.get<MilestoneDto[]>('/api/v1/milestones/overdue');
   },
 };
 

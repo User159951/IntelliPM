@@ -194,12 +194,13 @@ export function TaskListView({
           comparison = aSprint.localeCompare(bSprint);
           break;
         }
-        case 'dueDate':
+        case 'dueDate': {
           // Note: dueDate not in Task interface yet, using updatedAt as fallback
           const aDate = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
           const bDate = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
           comparison = aDate - bDate;
           break;
+        }
       }
 
       return sortDirection === 'asc' ? comparison : -comparison;

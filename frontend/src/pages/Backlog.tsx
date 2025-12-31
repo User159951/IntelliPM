@@ -84,8 +84,9 @@ export default function Backlog() {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: (error: any) => {
-      showError('Failed to add task to sprint', error.message || 'An error occurred');
+    onError: (error: unknown) => {
+      const apiError = error as { message?: string };
+      showError('Failed to add task to sprint', apiError.message || 'An error occurred');
       queryClient.invalidateQueries({ queryKey: ['backlog'] });
     },
   });
@@ -99,8 +100,9 @@ export default function Backlog() {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
-    onError: (error: any) => {
-      showError('Failed to remove task from sprint', error.message || 'An error occurred');
+    onError: (error: unknown) => {
+      const apiError = error as { message?: string };
+      showError('Failed to remove task from sprint', apiError.message || 'An error occurred');
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
     },
   });

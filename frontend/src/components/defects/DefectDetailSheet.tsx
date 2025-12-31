@@ -96,7 +96,10 @@ export function DefectDetailSheet({
   );
 
   // Update handlers with auto-save
-  const handleFieldChange = (field: keyof UpdateDefectRequest, value: any) => {
+  const handleFieldChange = <K extends keyof UpdateDefectRequest>(
+    field: K,
+    value: UpdateDefectRequest[K]
+  ) => {
     if (!localDefect) return;
     setLocalDefect({ ...localDefect, [field]: value } as DefectDetail);
     debouncedSave({ [field]: value });

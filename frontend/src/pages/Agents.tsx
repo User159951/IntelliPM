@@ -26,7 +26,7 @@ interface AgentConfig {
   name: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  runFn: (projectId: number) => Promise<any>;
+  runFn: (projectId: number) => Promise<unknown>;
 }
 
 export default function Agents() {

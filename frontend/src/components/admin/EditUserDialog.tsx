@@ -43,10 +43,11 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
       onOpenChange(false);
       showSuccess("User updated", "The user has been successfully updated.");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
       const errorMessage =
-        error?.response?.data?.error ||
-        error?.message ||
+        apiError?.response?.data?.error ||
+        (apiError?.message) ||
         'Please try again';
       showError('Failed to update user');
     },

@@ -88,8 +88,9 @@ export function CreateMilestoneDialog({
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.error || error?.message || 'Failed to create milestone';
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      const message = apiError?.response?.data?.error || apiError?.message || 'Failed to create milestone';
       showToast(message, 'error');
     },
   });

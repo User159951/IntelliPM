@@ -185,6 +185,7 @@ export const FeatureFlagsProvider: React.FC<FeatureFlagsProviderProps> = ({
  * }
  * ```
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useFeatureFlags = (): FeatureFlagsContextType => {
   const context = useContext(FeatureFlagsContext);
   if (context === undefined) {

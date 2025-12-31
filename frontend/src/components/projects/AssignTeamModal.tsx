@@ -82,7 +82,7 @@ export default function AssignTeamModal({
     // TODO: Fetch assigned teams from project when API endpoint is available
     // For now, return empty array - backend will handle duplicate assignments gracefully
     return [] as number[];
-  }, [project]);
+  }, []);
 
   // Available teams (not already assigned)
   const availableTeams = useMemo(() => {

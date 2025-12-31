@@ -70,8 +70,9 @@ export function QualityGatesPanel({ release }: QualityGatesPanelProps) {
       queryClient.invalidateQueries({ queryKey: ['projectReleases', release.projectId] });
       showToast('Quality gates re-evaluated successfully', 'success');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.error || error?.message || 'Failed to evaluate quality gates';
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      const message = apiError?.response?.data?.error || apiError?.message || 'Failed to evaluate quality gates';
       showToast(message, 'error');
     },
   });
@@ -83,8 +84,9 @@ export function QualityGatesPanel({ release }: QualityGatesPanelProps) {
       queryClient.invalidateQueries({ queryKey: ['projectReleases', release.projectId] });
       showToast('Quality gate approved successfully', 'success');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.error || error?.message || 'Failed to approve quality gate';
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      const message = apiError?.response?.data?.error || apiError?.message || 'Failed to approve quality gate';
       showToast(message, 'error');
     },
   });

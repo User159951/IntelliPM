@@ -20,7 +20,7 @@ import { EditMilestoneDialog } from './EditMilestoneDialog';
 import { CompleteMilestoneDialog } from './CompleteMilestoneDialog';
 import { Plus } from 'lucide-react';
 import { MySwal } from '@/lib/sweetalert';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useProjectPermissions } from '@/hooks/useProjectPermissions';
 import type { MilestoneDto } from '@/types/milestones';
 
 interface MilestonesListProps {
@@ -44,11 +44,11 @@ export function MilestonesList({
   const [editingMilestone, setEditingMilestone] = useState<MilestoneDto | null>(null);
   const [completingMilestone, setCompletingMilestone] = useState<MilestoneDto | null>(null);
 
-  const permissions = usePermissionsWithProject(projectId);
-  const canCreate = permissions.hasPermission('milestones.create');
-  const canEdit = permissions.hasPermission('milestones.edit');
-  const canComplete = permissions.hasPermission('milestones.complete');
-  const canDelete = permissions.hasPermission('milestones.delete');
+  const permissions = useProjectPermissions(projectId);
+  const canCreate = permissions.canCreateMilestone;
+  const canEdit = permissions.canEditMilestone;
+  const canComplete = permissions.canCompleteMilestone;
+  const canDelete = permissions.canDeleteMilestone;
 
   const { data: milestones, isLoading } = useQuery({
     queryKey: ['projectMilestones', projectId, statusFilter, includeCompleted],
@@ -76,11 +76,12 @@ export function MilestonesList({
           timer: 2000,
           showConfirmButton: false,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const apiError = error as { response?: { data?: { error?: string } }; message?: string };
         MySwal.fire({
           icon: 'error',
           title: 'Error',
-          text: error?.response?.data?.error || error?.message || 'Failed to delete milestone',
+          text: apiError?.response?.data?.error || apiError?.message || 'Failed to delete milestone',
         });
       }
     }

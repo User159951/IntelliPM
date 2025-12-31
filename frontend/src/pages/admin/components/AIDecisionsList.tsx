@@ -14,13 +14,14 @@ import {
 import { Brain } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import * as React from 'react';
 
 function EmptyState({
   icon: Icon,
   message,
   description,
 }: {
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   message: string;
   description?: string;
 }) {

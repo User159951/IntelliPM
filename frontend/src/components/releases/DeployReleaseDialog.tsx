@@ -64,8 +64,9 @@ export function DeployReleaseDialog({
       setDeploymentNotes('');
       setConfirmed(false);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.error || error?.message || 'Failed to deploy release';
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      const message = apiError?.response?.data?.error || apiError?.message || 'Failed to deploy release';
       showToast(message, 'error');
     },
   });

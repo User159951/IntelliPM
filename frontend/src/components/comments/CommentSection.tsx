@@ -54,8 +54,9 @@ export default function CommentSection({ entityType, entityId }: CommentSectionP
       showToast('Comment added successfully', 'success');
       queryClient.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
     },
-    onError: (error: any) => {
-      showError('Failed to add comment', error.message || 'An error occurred');
+    onError: (error: unknown) => {
+      const apiError = error as { message?: string };
+      showError('Failed to add comment', apiError.message || 'An error occurred');
     },
   });
 
@@ -66,8 +67,9 @@ export default function CommentSection({ entityType, entityId }: CommentSectionP
       showToast('Comment updated successfully', 'success');
       queryClient.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
     },
-    onError: (error: any) => {
-      showError('Failed to update comment', error.message || 'An error occurred');
+    onError: (error: unknown) => {
+      const apiError = error as { message?: string };
+      showError('Failed to update comment', apiError.message || 'An error occurred');
     },
   });
 
@@ -77,8 +79,9 @@ export default function CommentSection({ entityType, entityId }: CommentSectionP
       showToast('Comment deleted successfully', 'success');
       queryClient.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
     },
-    onError: (error: any) => {
-      showError('Failed to delete comment', error.message || 'An error occurred');
+    onError: (error: unknown) => {
+      const apiError = error as { message?: string };
+      showError('Failed to delete comment', apiError.message || 'An error occurred');
     },
   });
 

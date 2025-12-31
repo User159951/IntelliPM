@@ -1,7 +1,6 @@
 import { apiClient } from './client';
 import { commentsApi, type Comment } from './comments';
 import { attachmentsApi, type Attachment } from './attachments';
-import { activityApi } from './activity';
 import type { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus, TaskComment, TaskAttachment, TaskActivity } from '@/types';
 
 interface TaskFilters {

@@ -73,10 +73,9 @@ export default function CommentForm({
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const teamMembers = teamMembersResponse?.users || [];
-
   // Filter users based on mention search
   const filteredUsers = useMemo(() => {
+    const teamMembers = teamMembersResponse?.users || [];
     if (!teamMembers || !mentionSearch) return [];
 
     const search = mentionSearch.toLowerCase();
@@ -88,7 +87,7 @@ export default function CommentForm({
           user.lastName?.toLowerCase().includes(search)
       )
       .slice(0, 5); // Limit to 5 suggestions
-  }, [teamMembers, mentionSearch]);
+  }, [teamMembersResponse?.users, mentionSearch]);
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;

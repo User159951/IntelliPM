@@ -27,7 +27,7 @@ export function NotificationDropdown() {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['notifications', 'all'],
-    queryFn: () => notificationsApi.getAll(false, 10),
+    queryFn: () => notificationsApi.getAll({ limit: 10, unreadOnly: false }),
     refetchInterval: 30000, // Poll every 30s
   });
 

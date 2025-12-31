@@ -64,8 +64,9 @@ export default function AttachmentUpload({
       });
       onUploadComplete?.();
     },
-    onError: (error: any, file) => {
-      showError(`Failed to upload ${file.name}`, error.message || 'An error occurred');
+    onError: (error: unknown, file: File) => {
+      const apiError = error as { message?: string };
+      showError(`Failed to upload ${file.name}`, apiError.message || 'An error occurred');
       setUploadProgress((prev) => {
         const newProgress = { ...prev };
         delete newProgress[file.name];

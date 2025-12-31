@@ -162,6 +162,7 @@ describe('ProjectDetail Page', () => {
       endDate: '2024-12-31',
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetById.mockResolvedValue(mockProject as any)
     mockGetUserRole.mockResolvedValue('ProductOwner')
 
@@ -194,6 +195,7 @@ describe('ProjectDetail Page', () => {
       createdAt: '2024-01-01T00:00:00Z',
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetById.mockResolvedValue(mockProject as any)
     mockGetUserRole.mockResolvedValue('ProductOwner')
 
@@ -224,6 +226,7 @@ describe('ProjectDetail Page', () => {
       createdAt: '2024-01-01T00:00:00Z',
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetById.mockResolvedValue(mockProject as any)
     mockGetUserRole.mockResolvedValue('ProductOwner')
 
@@ -269,9 +272,12 @@ describe('ProjectDetail Page', () => {
     }
 
     mockGetById
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .mockResolvedValueOnce(mockProject as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .mockResolvedValueOnce(updatedProject as any)
     mockGetUserRole.mockResolvedValue('ProductOwner')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockUpdate.mockResolvedValue(updatedProject as any)
 
     // Create a test query client and spy on invalidateQueries
@@ -319,6 +325,7 @@ describe('ProjectDetail Page', () => {
   })
 
   it('displays error state when project not found', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetById.mockResolvedValue(null as any)
 
     render(<ProjectDetail />)

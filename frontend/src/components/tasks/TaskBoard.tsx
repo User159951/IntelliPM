@@ -216,8 +216,8 @@ export default function TaskBoard({
 
     // Optimistically update local state
     const updatedTasks = localTasks.map((t) =>
-      t.id === taskId ? { ...t, status: newStatus } : t
-    );
+      t.id === taskId ? { ...t, status: newStatus as TaskStatus } : t
+    ) as typeof localTasks;
     setLocalTasks(updatedTasks);
 
     // Call parent handler to persist change

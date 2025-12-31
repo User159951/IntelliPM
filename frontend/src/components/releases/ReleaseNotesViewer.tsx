@@ -18,6 +18,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github-dark.css';
+import * as React from 'react';
 
 interface ReleaseNotesViewerProps {
   release: ReleaseDto;
@@ -50,37 +51,37 @@ function EmptyState({ type, onGenerate }: EmptyStateProps) {
 }
 
 const markdownComponents = {
-  h1: ({ node, ...props }: any) => (
+  h1: ({ ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
     <h1
       className="text-3xl font-bold mb-4 mt-6 first:mt-0 text-foreground"
       {...props}
     />
   ),
-  h2: ({ node, ...props }: any) => (
+  h2: ({ ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
     <h2 className="text-2xl font-semibold mb-3 mt-6 text-foreground" {...props} />
   ),
-  h3: ({ node, ...props }: any) => (
+  h3: ({ ...props }: React.ComponentPropsWithoutRef<'h3'>) => (
     <h3 className="text-xl font-semibold mb-2 mt-4 text-foreground" {...props} />
   ),
-  p: ({ node, ...props }: any) => (
+  p: ({ ...props }: React.ComponentPropsWithoutRef<'p'>) => (
     <p className="mb-4 leading-7 text-muted-foreground" {...props} />
   ),
-  ul: ({ node, ...props }: any) => (
+  ul: ({ ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
     <ul className="list-disc list-inside mb-4 space-y-2 ml-4" {...props} />
   ),
-  ol: ({ node, ...props }: any) => (
+  ol: ({ ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
     <ol className="list-decimal list-inside mb-4 space-y-2 ml-4" {...props} />
   ),
-  li: ({ node, ...props }: any) => (
+  li: ({ ...props }: React.ComponentPropsWithoutRef<'li'>) => (
     <li className="text-muted-foreground" {...props} />
   ),
-  blockquote: ({ node, ...props }: any) => (
+  blockquote: ({ ...props }: React.ComponentPropsWithoutRef<'blockquote'>) => (
     <blockquote
       className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground"
       {...props}
     />
   ),
-  code: ({ node, inline, className, children, ...props }: any) => {
+  code: ({ inline, className, children, ...props }: React.ComponentPropsWithoutRef<'code'> & { inline?: boolean }) => {
     return inline ? (
       <code
         className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono"
@@ -100,7 +101,7 @@ const markdownComponents = {
       </code>
     );
   },
-  a: ({ node, ...props }: any) => (
+  a: ({ ...props }: React.ComponentPropsWithoutRef<'a'>) => (
     <a
       className="text-primary hover:underline"
       target="_blank"
@@ -108,7 +109,7 @@ const markdownComponents = {
       {...props}
     />
   ),
-  table: ({ node, ...props }: any) => (
+  table: ({ ...props }: React.ComponentPropsWithoutRef<'table'>) => (
     <div className="overflow-x-auto my-4">
       <table
         className="min-w-full border-collapse border border-border"
@@ -116,16 +117,16 @@ const markdownComponents = {
       />
     </div>
   ),
-  th: ({ node, ...props }: any) => (
+  th: ({ ...props }: React.ComponentPropsWithoutRef<'th'>) => (
     <th
       className="border border-border px-4 py-2 bg-muted font-semibold text-left"
       {...props}
     />
   ),
-  td: ({ node, ...props }: any) => (
+  td: ({ ...props }: React.ComponentPropsWithoutRef<'td'>) => (
     <td className="border border-border px-4 py-2" {...props} />
   ),
-  hr: ({ node, ...props }: any) => (
+  hr: ({ ...props }: React.ComponentPropsWithoutRef<'hr'>) => (
     <hr className="my-6 border-border" {...props} />
   ),
 };
@@ -226,7 +227,7 @@ export function ReleaseNotesViewer({
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'notes' | 'changelog')}>
           <TabsList className="w-full no-print">
             <TabsTrigger value="notes" className="flex-1">
               <FileText className="h-4 w-4 mr-2" />

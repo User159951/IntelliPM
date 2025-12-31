@@ -83,7 +83,8 @@ export default function ResetPassword() {
       } else {
         showError('Erreur');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as { message?: string };
       showError('Erreur');
     } finally {
       setIsLoading(false);

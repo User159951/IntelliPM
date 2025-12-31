@@ -126,11 +126,11 @@ export const usersApi = {
     return apiClient.post<InviteOrganizationUserResponse>('/api/admin/users/invite', data);
   },
 
-  getUserProjects: async (userId: number, page = 1, pageSize = 20): Promise<PagedResponse<any>> => {
-    return apiClient.get<PagedResponse<any>>(`/api/v1/Users/${userId}/projects?page=${page}&pageSize=${pageSize}`);
+  getUserProjects: async (userId: number, page = 1, pageSize = 20): Promise<PagedResponse<ProjectListDto>> => {
+    return apiClient.get<PagedResponse<ProjectListDto>>(`/api/v1/Users/${userId}/projects?page=${page}&pageSize=${pageSize}`);
   },
 
-  getUserActivity: async (userId: number, limit = 50): Promise<any> => {
-    return apiClient.get<any>(`/api/v1/Users/${userId}/activity?limit=${limit}`);
+  getUserActivity: async (userId: number, limit = 50): Promise<Array<{ type: string; description: string; timestamp: string }>> => {
+    return apiClient.get<Array<{ type: string; description: string; timestamp: string }>>(`/api/v1/Users/${userId}/activity?limit=${limit}`);
   },
 };

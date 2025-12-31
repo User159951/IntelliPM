@@ -152,6 +152,7 @@ describe('RequireAdminGuard', () => {
 
   it('shows loading state while checking authentication', async () => {
     // Mock delayed response
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let resolveRequest: (value: any) => void
     const delayedResponse = new Promise((resolve) => {
       resolveRequest = resolve

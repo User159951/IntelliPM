@@ -17,8 +17,9 @@ export function RiskDetectionPanel({ projectId }: Props) {
 
     try {
       const response = await agentsApi.detectRisks(projectId);
-      const content = (response as any).content ?? (response as any).Content;
-      const time = (response as any).executionTimeMs ?? (response as any).ExecutionTimeMs;
+      const apiResponse = response as { content?: string; Content?: string; executionTimeMs?: number; ExecutionTimeMs?: number };
+      const content = apiResponse.content ?? apiResponse.Content;
+      const time = apiResponse.executionTimeMs ?? apiResponse.ExecutionTimeMs;
 
       setAnalysis(content || 'No risks detected');
       showToast(time ? `Risk Detection Complete - Completed in ${time}ms` : 'Risk Detection Complete', 'success');

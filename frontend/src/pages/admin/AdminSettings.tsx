@@ -52,8 +52,9 @@ export default function AdminSettings() {
       queryClient.invalidateQueries({ queryKey: ['settings', variables.category] });
       showSuccess("Settings updated", "Settings have been successfully updated.");
     },
-    onError: (error: any) => {
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to update settings';
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      const errorMessage = apiError.response?.data?.error || apiError.message || 'Failed to update settings';
       showError('Failed to update settings');
     },
   });
@@ -693,7 +694,8 @@ export default function AdminSettings() {
                               } else {
                                 showError('Failed to send test email');
                               }
-                            } catch (error: any) {
+                            } catch (error: unknown) {
+                              const apiError = error as { message?: string };
                               showError('Error');
                             }
                           }}

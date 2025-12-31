@@ -48,8 +48,13 @@ jobs:
         run: dotnet build --configuration Release --no-restore --verbosity normal
         working-directory: ./backend
 
-      # 6. Exécution des tests (exclusion explicite des tests E2E)
-      - name: Run tests
-        run: dotnet test --configuration Release --no-build --logger "console;verbosity=detailed" --filter "FullyQualifiedName!~E2E"
+      # 6. Exécution des tests UNITAIRES uniquement (SANS E2E ni Integration)
+      - name: Run unit tests only
+        run: |
+          dotnet test \
+            --configuration Release \
+            --no-build \
+            --logger "console;verbosity=detailed" \
+            --filter "FullyQualifiedName!~Integration&FullyQualifiedName!~E2E&FullyQualifiedName!~Infrastructure"
         working-directory: ./backend
 

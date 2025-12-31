@@ -110,7 +110,7 @@ export function ReleasesList({
               <SelectItem value="Failed">Failed</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'version' | 'date' | 'name')}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>

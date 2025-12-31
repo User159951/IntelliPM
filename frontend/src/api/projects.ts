@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 import type { Project, CreateProjectRequest, UpdateProjectRequest, ProjectMember, ProjectRole, ProjectType, ProjectStatus } from '@/types';
 
-interface ProjectListDto {
+export interface ProjectListDto {
   id: number;
   name: string;
   description: string;

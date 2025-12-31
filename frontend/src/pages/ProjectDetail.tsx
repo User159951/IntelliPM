@@ -6,6 +6,7 @@ import { memberService } from '@/api/memberService';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
 import { sprintsApi } from '@/api/sprints';
 import { tasksApi } from '@/api/tasks';
+import { milestonesApi } from '@/api/milestones';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

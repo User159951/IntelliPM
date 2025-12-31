@@ -71,6 +71,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Found ${Array.isArray(data) ? data.length : 0} releases`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -92,8 +93,10 @@ export class ReleaseApiConnectivityTester {
         method: 'GET',
         status: 'SUCCESS',
         statusCode: 200,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         message: `✅ Release found: ${(data as any)?.name ?? 'Unknown'}`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       if (statusCode === 404) {
@@ -125,8 +128,10 @@ export class ReleaseApiConnectivityTester {
         method: 'GET',
         status: 'SUCCESS',
         statusCode: 200,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         message: `✅ Stats: ${(data as any)?.totalReleases ?? 0} total releases`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -150,6 +155,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Found ${Array.isArray(data) ? data.length : 0} available sprints`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -179,6 +185,7 @@ export class ReleaseApiConnectivityTester {
       };
       
       const data = await releasesApi.createRelease(this.testProjectId, testData);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.testReleaseId = (data as any)?.id ?? this.testReleaseId;
       
       this.addResult({
@@ -188,6 +195,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 201,
         message: `✅ Release created with ID: ${this.testReleaseId}`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -221,6 +229,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Release updated successfully`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -245,6 +254,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Sprint added to release`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       // 400 is acceptable (sprint might already be assigned)
@@ -280,6 +290,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Sprints bulk added`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       if (statusCode === 400) {
@@ -314,6 +325,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 204,
         message: `✅ Sprint removed from release`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       if (statusCode === 400) {
@@ -348,6 +360,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Release notes generated (${typeof notes === 'string' ? notes.length : 0} chars)`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -372,6 +385,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Release notes updated`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -396,6 +410,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Changelog generated (${typeof changelog === 'string' ? changelog.length : 0} chars)`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -420,6 +435,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Changelog updated`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -444,6 +460,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Quality gates evaluated (${Array.isArray(gates) ? gates.length : 0} gates)`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       this.addResult({
@@ -468,6 +485,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Quality gate approved`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       if (statusCode === 400 || statusCode === 404) {
@@ -502,6 +520,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 200,
         message: `✅ Release deployed`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       if (statusCode === 400) {
@@ -536,6 +555,7 @@ export class ReleaseApiConnectivityTester {
         statusCode: 204,
         message: `✅ Release deleted`
       });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const statusCode = this.extractStatusCode(error);
       if (statusCode === 400) {
@@ -587,6 +607,7 @@ export class ReleaseApiConnectivityTester {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private extractStatusCode(error: any): number | undefined {
     // Try to extract status code from error message or error object
     if (error?.response?.status) {
@@ -675,6 +696,7 @@ export const releaseApiTester = new ReleaseApiConnectivityTester();
 
 // Console helper - only available in browser environment
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).testReleaseApi = async (createTestData = false) => {
     await releaseApiTester.runAllTests(createTestData);
     return releaseApiTester.getResults();

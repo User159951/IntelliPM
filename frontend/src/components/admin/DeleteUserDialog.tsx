@@ -35,10 +35,11 @@ export function DeleteUserDialog({ open, onOpenChange, user }: DeleteUserDialogP
       setConfirmText('');
       showToast(`"${user.firstName} ${user.lastName}" has been successfully deleted.`, 'success');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
       const errorMessage =
-        error?.response?.data?.error ||
-        error?.message ||
+        apiError?.response?.data?.error ||
+        apiError?.message ||
         'Please try again';
       showError('Failed to delete user', errorMessage);
     },

@@ -9,7 +9,7 @@ import { ReleaseApiConnectivityTester } from '@/utils/testReleaseApiConnectivity
 
 export const ReleaseApiTestPage: React.FC = () => {
   const [testing, setTesting] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Array<{ name: string; status: string; message?: string }>>([]);
   const [summary, setSummary] = useState<{ success: number; failed: number; skipped: number; total: number } | null>(null);
 
   const runTests = async (createTestData: boolean) => {

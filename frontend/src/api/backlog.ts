@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Epic, Feature, Story, CreateEpicRequest, CreateFeatureRequest, CreateStoryRequest, Task } from '@/types';
+import type { Epic, Feature, Story, CreateEpicRequest, CreateFeatureRequest, CreateStoryRequest } from '@/types';
 
 export interface BacklogTaskDto {
   id: number;

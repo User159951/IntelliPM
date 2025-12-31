@@ -71,7 +71,7 @@ export function EditReleaseDialog({
       name: release.name,
       description: release.description || '',
       plannedDate: release.plannedDate ? format(new Date(release.plannedDate), 'yyyy-MM-dd') : '',
-      status: release.status as any,
+      status: release.status,
       isPreRelease: release.isPreRelease,
       tagName: release.tagName || '',
     },
@@ -84,7 +84,7 @@ export function EditReleaseDialog({
         name: release.name,
         description: release.description || '',
         plannedDate: release.plannedDate ? format(new Date(release.plannedDate), 'yyyy-MM-dd') : '',
-        status: release.status as any,
+        status: release.status,
         isPreRelease: release.isPreRelease,
         tagName: release.tagName || '',
       });
@@ -108,8 +108,9 @@ export function EditReleaseDialog({
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.error || error?.message || 'Failed to update release';
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      const message = apiError?.response?.data?.error || apiError?.message || 'Failed to update release';
       showToast(message, 'error');
     },
   });

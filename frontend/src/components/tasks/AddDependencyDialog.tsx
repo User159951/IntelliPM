@@ -91,8 +91,9 @@ export function AddDependencyDialog({
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || error?.message || 'Failed to add dependency';
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { message?: string } }; message?: string };
+      const message = apiError?.response?.data?.message || apiError?.message || 'Failed to add dependency';
       MySwal.fire({
         icon: 'error',
         title: 'Error',

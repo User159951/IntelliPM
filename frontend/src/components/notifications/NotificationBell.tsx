@@ -62,12 +62,7 @@ function NotificationItem({ notification, onClick }: NotificationItemProps) {
       <div className="flex-shrink-0 mt-0.5">{getIcon()}</div>
 
       <div className="flex-1 min-w-0 space-y-1">
-        <p className="text-sm font-medium leading-tight">{notification.title || notification.message}</p>
-        {notification.title && (
-          <p className="text-xs text-muted-foreground leading-tight line-clamp-2">
-            {notification.message}
-          </p>
-        )}
+        <p className="text-sm font-medium leading-tight">{notification.message}</p>
         <p className="text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
         </p>
@@ -142,7 +137,7 @@ export default function NotificationBell() {
     setIsOpen(false);
   };
 
-  const navigateToEntity = (entityType?: string, entityId?: number) => {
+  const navigateToEntity = (entityType?: string | null, entityId?: number | null) => {
     if (!entityType || !entityId) return;
 
     const routes: Record<string, string> = {

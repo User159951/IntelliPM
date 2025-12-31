@@ -105,8 +105,9 @@ export function CreateReleaseDialog({
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.error || error?.message || 'Failed to create release';
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      const message = apiError?.response?.data?.error || apiError?.message || 'Failed to create release';
       showToast(message, 'error');
     },
   });
@@ -260,7 +261,7 @@ export function CreateReleaseDialog({
               <div className="space-y-2">
                 <Label>Sprints (Optional)</Label>
                 <div className="border rounded-md p-4 max-h-48 overflow-y-auto">
-                  {availableSprints.map((sprint: any) => (
+                  {availableSprints.map((sprint) => (
                     <div key={sprint.id} className="flex items-center space-x-2 py-2">
                       <Checkbox
                         checked={selectedSprintIds.includes(sprint.id)}

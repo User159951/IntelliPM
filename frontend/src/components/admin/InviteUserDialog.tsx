@@ -61,11 +61,12 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
         onSuccess();
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const apiError = error as { response?: { data?: { detail?: string; error?: string } }; message?: string };
       const errorMessage =
-        error.response?.data?.detail ||
-        error.response?.data?.error ||
-        error.message ||
+        apiError.response?.data?.detail ||
+        apiError.response?.data?.error ||
+        apiError.message ||
         'Échec de l\'envoi de l\'invitation';
       showError('Échec de l\'invitation', errorMessage);
     },

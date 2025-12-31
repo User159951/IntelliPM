@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usersApi, type UserListDto } from '@/api/users';
+import type { PagedResponse, ProjectListDto } from '@/api/projects';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -140,7 +141,7 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {projectsData.items.map((project: any) => (
+                      {projectsData.items.map((project: ProjectListDto) => (
                         <TableRow key={project.id}>
                           <TableCell className="font-medium">{project.name}</TableCell>
                           <TableCell>
@@ -163,10 +164,10 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                       ))}
                     </TableBody>
                   </Table>
-                  {projectsData.totalPages > 1 && (
+                  {projectsData && projectsData.totalPages && projectsData.totalPages > 1 && (
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-muted-foreground">
-                        Showing {((projectsPage - 1) * pageSize) + 1} to {Math.min(projectsPage * pageSize, projectsData.totalCount)} of {projectsData.totalCount} projects
+                        Showing {((projectsPage - 1) * pageSize) + 1} to {Math.min(projectsPage * pageSize, projectsData.totalCount ?? 0)} of {projectsData.totalCount ?? 0} projects
                       </p>
                       <div className="flex gap-2">
                         <Button
@@ -181,7 +182,7 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                           variant="outline"
                           size="sm"
                           onClick={() => setProjectsPage(p => p + 1)}
-                          disabled={projectsPage >= projectsData.totalPages}
+                          disabled={projectsPage >= (projectsData.totalPages ?? 1)}
                         >
                           Next
                         </Button>
@@ -216,8 +217,8 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activityData.activities.map((activity: any) => (
-                        <TableRow key={activity.id}>
+                      {activityData.map((activity: { type: string; description: string; timestamp: string; id?: number; entityType?: string; entityName?: string; projectName?: string; projectId?: number }, index: number) => (
+                        <TableRow key={activity.id ?? index}>
                           <TableCell className="text-muted-foreground">
                             {format(new Date(activity.timestamp), 'MMM d, yyyy HH:mm')}
                           </TableCell>

@@ -45,14 +45,17 @@ global.IntersectionObserver = class IntersectionObserver {
     return []
   }
   unobserve() {}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any
 
 // Mock ResizeObserver
+ 
 global.ResizeObserver = class ResizeObserver {
   constructor() {}
   disconnect() {}
   observe() {}
   unobserve() {}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any
 
 // Mock hasPointerCapture for Radix UI components (jsdom doesn't support it)

@@ -33,7 +33,7 @@ export default function AIGovernance() {
         </div>
       </div>
 
-      <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as any)}>
+      <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as 'overview' | 'quotas' | 'decisions')}>
         <TabsList>
           <TabsTrigger value="overview">
             <LayoutDashboard className="h-4 w-4 mr-2" />

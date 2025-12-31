@@ -17,10 +17,10 @@ export function SprintPlanningAssistant({ sprintId }: Props) {
 
     try {
       const response = await agentsApi.planSprint(sprintId);
-      const content = (response as any).content ?? (response as any).Content;
-      const time = (response as any).executionTimeMs ?? (response as any).ExecutionTimeMs;
-      const requiresApproval =
-        (response as any).requiresApproval ?? (response as any).RequiresApproval;
+      const apiResponse = response as { content?: string; Content?: string; executionTimeMs?: number; ExecutionTimeMs?: number; requiresApproval?: boolean; RequiresApproval?: boolean };
+      const content = apiResponse.content ?? apiResponse.Content;
+      const time = apiResponse.executionTimeMs ?? apiResponse.ExecutionTimeMs;
+      const requiresApproval = apiResponse.requiresApproval ?? apiResponse.RequiresApproval;
 
       let text = content || 'No sprint plan generated';
       if (requiresApproval) {

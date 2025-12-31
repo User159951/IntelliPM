@@ -368,7 +368,7 @@ export interface AgentResponse {
   toolsCalled: string[];
   timestamp: string;
   errorMessage?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ImproveTaskRequest {

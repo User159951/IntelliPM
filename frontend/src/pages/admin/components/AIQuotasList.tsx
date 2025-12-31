@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
+function EmptyState({ icon: Icon, message }: { icon: React.ComponentType<{ className?: string }>; message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <Icon className="h-12 w-12 text-muted-foreground mb-4" />
@@ -33,7 +33,7 @@ function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
   );
 }
 
-function QuotaGauge({ quota, compact = false }: { quota: any; compact?: boolean }) {
+function QuotaGauge({ quota, compact = false }: { quota: AIQuota; compact?: boolean }) {
   const tokensPercentage = quota.usage.tokensPercentage;
   const requestsPercentage = quota.usage.requestsPercentage;
   const costPercentage = quota.usage.costPercentage;
@@ -127,8 +127,9 @@ export function AIQuotasList() {
       setOrgToDisable(null);
       refetch();
     },
-    onError: (error: any) => {
-      showError('Failed to disable AI', error.message);
+    onError: (error: unknown) => {
+      const apiError = error as { message?: string };
+      showError('Failed to disable AI', apiError.message);
     },
   });
 
