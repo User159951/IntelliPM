@@ -541,6 +541,7 @@ public class PermissionTests
         SetupEmptyRepository<Alert>(mockUnitOfWork);
         SetupEmptyRepository<IntelliPM.Domain.Entities.Activity>(mockUnitOfWork);
         SetupEmptyRepository<DocumentStore>(mockUnitOfWork);
+        SetupEmptyRepository<Notification>(mockUnitOfWork);
         SetupEmptyRepository<AIDecision>(mockUnitOfWork);
         SetupEmptyRepository<AIAgentRun>(mockUnitOfWork);
         SetupEmptyRepository<Domain.Entities.Task>(mockUnitOfWork);
