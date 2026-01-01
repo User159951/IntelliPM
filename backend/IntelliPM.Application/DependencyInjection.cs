@@ -38,10 +38,12 @@ public static class DependencyInjection
         services.AddScoped<INotificationPreferenceService, NotificationPreferenceService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IAIAvailabilityService, AIAvailabilityService>();
+        services.AddScoped<IAIDecisionLogger, AIDecisionLogger>();
         services.AddScoped<ITaskDependencyValidator, TaskDependencyValidator>();
         services.AddScoped<IMilestoneValidator, MilestoneValidator>();
         services.AddScoped<IReleaseNotesGenerator, ReleaseNotesGenerator>();
         services.AddScoped<IQualityGateChecker, QualityGateChecker>();
+        services.AddScoped<IAgentOutputParser, AgentOutputParser>();
 
         return services;
     }

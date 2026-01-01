@@ -23,6 +23,11 @@ public class Sprint : IAggregateRoot
     
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
+    /// <summary>
+    /// AI-generated retrospective notes for the sprint (generated when sprint is completed).
+    /// </summary>
+    public string? RetrospectiveNotes { get; set; }
+
     public Project Project { get; set; } = null!;
     public Organization Organization { get; set; } = null!;
     /// <summary>

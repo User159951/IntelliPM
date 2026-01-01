@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, LayoutDashboard, Brain, Gauge } from 'lucide-react';
-import { AIGovernanceOverview } from './components/AIGovernanceOverview';
+import { AIOverviewDashboard } from '@/components/admin/ai-governance/AIOverviewDashboard';
 import { AIDecisionsList } from './components/AIDecisionsList';
 import { AIQuotasList } from './components/AIQuotasList';
 
@@ -50,7 +50,7 @@ export default function AIGovernance() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <AIGovernanceOverview />
+          <AIOverviewDashboard />
         </TabsContent>
 
         <TabsContent value="decisions" className="space-y-6">

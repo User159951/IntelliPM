@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using IntelliPM.Application.Agents.Commands;
 using IntelliPM.Application.DTOs.Agent;
+using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Infrastructure.AI.Plugins;
 using IntelliPM.Infrastructure.Persistence;
 
@@ -19,15 +20,18 @@ public class DetectRisksHandler : IRequestHandler<DetectRisksCommand, AgentRespo
     private readonly Kernel _kernel;
     private readonly ILogger<DetectRisksHandler> _logger;
     private readonly AppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
     public DetectRisksHandler(
         Kernel kernel,
         ILogger<DetectRisksHandler> logger,
-        AppDbContext context)
+        AppDbContext context,
+        ICurrentUserService currentUserService)
     {
         _kernel = kernel;
         _logger = logger;
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AgentResponse> Handle(DetectRisksCommand request, CancellationToken cancellationToken)
@@ -73,11 +77,12 @@ Structure your response as:
 
             stopwatch.Stop();
 
+            var userId = _currentUserService.GetUserId();
             var log = new Domain.Entities.AgentExecutionLog
             {
                 Id = Guid.NewGuid(),
                 AgentId = "risk-detector",
-                UserId = "system", // TODO: Get from auth context
+                UserId = userId > 0 ? userId.ToString() : "system",
                 UserInput = $"Detect risks for project {request.ProjectId}",
                 AgentResponse = response.Content ?? "No risk analysis generated",
                 Status = "Success",

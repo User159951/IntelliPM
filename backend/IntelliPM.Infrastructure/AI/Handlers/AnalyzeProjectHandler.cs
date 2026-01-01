@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using IntelliPM.Application.Agents.Commands;
 using IntelliPM.Application.DTOs.Agent;
+using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Infrastructure.AI.Plugins;
 using IntelliPM.Infrastructure.Persistence;
 
@@ -20,15 +21,18 @@ public class AnalyzeProjectHandler : IRequestHandler<AnalyzeProjectCommand, Agen
     private readonly Kernel _kernel;
     private readonly ILogger<AnalyzeProjectHandler> _logger;
     private readonly AppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
     public AnalyzeProjectHandler(
         Kernel kernel,
         ILogger<AnalyzeProjectHandler> logger,
-        AppDbContext context)
+        AppDbContext context,
+        ICurrentUserService currentUserService)
     {
         _kernel = kernel;
         _logger = logger;
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AgentResponse> Handle(AnalyzeProjectCommand request, CancellationToken cancellationToken)
@@ -76,11 +80,12 @@ Be specific and use bullet points.");
             stopwatch.Stop();
 
             // Log agent execution
+            var userId = _currentUserService.GetUserId();
             var log = new Domain.Entities.AgentExecutionLog
             {
                 Id = Guid.NewGuid(),
                 AgentId = "project-insight",
-                UserId = "system", // TODO: Get from auth context
+                UserId = userId > 0 ? userId.ToString() : "system",
                 UserInput = $"Analyze project {request.ProjectId}",
                 AgentResponse = response.Content ?? "No summary generated",
                 Status = "Success",

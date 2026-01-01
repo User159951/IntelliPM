@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Application.AI.Commands;
 using IntelliPM.Application.AI.Queries;
+using IntelliPM.Application.AI.DTOs;
 using IntelliPM.Application.Common.Models;
 using System.Text;
 
@@ -335,6 +336,34 @@ public class AdminAIGovernanceController : BaseApiController
             _logger.LogError(ex, "Error exporting AI decisions");
             return Problem(
                 title: "Error exporting decisions",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Get AI overview statistics aggregated across all organizations (Admin only).
+    /// Returns comprehensive statistics including organization counts, decision metrics, top agents, and quota breakdown.
+    /// </summary>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>AI overview statistics</returns>
+    [HttpGet("overview/stats")]
+    [ProducesResponseType(typeof(AIOverviewStatsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetOverviewStats(CancellationToken ct = default)
+    {
+        try
+        {
+            var query = new GetAIOverviewStatsQuery();
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting AI overview stats");
+            return Problem(
+                title: "Error retrieving overview stats",
                 detail: ex.Message,
                 statusCode: StatusCodes.Status500InternalServerError
             );

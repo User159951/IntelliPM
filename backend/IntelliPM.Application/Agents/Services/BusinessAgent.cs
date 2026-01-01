@@ -1,5 +1,7 @@
+using IntelliPM.Application.Agents.DTOs;
 using IntelliPM.Application.Common.Interfaces;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Application.Agents.Services;
 
@@ -15,11 +17,19 @@ public class BusinessAgent
 {
     private readonly ILlmClient _llmClient;
     private readonly IVectorStore _vectorStore;
+    private readonly IAgentOutputParser _parser;
+    private readonly ILogger<BusinessAgent> _logger;
 
-    public BusinessAgent(ILlmClient llmClient, IVectorStore vectorStore)
+    public BusinessAgent(
+        ILlmClient llmClient, 
+        IVectorStore vectorStore,
+        IAgentOutputParser parser,
+        ILogger<BusinessAgent> logger)
     {
         _llmClient = llmClient;
         _vectorStore = vectorStore;
+        _parser = parser;
+        _logger = logger;
     }
 
     public async Task<BusinessAgentOutput> RunAsync(
@@ -56,38 +66,51 @@ Provide:
 5. Alignment with business objectives
 
 Focus on translating technical metrics into business outcomes.
+
+IMPORTANT: Return ONLY valid JSON. Do not include any text before or after the JSON. Use this exact format:
+
+{{
+  ""valueDeliverySummary"": ""Business value summary text"",
+  ""valueMetrics"": {{
+    ""EstimatedROI"": 145.5,
+    ""TimeToMarket"": 85.0,
+    ""CustomerSatisfaction"": 4.2
+  }},
+  ""businessHighlights"": [
+    ""Highlight 1"",
+    ""Highlight 2"",
+    ""Highlight 3""
+  ],
+  ""strategicRecommendations"": [
+    ""Recommendation 1"",
+    ""Recommendation 2"",
+    ""Recommendation 3""
+  ],
+  ""confidence"": 0.87
+}}
+
+Return only the JSON object, no markdown formatting, no explanation text.
 ";
 
         var output = await _llmClient.GenerateTextAsync(prompt, ct);
 
-        var valueMetrics = new Dictionary<string, decimal>
+        // Parse JSON output with validation
+        if (_parser.TryParse<BusinessAgentOutputDto>(output, out var result, out var errors))
         {
-            { "EstimatedROI", 145.5m },
-            { "TimeToMarket", 85.0m },
-            { "CustomerSatisfaction", 4.2m }
-        };
+            _logger.LogInformation("Successfully parsed BusinessAgent output with confidence {Confidence}", result!.Confidence);
+            return result.ToBusinessAgentOutput();
+        }
 
-        var highlights = new List<string>
-        {
-            "Delivered authentication feature ahead of schedule",
-            "Reduced technical debt by 20%",
-            "Improved system performance by 35%"
-        };
-
-        var recommendations = new List<string>
-        {
-            "Focus next sprint on high-value customer-facing features",
-            "Consider A/B testing for new UI components",
-            "Prioritize scalability improvements for expected growth"
-        };
-
+        // Fallback on parsing failure
+        _logger.LogWarning("Failed to parse BusinessAgent output. Errors: {Errors}. Raw output: {Output}", 
+            string.Join("; ", errors), output);
+        
         return new BusinessAgentOutput(
-            output,
-            valueMetrics,
-            highlights,
-            recommendations,
-            0.87m
+            ValueDeliverySummary: "Failed to parse agent output. Original response: " + output,
+            ValueMetrics: new Dictionary<string, decimal>(),
+            BusinessHighlights: new List<string>(),
+            StrategicRecommendations: new List<string>(),
+            Confidence: 0.0m
         );
     }
 }
-

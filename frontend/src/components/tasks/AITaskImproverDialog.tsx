@@ -1,464 +1,392 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useMutation } from '@tanstack/react-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { QuotaAlertBanner } from '@/components/ai-governance/QuotaAlertBanner';
 import { agentsApi } from '@/api/agents';
-import { tasksApi } from '@/api/tasks';
-import type { AgentResponse, ImprovedTaskData, TaskPriority, CreateTaskRequest } from '@/types';
-import { showSuccess, showError } from "@/lib/sweetalert";
+import { showToast, showError } from '@/lib/sweetalert';
+import type { ImproveTaskRequest, ImprovedTaskData, AgentResponse } from '@/types';
+import {
+  Loader2,
+  Sparkles,
+  X,
+  Plus,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export interface ImprovedTask {
+  title: string;
+  description: string;
+  acceptanceCriteria: string[];
+  storyPoints: number;
+  qualityScore: number;
+  suggestions: string[];
+}
+
 interface AITaskImproverDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projectId: number;
-  onTaskCreated?: () => void;
+  initialTitle: string;
+  initialDescription: string;
+  projectId?: number;
+  onApply: (improved: ImprovedTask) => void;
 }
 
-type Step = 'input' | 'loading' | 'result';
+function getQualityScoreColor(score: number): string {
+  if (score >= 8) return 'bg-green-500/10 text-green-500 border-green-500/20';
+  if (score >= 6) return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+  return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
+}
+
+function parseImprovedTaskData(response: AgentResponse): ImprovedTask | null {
+  try {
+    // Try to parse JSON from content
+    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const data = JSON.parse(jsonMatch[0]);
+      
+      // Map ImprovedTaskData to ImprovedTask
+      return {
+        title: data.title || '',
+        description: data.description || '',
+        acceptanceCriteria: data.acceptanceCriteria || [],
+        storyPoints: data.suggestedStoryPoints || data.storyPoints || 0,
+        qualityScore: data.qualityScore || 7, // Default if not provided
+        suggestions: data.suggestions || data.definitionOfDone || [],
+      };
+    }
+  } catch (error) {
+    console.error('Error parsing improved task data:', error);
+  }
+  
+  return null;
+}
 
 export function AITaskImproverDialog({
   open,
   onOpenChange,
+  initialTitle,
+  initialDescription,
   projectId,
-  onTaskCreated,
+  onApply,
 }: AITaskImproverDialogProps) {
-  const [step, setStep] = useState<Step>('input');
-  const [taskDescription, setTaskDescription] = useState('');
-  const [agentResponse, setAgentResponse] = useState<AgentResponse | null>(null);
-  const [improvedTask, setImprovedTask] = useState<ImprovedTaskData | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const [improvedTask, setImprovedTask] = useState<ImprovedTask | null>(null);
+  const [editedTask, setEditedTask] = useState<ImprovedTask | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Reset when dialog closes
+  // Reset state when dialog opens/closes
   useEffect(() => {
     if (!open) {
-      setStep('input');
-      setTaskDescription('');
-      setAgentResponse(null);
       setImprovedTask(null);
+      setEditedTask(null);
+      setError(null);
     }
   }, [open]);
 
-  // Parse AI response content to extract structured data
-  const parseAIResponse = (content: string): ImprovedTaskData => {
-    // Default values
-    const defaultTask: ImprovedTaskData = {
-      title: '',
-      description: content,
-      acceptanceCriteria: [],
-      suggestedPriority: 'Medium',
-      suggestedStoryPoints: 5,
-      type: 'Task',
-    };
-
-    try {
-      // Try to extract title (usually first line or after "Title:")
-      const titleMatch = content.match(/(?:Title|Task):\s*(.+?)(?:\n|$)/i) || 
-                        content.match(/^#\s*(.+?)$/m) ||
-                        content.match(/^(.+?)$/m);
-      if (titleMatch) {
-        defaultTask.title = titleMatch[1].trim();
+  const improveMutation = useMutation({
+    mutationFn: (data: ImproveTaskRequest) => agentsApi.improveTask(data),
+    onSuccess: (result) => {
+      const parsed = parseImprovedTaskData(result);
+      if (parsed) {
+        setImprovedTask(parsed);
+        setEditedTask(parsed);
+        setError(null);
+        showToast('Analyse terminée!', 'success');
+      } else {
+        setError('Impossible de parser les données améliorées. Réponse reçue mais format inattendu.');
       }
+    },
+    onError: (error: Error) => {
+      setError(error.message || 'Échec de l\'analyse');
+      showError('Échec de l\'analyse', error.message);
+    },
+  });
 
-      // Extract description (everything after title, before Acceptance Criteria)
-      const descMatch = content.match(/(?:Description|Details):\s*([\s\S]+?)(?=Acceptance|Definition|Priority|Story|$)/i);
-      if (descMatch) {
-        defaultTask.description = descMatch[1].trim();
-      }
-
-      // Extract acceptance criteria (bullet points)
-      const criteriaMatches = content.match(/(?:Acceptance Criteria|Criteria):\s*([\s\S]+?)(?=Definition|Priority|Story|$)/i);
-      if (criteriaMatches) {
-        const criteriaText = criteriaMatches[1];
-        defaultTask.acceptanceCriteria = criteriaText
-          .split(/\n/)
-          .map(line => line.replace(/^[-*•]\s*/, '').replace(/^\d+\.\s*/, '').trim())
-          .filter(line => line.length > 0);
-      }
-
-      // Extract priority
-      const priorityMatch = content.match(/(?:Priority|Suggested Priority):\s*(Low|Medium|High|Critical)/i);
-      if (priorityMatch) {
-        defaultTask.suggestedPriority = priorityMatch[1] as TaskPriority;
-      }
-
-      // Extract story points
-      const pointsMatch = content.match(/(?:Story Points|Points|SP):\s*(\d+)/i);
-      if (pointsMatch) {
-        defaultTask.suggestedStoryPoints = parseInt(pointsMatch[1], 10);
-      }
-
-      // Extract type
-      const typeMatch = content.match(/(?:Type|Category):\s*(Bug|Feature|Task)/i);
-      if (typeMatch) {
-        defaultTask.type = typeMatch[1] as 'Bug' | 'Feature' | 'Task';
-      }
-    } catch (error) {
-      console.error('Error parsing AI response:', error);
-    }
-
-    return defaultTask;
-  };
-
-  const handleImprove = async () => {
-    if (taskDescription.trim().length < 10) {
-      showError("Description too short", "Please provide at least 10 characters");
+  const handleAnalyze = () => {
+    if (!initialTitle.trim() && !initialDescription.trim()) {
+      showError('Erreur', 'Veuillez fournir au moins un titre ou une description');
       return;
     }
 
-    setStep('loading');
-
-    try {
-      const response = await agentsApi.improveTask({
-        description: taskDescription,
-        projectId,
-      });
-
-      // Handle both camelCase and PascalCase from backend
-      // The response should already be AgentResponse, but handle both cases
-      const normalizedResponse: AgentResponse = {
-        content: (response as AgentResponse & { Content?: string }).Content || response.content || '',
-        status: ((response as AgentResponse & { Status?: string }).Status || response.status || 'Success') as 'Success' | 'Error' | 'ProposalReady',
-        requiresApproval: (response as AgentResponse & { RequiresApproval?: boolean }).RequiresApproval ?? response.requiresApproval ?? false,
-        executionCostUsd: (response as AgentResponse & { ExecutionCostUsd?: number }).ExecutionCostUsd ?? response.executionCostUsd ?? 0,
-        executionTimeMs: (response as AgentResponse & { ExecutionTimeMs?: number }).ExecutionTimeMs ?? response.executionTimeMs ?? 0,
-        toolsCalled: (response as AgentResponse & { ToolsCalled?: string[] }).ToolsCalled || response.toolsCalled || [],
-        timestamp: (response as AgentResponse & { Timestamp?: string }).Timestamp || response.timestamp || new Date().toISOString(),
-        errorMessage: (response as AgentResponse & { ErrorMessage?: string }).ErrorMessage || response.errorMessage,
-        metadata: (response as AgentResponse & { Metadata?: Record<string, unknown> }).Metadata || response.metadata,
-      };
-
-      setAgentResponse(normalizedResponse);
-      const parsed = parseAIResponse(normalizedResponse.content);
-      setImprovedTask(parsed);
-      setStep('result');
-    } catch (error) {
-      showError('AI improvement failed');
-      setStep('input');
-    }
+    setError(null);
+    improveMutation.mutate({
+      title: initialTitle,
+      description: initialDescription,
+      projectId,
+    });
   };
 
-  const handleApproveAndCreate = async () => {
-    if (!improvedTask || !improvedTask.title.trim()) {
-      showError("Invalid task data", "Please ensure the task has a title");
-      return;
-    }
-
-    setIsCreating(true);
-
-    try {
-      const taskData: CreateTaskRequest = {
-        title: improvedTask.title,
-        description: improvedTask.description,
-        projectId,
-        priority: improvedTask.suggestedPriority,
-        storyPoints: improvedTask.suggestedStoryPoints,
-      };
-
-      await tasksApi.create(taskData);
-      
-      showSuccess("Task created", "Task created successfully with AI assistance ✨");
-
-      onTaskCreated?.();
+  const handleApply = () => {
+    if (editedTask) {
+      onApply(editedTask);
       onOpenChange(false);
-    } catch (error) {
-      showError('Failed to create task');
-    } finally {
-      setIsCreating(false);
     }
   };
 
   const handleAddCriterion = () => {
-    if (!improvedTask) return;
-    setImprovedTask({
-      ...improvedTask,
-      acceptanceCriteria: [...improvedTask.acceptanceCriteria, ''],
-    });
-  };
-
-  const handleRemoveCriterion = (index: number) => {
-    if (!improvedTask) return;
-    setImprovedTask({
-      ...improvedTask,
-      acceptanceCriteria: improvedTask.acceptanceCriteria.filter((_, i) => i !== index),
-    });
+    if (editedTask) {
+      setEditedTask({
+        ...editedTask,
+        acceptanceCriteria: [...editedTask.acceptanceCriteria, ''],
+      });
+    }
   };
 
   const handleUpdateCriterion = (index: number, value: string) => {
-    if (!improvedTask) return;
-    const updated = [...improvedTask.acceptanceCriteria];
-    updated[index] = value;
-    setImprovedTask({
-      ...improvedTask,
-      acceptanceCriteria: updated,
-    });
+    if (editedTask) {
+      const newCriteria = [...editedTask.acceptanceCriteria];
+      newCriteria[index] = value;
+      setEditedTask({
+        ...editedTask,
+        acceptanceCriteria: newCriteria,
+      });
+    }
   };
+
+  const handleRemoveCriterion = (index: number) => {
+    if (editedTask) {
+      setEditedTask({
+        ...editedTask,
+        acceptanceCriteria: editedTask.acceptanceCriteria.filter((_, i) => i !== index),
+      });
+    }
+  };
+
+  const isAnalyzing = improveMutation.isPending;
+  const hasResult = !!improvedTask && !!editedTask;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        {step === 'input' && (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-cyan-500" />
-                Create Task with AI Assistant
-              </DialogTitle>
-              <DialogDescription>
-                Describe your task in natural language. AI will help structure it with clear requirements and acceptance criteria.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="taskDescription">Task Description</Label>
-                <Textarea
-                  id="taskDescription"
-                  placeholder="e.g., fix payment bug users complaining checkout broken on mobile iphone"
-                  value={taskDescription}
-                  onChange={(e) => setTaskDescription(e.target.value)}
-                  rows={6}
-                  className="resize-none"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Minimum 10 characters. Be as descriptive as possible.
-                </p>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-                <p className="text-sm font-medium">Examples:</p>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>"add login with google and facebook"</li>
-                  <li>"dashboard showing user stats and graphs"</li>
-                  <li>"fix crash when uploading large files"</li>
-                </ul>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleImprove} disabled={taskDescription.trim().length < 10}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Let AI Improve This
-              </Button>
-            </DialogFooter>
-          </>
-        )}
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Améliorer la tâche avec l&apos;IA
+          </DialogTitle>
+          <DialogDescription>
+            Analysez et améliorez votre tâche avec l&apos;intelligence artificielle
+          </DialogDescription>
+        </DialogHeader>
 
-        {step === 'loading' && (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-cyan-500 animate-pulse" />
-                AI is analyzing your task...
-              </DialogTitle>
-              <DialogDescription>
-                This usually takes 2-5 seconds
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin text-cyan-500" />
-              <div className="space-y-2 text-center">
-                <p className="text-sm font-medium">Analyzing task description...</p>
-                <p className="text-xs text-muted-foreground">
-                  Structuring requirements and generating acceptance criteria
-                </p>
-              </div>
-            </div>
-          </>
-        )}
+        <QuotaAlertBanner />
 
-        {step === 'result' && improvedTask && agentResponse && (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-cyan-500" />
-                AI-Enhanced Task Proposal
-              </DialogTitle>
-              <DialogDescription>
-                Review and edit the AI-generated task before creating it.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6 py-4">
-              {/* Improved Task Section */}
-              <div className="space-y-4 rounded-lg border p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="bg-cyan-500/10 text-cyan-700 dark:text-cyan-400">
-                    ✨ IMPROVED TASK
-                  </Badge>
+        <div className="space-y-6">
+          {/* Input Section */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Entrée</Label>
+              <div className="mt-2 space-y-3 p-4 border rounded-lg bg-muted/30">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Titre</Label>
+                  <p className="mt-1 text-sm font-medium">{initialTitle || <span className="text-muted-foreground italic">(vide)</span>}</p>
                 </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Description</Label>
+                  <p className="mt-1 text-sm whitespace-pre-wrap">{initialDescription || <span className="text-muted-foreground italic">(vide)</span>}</p>
+                </div>
+              </div>
+            </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ai-title">Title</Label>
-                    <Input
-                      id="ai-title"
-                      value={improvedTask.title}
-                      onChange={(e) =>
-                        setImprovedTask({ ...improvedTask, title: e.target.value })
-                      }
-                      placeholder="Task title"
-                    />
-                  </div>
+            <Button
+              type="button"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing || (!initialTitle.trim() && !initialDescription.trim())}
+              className="w-full"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyse en cours...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Analyser
+                </>
+              )}
+            </Button>
+          </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="ai-description">Description</Label>
-                    <Textarea
-                      id="ai-description"
-                      value={improvedTask.description}
-                      onChange={(e) =>
-                        setImprovedTask({ ...improvedTask, description: e.target.value })
-                      }
-                      rows={4}
-                      placeholder="Task description"
-                    />
-                  </div>
+          {/* Loading State */}
+          {isAnalyzing && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            </div>
+          )}
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Acceptance Criteria</Label>
+          {/* Error State */}
+          {error && !isAnalyzing && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Result Section */}
+          {hasResult && !isAnalyzing && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Résultat</Label>
+                {improvedTask.qualityScore !== undefined && (
+                  <Badge
+                    variant="outline"
+                    className={cn('font-mono', getQualityScoreColor(improvedTask.qualityScore))}
+                  >
+                    Score: {improvedTask.qualityScore}/10
+                  </Badge>
+                )}
+              </div>
+
+              {/* Improved Title */}
+              <div className="space-y-2">
+                <Label htmlFor="improved-title">Titre amélioré</Label>
+                <Input
+                  id="improved-title"
+                  value={editedTask.title}
+                  onChange={(e) =>
+                    setEditedTask({ ...editedTask, title: e.target.value })
+                  }
+                  className={cn(
+                    editedTask.title !== improvedTask.title &&
+                      'border-primary ring-1 ring-primary'
+                  )}
+                />
+                {editedTask.title !== improvedTask.title && (
+                  <p className="text-xs text-muted-foreground">
+                    Modifié depuis la suggestion originale
+                  </p>
+                )}
+              </div>
+
+              {/* Improved Description */}
+              <div className="space-y-2">
+                <Label htmlFor="improved-description">Description améliorée</Label>
+                <Textarea
+                  id="improved-description"
+                  value={editedTask.description}
+                  onChange={(e) =>
+                    setEditedTask({ ...editedTask, description: e.target.value })
+                  }
+                  rows={6}
+                  className={cn(
+                    editedTask.description !== improvedTask.description &&
+                      'border-primary ring-1 ring-primary'
+                  )}
+                />
+                {editedTask.description !== improvedTask.description && (
+                  <p className="text-xs text-muted-foreground">
+                    Modifié depuis la suggestion originale
+                  </p>
+                )}
+              </div>
+
+              {/* Acceptance Criteria */}
+              <div className="space-y-2">
+                <Label>Critères d&apos;acceptation</Label>
+                <div className="space-y-2">
+                  {editedTask.acceptanceCriteria.map((criterion, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={criterion}
+                        onChange={(e) => handleUpdateCriterion(index, e.target.value)}
+                        placeholder="Critère d'acceptation"
+                      />
                       <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
-                        onClick={handleAddCriterion}
+                        size="icon"
+                        onClick={() => handleRemoveCriterion(index)}
+                        className="flex-shrink-0"
                       >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="space-y-2">
-                      {improvedTask.acceptanceCriteria.map((criterion, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <Input
-                            value={criterion}
-                            onChange={(e) => handleUpdateCriterion(index, e.target.value)}
-                            placeholder={`Criterion ${index + 1}`}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveCriterion(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      {improvedTask.acceptanceCriteria.length === 0 && (
-                        <p className="text-sm text-muted-foreground italic">
-                          No acceptance criteria. Click "Add" to add some.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ai-priority">Priority</Label>
-                      <Select
-                        value={improvedTask.suggestedPriority}
-                        onValueChange={(value: TaskPriority) =>
-                          setImprovedTask({ ...improvedTask, suggestedPriority: value })
-                        }
-                      >
-                        <SelectTrigger id="ai-priority">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Low">Low</SelectItem>
-                          <SelectItem value="Medium">Medium</SelectItem>
-                          <SelectItem value="High">High</SelectItem>
-                          <SelectItem value="Critical">Critical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="ai-story-points">Story Points</Label>
-                      <Input
-                        id="ai-story-points"
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={improvedTask.suggestedStoryPoints}
-                        onChange={(e) =>
-                          setImprovedTask({
-                            ...improvedTask,
-                            suggestedStoryPoints: parseInt(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="ai-type">Type</Label>
-                    <Select
-                      value={improvedTask.type}
-                      onValueChange={(value: 'Bug' | 'Feature' | 'Task') =>
-                        setImprovedTask({ ...improvedTask, type: value })
-                      }
-                    >
-                      <SelectTrigger id="ai-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Bug">Bug</SelectItem>
-                        <SelectItem value="Feature">Feature</SelectItem>
-                        <SelectItem value="Task">Task</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddCriterion}
+                    className="w-full"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Ajouter un critère
+                  </Button>
                 </div>
               </div>
 
-              {/* AI Metadata */}
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-                <p className="text-sm font-medium">AI Metadata</p>
-                <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                  <div>
-                    <span className="font-medium">Status:</span> {agentResponse.status}
-                  </div>
-                  <div>
-                    <span className="font-medium">Execution Time:</span>{' '}
-                    {(agentResponse.executionTimeMs / 1000).toFixed(2)}s
-                  </div>
-                  <div>
-                    <span className="font-medium">Cost:</span> ${agentResponse.executionCostUsd.toFixed(2)}
-                  </div>
-                  <div>
-                    <span className="font-medium">Tools:</span>{' '}
-                    {agentResponse.toolsCalled.join(', ') || 'N/A'}
+              {/* Story Points */}
+              <div className="space-y-2">
+                <Label htmlFor="improved-story-points">Story Points suggérés</Label>
+                <Input
+                  id="improved-story-points"
+                  type="number"
+                  min={0}
+                  value={editedTask.storyPoints}
+                  onChange={(e) =>
+                    setEditedTask({
+                      ...editedTask,
+                      storyPoints: parseInt(e.target.value) || 0,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Suggestions */}
+              {editedTask.suggestions && editedTask.suggestions.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Suggestions d&apos;amélioration</Label>
+                  <div className="space-y-2 p-4 border rounded-lg bg-muted/30">
+                    {editedTask.suggestions.map((suggestion, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                        <p className="text-sm flex-1">{suggestion}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Discard
-              </Button>
-              <Button variant="outline" onClick={() => setStep('input')}>
-                Edit in Classic Mode
-              </Button>
-              <Button onClick={handleApproveAndCreate} disabled={isCreating || !improvedTask.title.trim()}>
-                {isCreating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Approve & Create Task
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isAnalyzing}
+          >
+            Annuler
+          </Button>
+          <Button
+            type="button"
+            onClick={handleApply}
+            disabled={!hasResult || isAnalyzing}
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Appliquer
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

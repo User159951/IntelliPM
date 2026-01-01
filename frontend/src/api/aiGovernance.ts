@@ -51,27 +51,25 @@ export interface QuotaUsage {
   costPercentage: number;
 }
 
-export interface AIGovernanceStats {
-  totalDecisions: number;
-  decisionsLast24h: number;
-  totalTokens: number;
-  tokensLast24h: number;
-  activeOrganizations: number;
+export interface AIOverviewStats {
   totalOrganizations: number;
-  exceededQuotas: number;
-  alertsSent: number;
-  usageTrends: Array<{
-    date: string;
-    tokens: number;
-    requests: number;
+  organizationsWithAIEnabled: number;
+  organizationsWithAIDisabled: number;
+  totalDecisionsLast30Days: number;
+  pendingApprovals: number;
+  approvedDecisions: number;
+  rejectedDecisions: number;
+  averageConfidenceScore: number;
+  topAgents: Array<{
+    agentType: string;
+    decisionCount: number;
+    totalTokensUsed: number;
   }>;
-  usageByAgent: Record<string, { tokensUsed: number; requestsCount: number }>;
-  decisionTypes: Record<string, number>;
-  organizationsAtRisk: Array<{
-    organizationId: number;
-    organizationName: string;
-    quotaPercentage: number;
-    isExceeded: boolean;
+  quotaByTier: Array<{
+    tierName: string;
+    organizationCount: number;
+    averageUsagePercentage: number;
+    exceededCount: number;
   }>;
 }
 
@@ -149,71 +147,30 @@ export const aiGovernanceApi = {
       reason,
     }),
 
-  getOverviewStats: async () => {
-    // For now, aggregate from existing endpoints
-    // TODO: Create dedicated overview stats endpoint in backend
-    const [decisions, quotas] = await Promise.all([
-      apiClient.get<PagedResponse<AIDecisionLog>>('/api/admin/ai/decisions/all?page=1&pageSize=1'),
-      apiClient.get<PagedResponse<AIQuota>>('/api/admin/ai/quotas?page=1&pageSize=100'),
-    ]);
+  getOverviewStats: (): Promise<AIOverviewStats> => {
+    return apiClient.get<AIOverviewStats>('/api/admin/ai/overview/stats');
+  },
 
-    const now = new Date();
-    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    // Calculate stats from decisions
-    const allDecisions = decisions.items || [];
-    const recentDecisions = allDecisions.filter(
-      (d) => new Date(d.createdAt) >= last24h
-    );
-
-    const totalTokens = allDecisions.reduce((sum, d) => sum + d.tokensUsed, 0);
-    const tokensLast24h = recentDecisions.reduce((sum, d) => sum + d.tokensUsed, 0);
-
-    // Calculate stats from quotas
-    const activeQuotas = quotas.items?.filter((q) => q.isActive) || [];
-    const exceededQuotas = quotas.items?.filter((q) => q.isExceeded) || [];
-    const alertsSent = quotas.items?.filter((q) => q.alertSent).length || 0;
-
-    // Usage by agent
-    const usageByAgent: Record<string, { tokensUsed: number; requestsCount: number }> = {};
-    allDecisions.forEach((d) => {
-      if (!usageByAgent[d.agentType]) {
-        usageByAgent[d.agentType] = { tokensUsed: 0, requestsCount: 0 };
-      }
-      usageByAgent[d.agentType].tokensUsed += d.tokensUsed;
-      usageByAgent[d.agentType].requestsCount += 1;
+  // User endpoints
+  getQuotaStatus: (organizationId: number): Promise<any> => {
+    // TODO: Replace with actual endpoint when available
+    // return apiClient.get(`/api/v1/ai/quota/status/${organizationId}`);
+    // For now, return a promise that resolves with mock data
+    return Promise.resolve({
+      organizationId,
+      tierName: 'Free',
+      maxRequests: 100,
+      maxTokens: 100000,
+      maxDecisions: 50,
+      currentRequests: 75,
+      currentTokens: 45000,
+      currentDecisions: 30,
+      resetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      isAlertThreshold: true,
+      isDisabled: false,
+      requestsPercentage: 75,
+      tokensPercentage: 45,
+      decisionsPercentage: 60,
     });
-
-    // Decision types
-    const decisionTypes: Record<string, number> = {};
-    allDecisions.forEach((d) => {
-      decisionTypes[d.decisionType] = (decisionTypes[d.decisionType] || 0) + 1;
-    });
-
-    // Organizations at risk
-    const organizationsAtRisk = activeQuotas
-      .filter((q) => q.usage.tokensPercentage >= 80 || q.isExceeded)
-      .map((q) => ({
-        organizationId: q.organizationId,
-        organizationName: q.organizationName,
-        quotaPercentage: q.usage.tokensPercentage,
-        isExceeded: q.isExceeded,
-      }));
-
-    return {
-      totalDecisions: decisions.totalCount || 0,
-      decisionsLast24h: recentDecisions.length,
-      totalTokens,
-      tokensLast24h,
-      activeOrganizations: activeQuotas.length,
-      totalOrganizations: quotas.totalCount || 0,
-      exceededQuotas: exceededQuotas.length,
-      alertsSent,
-      usageTrends: [], // TODO: Implement when backend endpoint is available
-      usageByAgent,
-      decisionTypes,
-      organizationsAtRisk,
-    } as AIGovernanceStats;
   },
 };
-

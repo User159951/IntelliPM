@@ -8,6 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { showToast, showError } from "@/lib/sweetalert";
+import { QuotaExceededAlert } from '@/components/ai-governance/QuotaExceededAlert';
+import { AIDisabledAlert } from '@/components/ai-governance/AIDisabledAlert';
+import { QuotaStatusWidget } from '@/components/ai-governance/QuotaStatusWidget';
+import { QuotaAlertBanner } from '@/components/ai-governance/QuotaAlertBanner';
+import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
+import { useQuotaNotifications } from '@/hooks/useQuotaNotifications';
 import type { AgentResponse } from '@/types';
 import { 
   Bot, 
@@ -32,8 +38,14 @@ interface AgentConfig {
 
 export default function Agents() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [agentResults, setAgentResults] = useState<Record<string, { result: string; timestamp: Date } | null>>({});
+  const [agentResults, setAgentResults] = useState<Record<string, { result: AgentResponse; timestamp: Date } | null>>({});
   const [runningAgents, setRunningAgents] = useState<Set<string>>(new Set());
+  
+  // Handle AI errors with toast notifications
+  useAIErrorHandler();
+  
+  // Handle quota notifications
+  useQuotaNotifications();
 
   const { data: projectsData } = useQuery({
     queryKey: ['projects'],
@@ -90,7 +102,7 @@ export default function Agents() {
       setAgentResults((prev) => ({
         ...prev,
         [agent.id]: {
-          result: result.content || JSON.stringify(result.metadata || {}, null, 2),
+          result: result,
           timestamp: new Date(),
         },
       }));
@@ -108,6 +120,11 @@ export default function Agents() {
 
   return (
     <div className="space-y-6">
+      <QuotaExceededAlert />
+      <AIDisabledAlert />
+      <QuotaAlertBanner />
+      <QuotaStatusWidget />
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">AI Agents</h1>
@@ -168,12 +185,6 @@ export default function Agents() {
                 <CardContent className="flex-1 flex flex-col">
                   <CardDescription className="flex-1">{agent.description}</CardDescription>
                   
-                  {result && (
-                    <div className="mt-4 rounded-lg bg-muted p-3 max-h-32 overflow-auto">
-                      <pre className="text-xs whitespace-pre-wrap">{result.result}</pre>
-                    </div>
-                  )}
-                  
                   <Button
                     className="mt-4 w-full"
                     onClick={() => runAgent(agent)}
@@ -197,6 +208,29 @@ export default function Agents() {
           })}
         </div>
       )}
+
+      {/* Results Section */}
+      {Object.entries(agentResults).map(([agentId, agentResult]) => {
+        if (!agentResult) return null;
+        
+        const agent = agents.find(a => a.id === agentId);
+        if (!agent) return null;
+
+        return (
+          <Card key={`result-${agentId}`} className="mt-6">
+            <CardHeader>
+              <CardTitle>{agent.name} - Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AgentResultsDisplay
+                agentType={agentId as AgentType}
+                result={agentResult.result}
+                isLoading={runningAgents.has(agentId)}
+              />
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

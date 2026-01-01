@@ -1,5 +1,7 @@
+using IntelliPM.Application.Agents.DTOs;
 using IntelliPM.Application.Common.Interfaces;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Application.Agents.Services;
 
@@ -16,11 +18,19 @@ public class QAAgent
 {
     private readonly ILlmClient _llmClient;
     private readonly IVectorStore _vectorStore;
+    private readonly IAgentOutputParser _parser;
+    private readonly ILogger<QAAgent> _logger;
 
-    public QAAgent(ILlmClient llmClient, IVectorStore vectorStore)
+    public QAAgent(
+        ILlmClient llmClient, 
+        IVectorStore vectorStore,
+        IAgentOutputParser parser,
+        ILogger<QAAgent> logger)
     {
         _llmClient = llmClient;
         _vectorStore = vectorStore;
+        _parser = parser;
+        _logger = logger;
     }
 
     public async Task<QAAgentOutput> RunAsync(
@@ -51,28 +61,49 @@ Provide:
 4. 3-5 actionable quality improvement recommendations
 
 Focus on preventing defects rather than just fixing them.
+
+IMPORTANT: Return ONLY valid JSON. Do not include any text before or after the JSON. Use this exact format:
+
+{{
+  ""defectAnalysis"": ""Overall quality assessment text"",
+  ""patterns"": [
+    {{
+      ""pattern"": ""Pattern name"",
+      ""frequency"": 3,
+      ""severity"": ""High"",
+      ""suggestion"": ""Suggestion text""
+    }}
+  ],
+  ""recommendations"": [
+    ""Recommendation 1"",
+    ""Recommendation 2"",
+    ""Recommendation 3""
+  ],
+  ""confidence"": 0.84
+}}
+
+Severity must be one of: Critical, High, Medium, Low
+Return only the JSON object, no markdown formatting, no explanation text.
 ";
 
         var output = await _llmClient.GenerateTextAsync(prompt, ct);
 
-        // Parse patterns from output (simplified)
-        var patterns = new List<DefectPattern>
+        // Parse JSON output with validation
+        if (_parser.TryParse<QAAgentOutputDto>(output, out var result, out var errors))
         {
-            new DefectPattern("Authentication Errors", 3, "High", "Review auth token validation logic"),
-            new DefectPattern("UI Layout Issues", 5, "Medium", "Implement responsive design testing")
-        };
+            _logger.LogInformation("Successfully parsed QAAgent output with confidence {Confidence}", result!.Confidence);
+            return result.ToQAAgentOutput();
+        }
 
+        // Fallback on parsing failure
+        _logger.LogWarning("Failed to parse QAAgent output. Errors: {Errors}. Raw output: {Output}", 
+            string.Join("; ", errors), output);
+        
         return new QAAgentOutput(
-            output,
-            patterns,
-            new List<string> 
-            { 
-                "Increase unit test coverage for critical paths",
-                "Implement automated regression testing",
-                "Add error boundary components in frontend"
-            },
-            0.84m
+            DefectAnalysis: "Failed to parse agent output. Original response: " + output,
+            Patterns: new List<DefectPattern>(),
+            Recommendations: new List<string>(),
+            Confidence: 0.0m
         );
     }
 }
-

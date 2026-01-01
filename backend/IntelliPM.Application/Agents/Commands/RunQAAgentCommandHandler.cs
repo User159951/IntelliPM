@@ -1,8 +1,12 @@
 using MediatR;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Interfaces;
+using IntelliPM.Application.Services;
+using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace IntelliPM.Application.Agents.Commands;
 
@@ -10,15 +14,35 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
 {
     private readonly QAAgent _qaAgent;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAIDecisionLogger _decisionLogger;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IAIAvailabilityService _availabilityService;
 
-    public RunQAAgentCommandHandler(QAAgent qaAgent, IUnitOfWork unitOfWork)
+    public RunQAAgentCommandHandler(
+        QAAgent qaAgent, 
+        IUnitOfWork unitOfWork,
+        IAIDecisionLogger decisionLogger,
+        ICurrentUserService currentUserService,
+        IAIAvailabilityService availabilityService)
     {
         _qaAgent = qaAgent;
         _unitOfWork = unitOfWork;
+        _decisionLogger = decisionLogger;
+        _currentUserService = currentUserService;
+        _availabilityService = availabilityService;
     }
 
     public async Task<QAAgentOutput> Handle(RunQAAgentCommand request, CancellationToken cancellationToken)
     {
+        // Check quota before execution
+        var organizationId = _currentUserService.GetOrganizationId();
+        if (organizationId > 0)
+        {
+            await _availabilityService.CheckQuotaAsync(organizationId, "Requests", cancellationToken);
+        }
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        
         // Fetch recent defects
         var defectRepo = _unitOfWork.Repository<Defect>();
         var recentDefects = await defectRepo.Query()
@@ -38,12 +62,14 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
 
         var result = await _qaAgent.RunAsync(request.ProjectId, recentDefects, defectStats, cancellationToken);
 
+        stopwatch.Stop();
+
         // Store agent run
         var agentRun = new AIAgentRun
         {
             ProjectId = request.ProjectId,
             AgentType = "QA",
-            InputData = System.Text.Json.JsonSerializer.Serialize(new { recentDefects, defectStats }),
+            InputData = JsonSerializer.Serialize(new { recentDefects, defectStats }),
             OutputData = result.DefectAnalysis,
             Confidence = result.Confidence,
             ExecutedAt = DateTimeOffset.UtcNow
@@ -51,6 +77,53 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
         var runRepo = _unitOfWork.Repository<AIAgentRun>();
         await runRepo.AddAsync(agentRun, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Log decision to AIDecisionLog
+        var userId = _currentUserService.GetUserId();
+        var organizationId = _currentUserService.GetOrganizationId();
+        
+        if (userId > 0 && organizationId > 0)
+        {
+            var metadata = new Dictionary<string, object>
+            {
+                { "RecentDefectsCount", recentDefects.Count },
+                { "DefectStats", defectStats },
+                { "PatternsCount", result.Patterns.Count },
+                { "RecommendationsCount", result.Recommendations.Count },
+                { "ExecutionTimeMs", (int)stopwatch.ElapsedMilliseconds }
+            };
+
+            var decisionJson = JsonSerializer.Serialize(new
+            {
+                DefectAnalysis = result.DefectAnalysis,
+                Patterns = result.Patterns.Select(p => new
+                {
+                    p.Pattern,
+                    p.Frequency,
+                    p.Severity,
+                    p.Suggestion
+                }).ToList(),
+                Recommendations = result.Recommendations
+            });
+
+            await _decisionLogger.LogDecisionAsync(
+                agentType: AIDecisionConstants.AgentTypes.QAAgent,
+                decisionType: AIDecisionConstants.DecisionTypes.QualityAnalysis,
+                reasoning: result.DefectAnalysis,
+                confidenceScore: result.Confidence,
+                metadata: metadata,
+                userId: userId,
+                organizationId: organizationId,
+                projectId: request.ProjectId,
+                entityType: "Project",
+                entityId: request.ProjectId,
+                question: "Analyze quality metrics and suggest testing strategies",
+                decision: decisionJson,
+                inputData: JsonSerializer.Serialize(new { recentDefects, defectStats }),
+                outputData: decisionJson,
+                executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                cancellationToken: cancellationToken);
+        }
 
         // Create insights from recommendations
         var insightRepo = _unitOfWork.Repository<Insight>();

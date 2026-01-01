@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using IntelliPM.Application.Agents.Commands;
 using IntelliPM.Application.DTOs.Agent;
+using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Infrastructure.AI.Plugins;
 using IntelliPM.Infrastructure.Persistence;
 
@@ -19,15 +20,18 @@ public class PlanSprintHandler : IRequestHandler<PlanSprintCommand, AgentRespons
     private readonly Kernel _kernel;
     private readonly ILogger<PlanSprintHandler> _logger;
     private readonly AppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
     public PlanSprintHandler(
         Kernel kernel,
         ILogger<PlanSprintHandler> logger,
-        AppDbContext context)
+        AppDbContext context,
+        ICurrentUserService currentUserService)
     {
         _kernel = kernel;
         _logger = logger;
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AgentResponse> Handle(PlanSprintCommand request, CancellationToken cancellationToken)
@@ -78,11 +82,12 @@ Return clear bullet points and sections. Treat this as a proposal that still req
 
             stopwatch.Stop();
 
+            var userId = _currentUserService.GetUserId();
             var log = new Domain.Entities.AgentExecutionLog
             {
                 Id = Guid.NewGuid(),
                 AgentId = "sprint-planner",
-                UserId = "system", // TODO: Get from auth context
+                UserId = userId > 0 ? userId.ToString() : "system",
                 UserInput = $"Plan sprint {request.SprintId}",
                 AgentResponse = response.Content ?? "No sprint plan generated",
                 Status = "Success",

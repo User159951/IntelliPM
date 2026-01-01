@@ -1,5 +1,6 @@
+using IntelliPM.Application.Agents.DTOs;
 using IntelliPM.Application.Common.Interfaces;
-using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Application.Agents.Services;
 
@@ -10,11 +11,19 @@ public class ProductAgent
 {
     private readonly ILlmClient _llmClient;
     private readonly IVectorStore _vectorStore;
+    private readonly IAgentOutputParser _parser;
+    private readonly ILogger<ProductAgent> _logger;
 
-    public ProductAgent(ILlmClient llmClient, IVectorStore vectorStore)
+    public ProductAgent(
+        ILlmClient llmClient, 
+        IVectorStore vectorStore,
+        IAgentOutputParser parser,
+        ILogger<ProductAgent> logger)
     {
         _llmClient = llmClient;
         _vectorStore = vectorStore;
+        _parser = parser;
+        _logger = logger;
     }
 
     public async Task<ProductAgentOutput> RunAsync(int projectId, List<string> backlogItems, List<string> recentCompletions, CancellationToken ct = default)
@@ -33,21 +42,42 @@ PROJECT CONTEXT:
 {context}
 
 Suggest a prioritized ranking of the top 5 items, ranked by ROI and risk. Include rationale for each.
-Format as JSON: {{ ""items"": [{{ ""itemId"": 1, ""title"": ""..."", ""priority"": 90, ""rationale"": ""..."" }}], ""confidence"": 0.85, ""summary"": ""..."" }}
+
+IMPORTANT: Return ONLY valid JSON. Do not include any text before or after the JSON. Use this exact format:
+
+{{
+  ""items"": [
+    {{
+      ""itemId"": 1,
+      ""title"": ""Item title"",
+      ""priority"": 90,
+      ""rationale"": ""Explanation for this priority""
+    }}
+  ],
+  ""confidence"": 0.85,
+  ""summary"": ""Overall summary of prioritization""
+}}
+
+Return only the JSON object, no markdown formatting, no explanation text.
 ";
 
         var output = await _llmClient.GenerateTextAsync(prompt, ct);
 
-        // Parse JSON output (simplified - in production, use proper JSON parsing)
-        try
+        // Parse JSON output with validation
+        if (_parser.TryParse<ProductAgentOutputDto>(output, out var result, out var errors))
         {
-            var json = JsonSerializer.Deserialize<dynamic>(output);
-            return new ProductAgentOutput(new(), 0.85m, output);
+            _logger.LogInformation("Successfully parsed ProductAgent output with confidence {Confidence}", result!.Confidence);
+            return result.ToProductAgentOutput();
         }
-        catch
-        {
-            return new ProductAgentOutput(new(), 0.7m, output);
-        }
+
+        // Fallback on parsing failure
+        _logger.LogWarning("Failed to parse ProductAgent output. Errors: {Errors}. Raw output: {Output}", 
+            string.Join("; ", errors), output);
+        
+        return new ProductAgentOutput(
+            PrioritizedItems: new List<PrioritizedItem>(),
+            Confidence: 0.0m,
+            Rationale: "Failed to parse agent output. Original response: " + output
+        );
     }
 }
-

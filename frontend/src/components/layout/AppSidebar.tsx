@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { QuotaStatusWidget } from '@/components/ai-governance/QuotaStatusWidget';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -156,6 +157,7 @@ export function AppSidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         )}
+        <QuotaStatusWidget compact={collapsed} />
         {!collapsed && (
           <div className="space-y-1 mt-2">
             <div className="text-xs text-muted-foreground">

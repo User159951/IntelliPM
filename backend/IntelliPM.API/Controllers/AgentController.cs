@@ -289,6 +289,121 @@ public class AgentController : BaseApiController
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Analyze task dependencies for a project using AI agent
+    /// </summary>
+    /// <param name="projectId">Project ID to analyze dependencies</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Agent execution result with dependency analysis</returns>
+    /// <response code="200">Dependency analysis completed successfully</response>
+    /// <response code="404">Project not found</response>
+    /// <response code="500">Error during dependency analysis</response>
+    [HttpPost("analyze-dependencies/{projectId}")]
+    [ProducesResponseType(typeof(AgentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> AnalyzeDependencies(
+        int projectId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            _logger.LogInformation("🔗 User {UserId} requesting dependency analysis for project {ProjectId}", 
+                userId, projectId);
+            
+            var result = await _agentService.AnalyzeTaskDependenciesAsync(
+                projectId, 
+                cancellationToken);
+            
+            _logger.LogInformation("✅ Dependency analysis completed: Status={Status}, Time={Time}ms", 
+                result.Status, result.ExecutionTimeMs);
+            
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Project {ProjectId} not found", projectId);
+            return Problem(
+                title: "Not Found",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing dependencies for project {ProjectId}", projectId);
+            return Problem(
+                title: "Error analyzing dependencies",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Generate sprint retrospective using AI agent
+    /// </summary>
+    /// <param name="sprintId">Sprint ID to generate retrospective for</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Agent execution result with retrospective</returns>
+    /// <response code="200">Retrospective generated successfully</response>
+    /// <response code="400">Sprint is not completed</response>
+    /// <response code="404">Sprint not found</response>
+    /// <response code="500">Error during retrospective generation</response>
+    [HttpPost("generate-retrospective/{sprintId}")]
+    [ProducesResponseType(typeof(AgentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GenerateRetrospective(
+        int sprintId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            _logger.LogInformation("📝 User {UserId} requesting retrospective generation for sprint {SprintId}", 
+                userId, sprintId);
+            
+            var result = await _agentService.GenerateSprintRetrospectiveAsync(
+                sprintId, 
+                cancellationToken);
+            
+            _logger.LogInformation("✅ Retrospective generation completed: Status={Status}, Time={Time}ms", 
+                result.Status, result.ExecutionTimeMs);
+            
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Sprint {SprintId} not found", sprintId);
+            return Problem(
+                title: "Not Found",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation for sprint {SprintId}: {Message}", sprintId, ex.Message);
+            return Problem(
+                title: "Invalid Operation",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating retrospective for sprint {SprintId}", sprintId);
+            return Problem(
+                title: "Error generating retrospective",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
 }
 
 public record ImproveTaskRequest(string Description);

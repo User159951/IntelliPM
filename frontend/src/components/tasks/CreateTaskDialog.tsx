@@ -54,6 +54,7 @@ import {
 } from 'lucide-react';
 import type { CreateTaskRequest, TaskPriority } from '@/types';
 import { cn } from '@/lib/utils';
+import { AITaskImproverDialog, type ImprovedTask } from './AITaskImproverDialog';
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -273,6 +274,17 @@ export function CreateTaskDialog({
     });
   };
 
+  const handleApplyImprovedTask = (improved: ImprovedTask) => {
+    setFormData({
+      ...formData,
+      title: improved.title,
+      description: improved.description,
+      acceptanceCriteria: improved.acceptanceCriteria,
+      storyPoints: improved.storyPoints,
+    });
+    showSuccess('Améliorations appliquées avec succès');
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -340,7 +352,20 @@ export function CreateTaskDialog({
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="description">Description</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAiImproverOpen(true)}
+                  className="h-8 text-xs"
+                  disabled={!formData.title.trim() && !formData.description.trim()}
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Améliorer avec IA
+                </Button>
+              </div>
               <Textarea
                 id="description"
                 placeholder="Describe the task in detail"
@@ -760,6 +785,15 @@ export function CreateTaskDialog({
             </Button>
           </DialogFooter>
         </form>
+
+        <AITaskImproverDialog
+          open={aiImproverOpen}
+          onOpenChange={setAiImproverOpen}
+          initialTitle={formData.title}
+          initialDescription={formData.description}
+          projectId={projectId}
+          onApply={handleApplyImprovedTask}
+        />
       </DialogContent>
     </Dialog>
   );

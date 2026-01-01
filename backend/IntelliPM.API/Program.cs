@@ -530,6 +530,34 @@ app.UseExceptionHandler(appBuilder =>
                 errors = (object?)null,
                 details = (string?)null
             },
+            IntelliPM.Application.Common.Exceptions.AIQuotaExceededException quotaEx => new
+            {
+                statusCode = StatusCodes.Status429TooManyRequests,
+                error = "QuotaExceeded",
+                message = quotaEx.Message,
+                errors = (object?)null,
+                details = new
+                {
+                    organizationId = quotaEx.OrganizationId,
+                    quotaType = quotaEx.QuotaType,
+                    currentUsage = quotaEx.CurrentUsage,
+                    maxLimit = quotaEx.MaxLimit,
+                    tierName = quotaEx.TierName,
+                    upgradeUrl = "/settings/billing"
+                }
+            },
+            IntelliPM.Application.Common.Exceptions.AIDisabledException aiDisabledEx => new
+            {
+                statusCode = StatusCodes.Status403Forbidden,
+                error = "AIDisabled",
+                message = aiDisabledEx.Message,
+                errors = (object?)null,
+                details = new
+                {
+                    organizationId = aiDisabledEx.OrganizationId,
+                    reason = aiDisabledEx.Reason
+                }
+            },
             Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException => new
             {
                 statusCode = StatusCodes.Status409Conflict,

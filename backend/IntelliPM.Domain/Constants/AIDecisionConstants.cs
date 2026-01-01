@@ -13,6 +13,11 @@ public static class AIDecisionConstants
         public const string RiskDetection = "RiskDetection";
         public const string SprintPlanning = "SprintPlanning";
         public const string TaskPrioritization = "TaskPrioritization";
+        public const string BacklogPrioritization = "BacklogPrioritization";
+        public const string DeliveryAnalysis = "DeliveryAnalysis";
+        public const string ExecutiveSummary = "ExecutiveSummary";
+        public const string QualityAnalysis = "QualityAnalysis";
+        public const string BusinessValueAnalysis = "BusinessValueAnalysis";
         public const string ResourceAllocation = "ResourceAllocation";
         public const string DeadlineEstimation = "DeadlineEstimation";
         public const string CodeReview = "CodeReview";

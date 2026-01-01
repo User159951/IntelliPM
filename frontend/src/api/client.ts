@@ -7,6 +7,40 @@ const API_VERSION = '/api/v1';
 let isRedirecting = false;
 let isRefreshing = false;
 
+// Store quota error details globally to share across components
+export interface QuotaErrorDetails {
+  organizationId: number;
+  quotaType: string;
+  currentUsage: number;
+  maxLimit: number;
+  tierName: string;
+  upgradeUrl: string;
+}
+
+export interface AIDisabledErrorDetails {
+  organizationId: number;
+  reason: string;
+}
+
+let lastQuotaError: QuotaErrorDetails | null = null;
+let lastAIDisabledError: AIDisabledErrorDetails | null = null;
+
+export function getLastQuotaError(): QuotaErrorDetails | null {
+  return lastQuotaError;
+}
+
+export function clearQuotaError(): void {
+  lastQuotaError = null;
+}
+
+export function getLastAIDisabledError(): AIDisabledErrorDetails | null {
+  return lastAIDisabledError;
+}
+
+export function clearAIDisabledError(): void {
+  lastAIDisabledError = null;
+}
+
 class ApiClient {
   private etagCache: Map<string, string> = new Map();
 
@@ -103,7 +137,52 @@ class ApiClient {
       throw new Error(errorMessage);
     }
 
+    if (response.status === 403) {
+      // Check if it's an AI disabled error
+      try {
+        const errorData = await response.clone().json();
+        if (errorData.error === 'AIDisabled' && errorData.details) {
+          lastAIDisabledError = {
+            organizationId: errorData.details.organizationId,
+            reason: errorData.details.reason || 'AI has been disabled for your organization.',
+          };
+          // Clear quota error when AI is disabled
+          lastQuotaError = null;
+          throw new Error(errorData.message || 'AI features are currently disabled for your organization. Please contact an administrator for assistance.');
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('AI features')) {
+          throw e;
+        }
+        // Not an AI disabled error, continue with normal 403 handling
+      }
+    }
+
     if (response.status === 429) {
+      // Rate limit or quota exceeded
+      // Check if it's a quota exceeded error
+      try {
+        const errorData = await response.clone().json();
+        if (errorData.error === 'QuotaExceeded' && errorData.details) {
+          lastQuotaError = {
+            organizationId: errorData.details.organizationId,
+            quotaType: errorData.details.quotaType || 'Requests',
+            currentUsage: errorData.details.currentUsage || 0,
+            maxLimit: errorData.details.maxLimit || 0,
+            tierName: errorData.details.tierName || 'Free',
+            upgradeUrl: errorData.details.upgradeUrl || '/settings/billing',
+          };
+          // Clear AI disabled error when quota is exceeded
+          lastAIDisabledError = null;
+          throw new Error(errorData.message || `Monthly AI ${errorData.details.quotaType?.toLowerCase() || 'request'} limit exceeded (${errorData.details.currentUsage || 0}/${errorData.details.maxLimit || 0}). Please upgrade to continue using AI features.`);
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message.includes('limit exceeded')) {
+          throw e;
+        }
+        // Not a quota error, continue with normal 429 handling
+      }
+
       // Rate limit exceeded - check both response body and headers
       let retryAfter = 60;
       
