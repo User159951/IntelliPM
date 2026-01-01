@@ -53,9 +53,9 @@ export function AIGovernanceOverview() {
             <CardTitle className="text-sm font-medium">Total Decisions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalDecisions || 0}</div>
+            <div className="text-2xl font-bold">{stats?.totalDecisionsLast30Days || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {stats?.decisionsLast24h || 0} in last 24h
+              Last 30 days
             </p>
           </CardContent>
         </Card>
@@ -66,10 +66,10 @@ export function AIGovernanceOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(stats?.totalTokens || 0).toLocaleString()}
+              {stats?.topAgents?.reduce((sum, agent) => sum + agent.totalTokensUsed, 0).toLocaleString() || 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              {((stats?.tokensLast24h || 0) / 1000).toFixed(1)}K in last 24h
+              Total tokens used
             </p>
           </CardContent>
         </Card>
@@ -79,7 +79,7 @@ export function AIGovernanceOverview() {
             <CardTitle className="text-sm font-medium">Active Organizations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.activeOrganizations || 0}</div>
+            <div className="text-2xl font-bold">{stats?.organizationsWithAIEnabled || 0}</div>
             <p className="text-xs text-muted-foreground">
               {stats?.totalOrganizations || 0} total
             </p>
@@ -92,10 +92,10 @@ export function AIGovernanceOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              {stats?.exceededQuotas || 0}
+              {stats?.quotaByTier?.reduce((sum, tier) => sum + tier.exceededCount, 0) || 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats?.alertsSent || 0} alerts sent
+              Quotas exceeded
             </p>
           </CardContent>
         </Card>
@@ -108,17 +108,17 @@ export function AIGovernanceOverview() {
             <CardTitle>Usage by Agent Type</CardTitle>
           </CardHeader>
           <CardContent>
-            {stats?.usageByAgent && Object.keys(stats.usageByAgent).length > 0 ? (
+            {stats?.topAgents && stats.topAgents.length > 0 ? (
               <div className="space-y-2">
-                {Object.entries(stats.usageByAgent).map(([agent, usage]) => (
-                  <div key={agent} className="flex items-center justify-between">
-                    <span className="text-sm">{agent}</span>
+                {stats.topAgents.map((agent) => (
+                  <div key={agent.agentType} className="flex items-center justify-between">
+                    <span className="text-sm">{agent.agentType}</span>
                     <div className="text-right">
                       <div className="text-sm font-medium">
-                        {usage.tokensUsed.toLocaleString()} tokens
+                        {agent.totalTokensUsed.toLocaleString()} tokens
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {usage.requestsCount} requests
+                        {agent.decisionCount} decisions
                       </div>
                     </div>
                   </div>
@@ -135,45 +135,49 @@ export function AIGovernanceOverview() {
             <CardTitle>Decision Types Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            {stats?.decisionTypes && Object.keys(stats.decisionTypes).length > 0 ? (
-              <div className="space-y-2">
-                {Object.entries(stats.decisionTypes).map(([type, count]) => (
-                  <div key={type} className="flex items-center justify-between">
-                    <span className="text-sm">{type}</span>
-                    <span className="text-sm font-medium">{count}</span>
-                  </div>
-                ))}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Approved</span>
+                <span className="text-sm font-medium">{stats?.approvedDecisions || 0}</span>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No decision data available</p>
-            )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Rejected</span>
+                <span className="text-sm font-medium">{stats?.rejectedDecisions || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Pending</span>
+                <span className="text-sm font-medium">{stats?.pendingApprovals || 0}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Organizations at risk */}
-      {stats?.organizationsAtRisk && stats.organizationsAtRisk.length > 0 && (
+      {/* Quota by tier */}
+      {stats?.quotaByTier && stats.quotaByTier.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Organizations Requiring Attention
+              Quota Usage by Tier
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {stats.organizationsAtRisk.map((org) => (
+              {stats.quotaByTier.map((tier) => (
                 <div
-                  key={org.organizationId}
+                  key={tier.tierName}
                   className="flex items-center justify-between p-2 border rounded"
                 >
-                  <span className="text-sm font-medium">{org.organizationName}</span>
+                  <span className="text-sm font-medium">{tier.tierName}</span>
                   <div className="text-right">
                     <div className="text-sm font-medium">
-                      {org.quotaPercentage.toFixed(1)}% used
+                      {tier.averageUsagePercentage.toFixed(1)}% avg usage
                     </div>
-                    {org.isExceeded && (
-                      <div className="text-xs text-destructive">Quota exceeded</div>
+                    {tier.exceededCount > 0 && (
+                      <div className="text-xs text-destructive">
+                        {tier.exceededCount} exceeded
+                      </div>
                     )}
                   </div>
                 </div>

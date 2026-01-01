@@ -3,7 +3,7 @@ import { aiGovernanceApi } from '@/api/aiGovernance';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Clock, CheckCircle2, XCircle, TrendingUp } from 'lucide-react';
+import { AlertCircle, Clock, TrendingUp } from 'lucide-react';
 import {
   PieChart,
   Pie,

@@ -106,9 +106,9 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
 
         // Log decision to AIDecisionLog
         var userId = _currentUserService.GetUserId();
-        var organizationId = _currentUserService.GetOrganizationId();
+        var orgId = organizationId;
         
-        if (userId > 0 && organizationId > 0)
+        if (userId > 0 && orgId > 0)
         {
             var metadata = new Dictionary<string, object>
             {
@@ -133,7 +133,7 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
                 confidenceScore: result.Confidence,
                 metadata: metadata,
                 userId: userId,
-                organizationId: organizationId,
+                organizationId: orgId,
                 projectId: request.ProjectId,
                 entityType: "Project",
                 entityId: request.ProjectId,

@@ -4,7 +4,6 @@ import { AlertTriangle, XCircle, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import type { QuotaStatus } from '@/types/aiGovernance';
 import { aiGovernanceApi } from '@/api/aiGovernance';
 
 interface QuotaAlertBannerProps {

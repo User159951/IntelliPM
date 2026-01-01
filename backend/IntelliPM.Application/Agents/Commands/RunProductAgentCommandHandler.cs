@@ -2,6 +2,7 @@ using MediatR;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Interfaces;
+using IntelliPM.Application.Services;
 using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -15,17 +16,20 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAIDecisionLogger _decisionLogger;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAIAvailabilityService _availabilityService;
 
     public RunProductAgentCommandHandler(
         ProductAgent productAgent, 
         IUnitOfWork unitOfWork,
         IAIDecisionLogger decisionLogger,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IAIAvailabilityService availabilityService)
     {
         _productAgent = productAgent;
         _unitOfWork = unitOfWork;
         _decisionLogger = decisionLogger;
         _currentUserService = currentUserService;
+        _availabilityService = availabilityService;
     }
 
     public async Task<ProductAgentOutput> Handle(RunProductAgentCommand request, CancellationToken cancellationToken)
@@ -69,9 +73,9 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
 
         // Log decision to AIDecisionLog
         var userId = _currentUserService.GetUserId();
-        var organizationId = _currentUserService.GetOrganizationId();
+        var orgId = organizationId;
         
-        if (userId > 0 && organizationId > 0)
+        if (userId > 0 && orgId > 0)
         {
             var metadata = new Dictionary<string, object>
             {
@@ -100,7 +104,7 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
                 confidenceScore: result.Confidence,
                 metadata: metadata,
                 userId: userId,
-                organizationId: organizationId,
+                organizationId: orgId,
                 projectId: request.ProjectId,
                 entityType: "Project",
                 entityId: request.ProjectId,

@@ -14,7 +14,9 @@ import { QuotaStatusWidget } from '@/components/ai-governance/QuotaStatusWidget'
 import { QuotaAlertBanner } from '@/components/ai-governance/QuotaAlertBanner';
 import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
 import { useQuotaNotifications } from '@/hooks/useQuotaNotifications';
+import { AgentResultsDisplay } from '@/components/agents/results/AgentResultsDisplay';
 import type { AgentResponse } from '@/types';
+import type { AgentType } from '@/types/agents';
 import { 
   Bot, 
   Loader2, 

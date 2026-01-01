@@ -12,7 +12,7 @@ interface BusinessAgentResultsProps {
 
 export function BusinessAgentResults({ output }: BusinessAgentResultsProps) {
   // Prepare data for line chart (trend visualization)
-  const chartData = output.metrics.map((metric, index) => ({
+  const chartData = output.metrics.map((metric) => ({
     name: metric.metricName.length > 15 
       ? metric.metricName.substring(0, 15) + '...' 
       : metric.metricName,

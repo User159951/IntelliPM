@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import type { QuotaStatus } from '@/types/aiGovernance';
 import { aiGovernanceApi } from '@/api/aiGovernance';
 
 /**

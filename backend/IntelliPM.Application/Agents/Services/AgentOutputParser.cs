@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using IntelliPM.Application.Agents.DTOs;
 using IntelliPM.Application.Agents.Validators;
@@ -131,23 +132,23 @@ public class AgentOutputParser : IAgentOutputParser
         
         if (type == typeof(ProductAgentOutputDto))
         {
-            return _serviceProvider.GetService<IValidator<ProductAgentOutputDto>>() as IValidator<T>;
+            return _serviceProvider.GetService(typeof(IValidator<ProductAgentOutputDto>)) as IValidator<T>;
         }
         else if (type == typeof(DeliveryAgentOutputDto))
         {
-            return _serviceProvider.GetService<IValidator<DeliveryAgentOutputDto>>() as IValidator<T>;
+            return _serviceProvider.GetService(typeof(IValidator<DeliveryAgentOutputDto>)) as IValidator<T>;
         }
         else if (type == typeof(ManagerAgentOutputDto))
         {
-            return _serviceProvider.GetService<IValidator<ManagerAgentOutputDto>>() as IValidator<T>;
+            return _serviceProvider.GetService(typeof(IValidator<ManagerAgentOutputDto>)) as IValidator<T>;
         }
         else if (type == typeof(QAAgentOutputDto))
         {
-            return _serviceProvider.GetService<IValidator<QAAgentOutputDto>>() as IValidator<T>;
+            return _serviceProvider.GetService(typeof(IValidator<QAAgentOutputDto>)) as IValidator<T>;
         }
         else if (type == typeof(BusinessAgentOutputDto))
         {
-            return _serviceProvider.GetService<IValidator<BusinessAgentOutputDto>>() as IValidator<T>;
+            return _serviceProvider.GetService(typeof(IValidator<BusinessAgentOutputDto>)) as IValidator<T>;
         }
 
         return null;

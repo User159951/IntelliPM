@@ -507,36 +507,35 @@ app.UseExceptionHandler(appBuilder =>
                 statusCode = StatusCodes.Status404NotFound,
                 error = notFoundEx.Message,
                 errors = (object?)null,
-                details = (string?)null
+                details = (object?)null
             },
             IntelliPM.Application.Common.Exceptions.UnauthorizedException unauthorizedEx => new
             {
                 statusCode = StatusCodes.Status401Unauthorized,
                 error = unauthorizedEx.Message,
                 errors = (object?)null,
-                details = (string?)null
+                details = (object?)null
             },
             IntelliPM.Application.Common.Exceptions.ValidationException validationEx => new
             {
                 statusCode = StatusCodes.Status400BadRequest,
                 error = validationEx.Message,
                 errors = (object?)validationEx.Errors,
-                details = (string?)null
+                details = (object?)null
             },
             IntelliPM.Application.Common.Exceptions.ConcurrencyException concurrencyEx => new
             {
                 statusCode = StatusCodes.Status409Conflict,
                 error = concurrencyEx.Message,
                 errors = (object?)null,
-                details = (string?)null
+                details = (object?)null
             },
             IntelliPM.Application.Common.Exceptions.AIQuotaExceededException quotaEx => new
             {
                 statusCode = StatusCodes.Status429TooManyRequests,
-                error = "QuotaExceeded",
-                message = quotaEx.Message,
+                error = quotaEx.Message,
                 errors = (object?)null,
-                details = new
+                details = (object?)new
                 {
                     organizationId = quotaEx.OrganizationId,
                     quotaType = quotaEx.QuotaType,
@@ -549,10 +548,9 @@ app.UseExceptionHandler(appBuilder =>
             IntelliPM.Application.Common.Exceptions.AIDisabledException aiDisabledEx => new
             {
                 statusCode = StatusCodes.Status403Forbidden,
-                error = "AIDisabled",
-                message = aiDisabledEx.Message,
+                error = aiDisabledEx.Message,
                 errors = (object?)null,
-                details = new
+                details = (object?)new
                 {
                     organizationId = aiDisabledEx.OrganizationId,
                     reason = aiDisabledEx.Reason
@@ -563,14 +561,14 @@ app.UseExceptionHandler(appBuilder =>
                 statusCode = StatusCodes.Status409Conflict,
                 error = "The record was modified by another user. Please reload and try again.",
                 errors = (object?)null,
-                details = (string?)null
+                details = (object?)null
             },
             _ => new
             {
                 statusCode = StatusCodes.Status500InternalServerError,
                 error = exception?.Message ?? "An error occurred",
                 errors = (object?)null,
-                details = app.Environment.IsDevelopment() ? exception?.StackTrace : null
+                details = (object?)(app.Environment.IsDevelopment() ? exception?.StackTrace : null)
             }
         };
 

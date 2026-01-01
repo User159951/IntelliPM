@@ -7,6 +7,7 @@ using IntelliPM.Application.Interfaces.Services;
 using IntelliPM.Application.DTOs.Agent;
 using IntelliPM.Application.Agent.Queries;
 using IntelliPM.Application.Agents.Commands;
+using IntelliPM.Application.Common.Exceptions;
 using System.Security.Claims;
 
 namespace IntelliPM.API.Controllers;

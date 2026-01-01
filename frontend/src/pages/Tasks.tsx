@@ -10,8 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showError } from "@/lib/sweetalert";
-import { Plus, GripVertical, AlertTriangle, Sparkles, ArrowUpDown, Search, X, LayoutGrid, List, Calendar } from 'lucide-react';
-import { AITaskImproverDialog } from '@/components/tasks/AITaskImproverDialog';
+import { Plus, GripVertical, AlertTriangle, ArrowUpDown, Search, X, LayoutGrid, List, Calendar } from 'lucide-react';
 import { TaskDetailSheet } from '@/components/tasks/TaskDetailSheet';
 import { TaskFiltersComponent, type TaskFilters } from '@/components/tasks/TaskFilters';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
@@ -39,7 +38,6 @@ export default function Tasks() {
   const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [filters, setFilters] = useState<TaskFilters>({
     priority: 'All',
@@ -370,12 +368,6 @@ export default function Tasks() {
               ))}
             </SelectContent>
           </Select>
-          {projectId && permissions.canCreateTasks && (
-            <Button variant="secondary" onClick={() => setIsAIDialogOpen(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              AI Create Task
-            </Button>
-          )}
           {permissions.canCreateTasks && (
             <Button disabled={!projectId} onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -531,16 +523,6 @@ export default function Tasks() {
         />
       )}
 
-      {projectId && (
-        <AITaskImproverDialog
-          open={isAIDialogOpen}
-          onOpenChange={setIsAIDialogOpen}
-          projectId={projectId}
-          onTaskCreated={() => {
-            queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
-          }}
-        />
-      )}
     </div>
   );
 }

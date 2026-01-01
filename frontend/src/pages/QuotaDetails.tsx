@@ -4,14 +4,12 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, TrendingUp, Zap, AlertCircle, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import type { QuotaDetails, QuotaStatus } from '@/types/aiGovernance';
 import { cn } from '@/lib/utils';
-import { apiClient } from '@/api/client';
 
 // Mock API calls - will be replaced with actual endpoints when available
 async function getQuotaDetails(organizationId: number): Promise<QuotaDetails> {

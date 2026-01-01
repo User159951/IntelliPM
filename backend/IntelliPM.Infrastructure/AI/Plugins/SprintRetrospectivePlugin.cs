@@ -94,7 +94,7 @@ public class SprintRetrospectivePlugin
             CompletedStoryPoints = completedStoryPoints,
             CompletionRate = completionRate,
             Velocity = velocity,
-            PreviousVelocity = previousVelocity,
+            PreviousVelocity = previousVelocity.HasValue ? (int)previousVelocity.Value : null,
             VelocityChange = velocityChange,
             DefectCount = defectCount,
             TotalTasks = tasks.Count,

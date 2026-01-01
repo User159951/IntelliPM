@@ -107,6 +107,7 @@ export function CreateTaskDialog({
   const [newCriterion, setNewCriterion] = useState('');
   const [isCriteriaOpen, setIsCriteriaOpen] = useState(false);
   const [isAttachmentsOpen, setIsAttachmentsOpen] = useState(false);
+  const [aiImproverOpen, setAiImproverOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { data: membersData } = useQuery({

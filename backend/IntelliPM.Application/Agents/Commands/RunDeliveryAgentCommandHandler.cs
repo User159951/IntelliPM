@@ -75,7 +75,7 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
         var riskRepo = _unitOfWork.Repository<Risk>();
         var activeRisks = await riskRepo.Query()
             .Where(r => r.ProjectId == request.ProjectId && r.Status == "Open")
-            .Select(r => $"{r.Severity}: {r.Title}")
+            .Select(r => $"Risk {r.Id}: {r.Title} (Impact: {r.Impact}, Probability: {r.Probability})")
             .ToListAsync(cancellationToken);
 
         var result = await _deliveryAgent.RunAsync(request.ProjectId, sprintProgress, velocityTrend, activeRisks, cancellationToken);
@@ -98,9 +98,9 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
 
         // Log decision to AIDecisionLog
         var userId = _currentUserService.GetUserId();
-        var organizationId = _currentUserService.GetOrganizationId();
+        var orgId = organizationId;
         
-        if (userId > 0 && organizationId > 0)
+        if (userId > 0 && orgId > 0)
         {
             var metadata = new Dictionary<string, object>
             {
@@ -124,7 +124,7 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
                 confidenceScore: result.Confidence,
                 metadata: metadata,
                 userId: userId,
-                organizationId: organizationId,
+                organizationId: orgId,
                 projectId: request.ProjectId,
                 entityType: "Project",
                 entityId: request.ProjectId,

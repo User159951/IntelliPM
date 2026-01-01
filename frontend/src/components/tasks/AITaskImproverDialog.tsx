@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QuotaAlertBanner } from '@/components/ai-governance/QuotaAlertBanner';
 import { agentsApi } from '@/api/agents';
 import { showToast, showError } from '@/lib/sweetalert';
-import type { ImproveTaskRequest, ImprovedTaskData, AgentResponse } from '@/types';
+import type { ImproveTaskRequest, AgentResponse } from '@/types';
 import {
   Loader2,
   Sparkles,

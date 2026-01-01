@@ -14,13 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Link } from 'react-router-dom';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { showSuccess, showError } from "@/lib/sweetalert";
-import { ArrowLeft, Settings, Play, CheckCircle2, Sparkles, Plus, Pencil, Trash2, Package } from 'lucide-react';
+import { ArrowLeft, Settings, Play, CheckCircle2, Plus, Pencil, Trash2, Package } from 'lucide-react';
 import { ProjectInsightPanel } from '@/components/agents/ProjectInsightPanel';
 import { RiskDetectionPanel } from '@/components/agents/RiskDetectionPanel';
 import { SprintPlanningAssistant } from '@/components/agents/SprintPlanningAssistant';
-import { AITaskImproverDialog } from '@/components/tasks/AITaskImproverDialog';
 import { EditProjectDialog } from '@/components/projects/EditProjectDialog';
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { ProjectTimeline } from '@/components/projects/ProjectTimeline';
@@ -47,7 +45,6 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
-  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isCreateMilestoneDialogOpen, setIsCreateMilestoneDialogOpen] = useState(false);
@@ -496,21 +493,6 @@ export default function ProjectDetail() {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Tasks</h3>
             <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={() => setIsAIDialogOpen(true)}
-                    variant="secondary"
-                    className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 border-cyan-500/20"
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    AI Create Task
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Create task with AI assistance</p>
-                </TooltipContent>
-              </Tooltip>
               <Button
                 variant="outline"
                 onClick={() => navigate('/tasks')}
@@ -532,10 +514,6 @@ export default function ProjectDetail() {
               <div className="flex gap-2 justify-center mt-4">
                 <Button variant="outline" onClick={() => navigate('/tasks')}>
                   Create Task
-                </Button>
-                <Button onClick={() => setIsAIDialogOpen(true)}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  AI Create Task
                 </Button>
               </div>
             </Card>
@@ -616,14 +594,6 @@ export default function ProjectDetail() {
         <RiskDetectionPanel projectId={projectId} />
       </div>
 
-      <AITaskImproverDialog
-        open={isAIDialogOpen}
-        onOpenChange={setIsAIDialogOpen}
-        projectId={projectId}
-        onTaskCreated={() => {
-          queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
-        }}
-      />
 
       {project && (
         <>

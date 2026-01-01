@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import type { ProductAgentOutput, PrioritizedItem } from '@/types/agents';
+import type { ProductAgentOutput } from '@/types/agents';
 import { cn } from '@/lib/utils';
 
 interface ProductAgentResultsProps {
