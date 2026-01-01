@@ -18,19 +18,29 @@ public class BusinessAgentTests
         // Arrange
         var mockLlmClient = new Mock<ILlmClient>();
         var mockVectorStore = new Mock<IVectorStore>();
-        var mockParser = new Mock<IAgentOutputParser>();
         var mockLogger = new Mock<ILogger<BusinessAgent>>();
 
         mockVectorStore.Setup(v => v.RetrieveContextAsync(
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Business context: Market analysis and competitive positioning data.");
 
+        var validJson = @"{
+  ""valueDeliverySummary"": ""The project delivered significant ROI. Customer satisfaction improved by 40%. Market advantage gained through innovative features."",
+  ""valueMetrics"": {
+    ""EstimatedROI"": 120.5,
+    ""TimeToMarket"": 85.0,
+    ""CustomerSatisfaction"": 4.5
+  },
+  ""businessHighlights"": [""Highlight 1"", ""Highlight 2"", ""Highlight 3""],
+  ""strategicRecommendations"": [""Recommendation 1"", ""Recommendation 2"", ""Recommendation 3""],
+  ""confidence"": 0.85
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Business Value Summary: The project delivered significant ROI. Customer satisfaction improved by 40%. Market advantage gained through innovative features.");
+            .ReturnsAsync(validJson);
 
-
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var parser = AgentParserTestHelper.CreateRealParser();
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
         var projectId = 1;
         var kpis = new Dictionary<string, object>
         {

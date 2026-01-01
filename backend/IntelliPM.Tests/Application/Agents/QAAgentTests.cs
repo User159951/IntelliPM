@@ -279,7 +279,7 @@ public class QAAgentTests
     },
     {
       ""pattern"": ""UI Layout Issues"",
-      ""frequency"": 2,
+      ""frequency"": 5,
       ""severity"": ""Medium"",
       ""suggestion"": ""Review responsive design patterns""
     }
