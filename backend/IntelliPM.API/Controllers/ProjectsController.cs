@@ -481,6 +481,24 @@ public class ProjectsController : BaseApiController
                 statusCode: StatusCodes.Status403Forbidden
             );
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access when inviting member to project {ProjectId}", id);
+            return Problem(
+                title: "Forbidden",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error when inviting member to project {ProjectId}", id);
+            return Problem(
+                title: "Bad Request",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
         catch (NotFoundException ex)
         {
             _logger.LogWarning(ex, "Project or user not found when inviting member to project {ProjectId}", id);
@@ -625,6 +643,15 @@ public class ProjectsController : BaseApiController
                 statusCode: StatusCodes.Status403Forbidden
             );
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access when changing member role in project {ProjectId}", projectId);
+            return Problem(
+                title: "Forbidden",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
         catch (NotFoundException ex)
         {
             _logger.LogWarning(ex, "Project or member not found when changing role in project {ProjectId}", projectId);
@@ -689,6 +716,15 @@ public class ProjectsController : BaseApiController
             return NoContent();
         }
         catch (UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access when removing member from project {ProjectId}", projectId);
+            return Problem(
+                title: "Forbidden",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+        catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning(ex, "Unauthorized access when removing member from project {ProjectId}", projectId);
             return Problem(

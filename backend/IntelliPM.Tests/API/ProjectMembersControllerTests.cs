@@ -214,10 +214,13 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
-        var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User);
-        var developer = CreateTestUser("developer@test.com", "developer", GlobalRole.User);
-        var invitee = CreateTestUser("invitee@test.com", "invitee", GlobalRole.User);
-        var project = CreateTestProject("Test Project", owner.Id);
+        await SeedProjectMemberPermissionsAsync(db);
+        var org = await EnsureOrganizationExistsAsync(db);
+        
+        var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
+        var developer = CreateTestUser("developer@test.com", "developer", GlobalRole.User, org.Id);
+        var invitee = CreateTestUser("invitee@test.com", "invitee", GlobalRole.User, org.Id);
+        var project = CreateTestProject("Test Project", owner.Id, org.Id);
         var projectMember = new ProjectMember
         {
             ProjectId = project.Id,
@@ -358,10 +361,13 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
-        var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User);
-        var scrumMaster = CreateTestUser("scrum@test.com", "scrum", GlobalRole.User);
-        var member = CreateTestUser("member@test.com", "member", GlobalRole.User);
-        var project = CreateTestProject("Test Project", owner.Id);
+        await SeedProjectMemberPermissionsAsync(db);
+        var org = await EnsureOrganizationExistsAsync(db);
+        
+        var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
+        var scrumMaster = CreateTestUser("scrum@test.com", "scrum", GlobalRole.User, org.Id);
+        var member = CreateTestUser("member@test.com", "member", GlobalRole.User, org.Id);
+        var project = CreateTestProject("Test Project", owner.Id, org.Id);
         var ownerMember = new ProjectMember
         {
             ProjectId = project.Id,
@@ -506,10 +512,13 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
-        var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User);
-        var developer = CreateTestUser("developer@test.com", "developer", GlobalRole.User);
-        var member = CreateTestUser("member@test.com", "member", GlobalRole.User);
-        var project = CreateTestProject("Test Project", owner.Id);
+        await SeedProjectMemberPermissionsAsync(db);
+        var org = await EnsureOrganizationExistsAsync(db);
+        
+        var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
+        var developer = CreateTestUser("developer@test.com", "developer", GlobalRole.User, org.Id);
+        var member = CreateTestUser("member@test.com", "member", GlobalRole.User, org.Id);
+        var project = CreateTestProject("Test Project", owner.Id, org.Id);
         var ownerMember = new ProjectMember
         {
             ProjectId = project.Id,
