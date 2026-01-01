@@ -185,47 +185,81 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
 
     private async SystemTask SeedPermissionsAndRolePermissionsAsync(AppDbContext db)
     {
-        // Seed Permissions
-        var permissions = new[]
-        {
-            new Permission { Id = 1, Name = "projects.view", Category = "Projects", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 2, Name = "projects.create", Category = "Projects", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 3, Name = "projects.update", Category = "Projects", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 4, Name = "projects.delete", Category = "Projects", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 5, Name = "tasks.view", Category = "Tasks", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 6, Name = "tasks.create", Category = "Tasks", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 7, Name = "tasks.update", Category = "Tasks", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 8, Name = "users.view", Category = "Users", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 9, Name = "admin.access", Category = "Admin", CreatedAt = DateTimeOffset.UtcNow },
-            new Permission { Id = 10, Name = "sprints.view", Category = "Sprints", CreatedAt = DateTimeOffset.UtcNow }
-        };
+        // Get or create permissions (avoid duplicate key errors if already seeded by Program.cs)
+        var permissionNames = new[] { "projects.view", "projects.create", "projects.update", "projects.delete", 
+            "tasks.view", "tasks.create", "tasks.update", "users.view", "admin.access", "sprints.view" };
+        var permissions = new List<Permission>();
 
-        db.Permissions.AddRange(permissions);
-        await db.SaveChangesAsync();
+        foreach (var name in permissionNames)
+        {
+            var existing = await db.Permissions.FirstOrDefaultAsync(p => p.Name == name);
+            if (existing == null)
+            {
+                var category = name.Split('.')[0] switch
+                {
+                    "projects" => "Projects",
+                    "tasks" => "Tasks",
+                    "users" => "Users",
+                    "admin" => "Admin",
+                    "sprints" => "Sprints",
+                    _ => "General"
+                };
+                existing = new Permission { Name = name, Category = category, CreatedAt = DateTimeOffset.UtcNow };
+                db.Permissions.Add(existing);
+                await db.SaveChangesAsync();
+            }
+            permissions.Add(existing);
+        }
 
         // Seed RolePermissions - Admin gets all permissions
-        var adminRolePermissions = permissions.Select(p => new RolePermission
+        var adminRolePermissions = new List<RolePermission>();
+        foreach (var permission in permissions)
         {
-            Role = GlobalRole.Admin,
-            PermissionId = p.Id,
-            CreatedAt = DateTimeOffset.UtcNow
-        }).ToList();
+            var exists = await db.RolePermissions.AnyAsync(rp => 
+                rp.Role == GlobalRole.Admin && rp.PermissionId == permission.Id);
+            if (!exists)
+            {
+                adminRolePermissions.Add(new RolePermission
+                {
+                    Role = GlobalRole.Admin,
+                    PermissionId = permission.Id,
+                    CreatedAt = DateTimeOffset.UtcNow
+                });
+            }
+        }
 
         // User role gets limited permissions
-        var userRolePermissions = new[]
+        var userPermissionNames = new[] { "projects.view", "projects.create", "tasks.view", "tasks.create", 
+            "tasks.update", "users.view", "sprints.view" };
+        var userRolePermissions = new List<RolePermission>();
+        foreach (var permissionName in userPermissionNames)
         {
-            new RolePermission { Role = GlobalRole.User, PermissionId = 1, CreatedAt = DateTimeOffset.UtcNow }, // projects.view
-            new RolePermission { Role = GlobalRole.User, PermissionId = 2, CreatedAt = DateTimeOffset.UtcNow }, // projects.create
-            new RolePermission { Role = GlobalRole.User, PermissionId = 5, CreatedAt = DateTimeOffset.UtcNow }, // tasks.view
-            new RolePermission { Role = GlobalRole.User, PermissionId = 6, CreatedAt = DateTimeOffset.UtcNow }, // tasks.create
-            new RolePermission { Role = GlobalRole.User, PermissionId = 7, CreatedAt = DateTimeOffset.UtcNow }, // tasks.update
-            new RolePermission { Role = GlobalRole.User, PermissionId = 8, CreatedAt = DateTimeOffset.UtcNow }, // users.view
-            new RolePermission { Role = GlobalRole.User, PermissionId = 10, CreatedAt = DateTimeOffset.UtcNow } // sprints.view
-        };
+            var permission = permissions.First(p => p.Name == permissionName);
+            var exists = await db.RolePermissions.AnyAsync(rp => 
+                rp.Role == GlobalRole.User && rp.PermissionId == permission.Id);
+            if (!exists)
+            {
+                userRolePermissions.Add(new RolePermission
+                {
+                    Role = GlobalRole.User,
+                    PermissionId = permission.Id,
+                    CreatedAt = DateTimeOffset.UtcNow
+                });
+            }
+        }
 
-        db.RolePermissions.AddRange(adminRolePermissions);
-        db.RolePermissions.AddRange(userRolePermissions);
-        await db.SaveChangesAsync();
+        if (adminRolePermissions.Any())
+        {
+            db.RolePermissions.AddRange(adminRolePermissions);
+        }
+        if (userRolePermissions.Any())
+        {
+            db.RolePermissions.AddRange(userRolePermissions);
+        }
+        if (adminRolePermissions.Any() || userRolePermissions.Any())
+        {
+            await db.SaveChangesAsync();
+        }
     }
 
     #endregion

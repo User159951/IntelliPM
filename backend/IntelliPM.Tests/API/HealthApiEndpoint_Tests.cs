@@ -40,7 +40,20 @@ public class HealthApiEndpoint_Tests
     {
         var handlerMock = new Mock<HttpMessageHandler>();
 
-        // Setup specific endpoints first (more specific matches come first in Moq)
+        // Setup default handler first (Moq applies mocks in reverse order, so this comes last)
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.NotFound,
+                Content = new StringContent(string.Empty)
+            });
+
+        // Setup specific endpoints after default (Moq applies in reverse, so these take precedence)
         foreach (var (endpoint, statusCode) in endpointResponses)
         {
             var endpointToMatch = endpoint; // Capture for closure
@@ -58,19 +71,6 @@ public class HealthApiEndpoint_Tests
                     Content = new StringContent(string.Empty)
                 });
         }
-        
-        // Setup default handler for any unmatched requests (comes after specific ones)
-        handlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.NotFound,
-                Content = new StringContent(string.Empty)
-            });
 
         return handlerMock;
     }
@@ -146,21 +146,10 @@ public class HealthApiEndpoint_Tests
     public async Task CheckApiHealth_HttpClientThrowsException_ReturnsUnhealthy()
     {
         // Arrange
-        var handlerMock = new Mock<HttpMessageHandler>();
-        handlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("Connection refused"));
-
-        var httpClient = new HttpClient(handlerMock.Object)
-        {
-            BaseAddress = new Uri("http://localhost:5001")
-        };
-
-        _httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
+        // Mock HttpClientFactory to throw exception when creating client
+        _httpClientFactoryMock
+            .Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Throws(new HttpRequestException("Connection refused"));
 
         // Act
         var result = await _controller.CheckApiHealth(CancellationToken.None);

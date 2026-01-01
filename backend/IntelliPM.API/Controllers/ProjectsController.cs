@@ -414,6 +414,15 @@ public class ProjectsController : BaseApiController
                 statusCode: StatusCodes.Status403Forbidden
             );
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access when retrieving project members");
+            return Problem(
+                title: "Forbidden",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
         catch (NotFoundException ex)
         {
             _logger.LogWarning(ex, "Project {ProjectId} not found when retrieving members", id);
