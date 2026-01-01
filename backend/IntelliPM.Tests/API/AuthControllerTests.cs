@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
@@ -72,7 +74,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<CurrentUserDto>();
+        var result = await DeserializeResponseAsync<CurrentUserDto>(response);
         result.Should().NotBeNull();
         result!.UserId.Should().Be(user.Id);
         result.Username.Should().Be(user.Username);
@@ -136,7 +138,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<CurrentUserDto>();
+        var result = await DeserializeResponseAsync<CurrentUserDto>(response);
         result.Should().NotBeNull();
         result!.GlobalRole.Should().Be(GlobalRole.Admin);
         result.OrganizationId.Should().Be(organization.Id);
@@ -175,6 +177,17 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     #region Helper Methods
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    private async Task<T?> DeserializeResponseAsync<T>(HttpResponseMessage response)
+    {
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions);
+    }
 
     private string GenerateJwtToken(int userId, string username, string email)
     {
