@@ -1,6 +1,8 @@
 using System;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
@@ -62,7 +64,7 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var members = await response.Content.ReadFromJsonAsync<List<ProjectMemberDto>>();
+        var members = await DeserializeResponseAsync<List<ProjectMemberDto>>(response);
         members.Should().NotBeNull();
         members!.Count.Should().BeGreaterThan(0);
     }
@@ -488,6 +490,17 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
     #endregion
 
     #region Helper Methods
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    private static async Task<T?> DeserializeResponseAsync<T>(HttpResponseMessage response)
+    {
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions);
+    }
 
     private async System.Threading.Tasks.Task<Organization> EnsureOrganizationExistsAsync(AppDbContext db)
     {
