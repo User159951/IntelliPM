@@ -5,6 +5,7 @@ using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Agents.DTOs;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Tests.Application.Agents.TestHelpers;
 using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
@@ -215,13 +216,24 @@ public class BusinessAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Context");
 
+        var validJson = @"{
+  ""valueDeliverySummary"": ""Business value summary text"",
+  ""valueMetrics"": {
+    ""EstimatedROI"": 145.5,
+    ""TimeToMarket"": 85.0,
+    ""CustomerSatisfaction"": 4.2
+  },
+  ""businessHighlights"": [""Highlight 1"", ""Highlight 2"", ""Highlight 3""],
+  ""strategicRecommendations"": [""Recommendation 1"", ""Recommendation 2"", ""Recommendation 3""],
+  ""confidence"": 0.87
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Business value summary text");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<BusinessAgent>>();
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, new Dictionary<string, object>(), new List<string>(), new Dictionary<string, decimal>(), CancellationToken.None);
@@ -253,13 +265,32 @@ public class BusinessAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Context");
 
+        var validJson = @"{
+  ""valueDeliverySummary"": ""Analysis summary"",
+  ""valueMetrics"": {
+    ""EstimatedROI"": 145.5,
+    ""TimeToMarket"": 85.0,
+    ""CustomerSatisfaction"": 4.2
+  },
+  ""businessHighlights"": [
+    ""Delivered authentication feature ahead of schedule"",
+    ""Reduced technical debt by 20%"",
+    ""Improved system performance by 35%""
+  ],
+  ""strategicRecommendations"": [
+    ""Focus next sprint on high-value customer-facing features"",
+    ""Consider A/B testing for new UI components"",
+    ""Recommendation 3""
+  ],
+  ""confidence"": 0.87
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Analysis");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<BusinessAgent>>();
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, new Dictionary<string, object>(), new List<string>(), new Dictionary<string, decimal>(), CancellationToken.None);

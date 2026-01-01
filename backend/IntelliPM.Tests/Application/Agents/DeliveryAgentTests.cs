@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Tests.Application.Agents.TestHelpers;
 using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
@@ -21,13 +22,19 @@ public class DeliveryAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Delivery context: Previous sprint completed on time, team velocity stable.");
 
+        var validJson = @"{
+  ""riskAssessment"": ""Project is on track. Current sprint shows good progress. Velocity trend is consistent."",
+  ""recommendedActions"": [""Action 1"", ""Action 2"", ""Action 3""],
+  ""highlights"": [""Highlight 1"", ""Highlight 2""],
+  ""confidence"": 0.82
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Risk assessment: Project is on track. Current sprint shows good progress. Velocity trend is consistent.");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<DeliveryAgent>>();
-        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
         var projectId = 1;
         var sprintProgress = "Sprint 5: 12/20 tasks completed";
         var velocityTrend = new List<decimal> { 25.5m, 28.0m, 27.0m, 26.5m, 27.5m };
@@ -185,13 +192,19 @@ public class DeliveryAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Context");
 
+        var validJson = @"{
+  ""riskAssessment"": ""Detailed risk assessment output"",
+  ""recommendedActions"": [""Action 1"", ""Action 2"", ""Action 3""],
+  ""highlights"": [""Highlight 1"", ""Highlight 2""],
+  ""confidence"": 0.82
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Detailed risk assessment output");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<DeliveryAgent>>();
-        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, "Progress", new List<decimal>(), new List<string>(), CancellationToken.None);

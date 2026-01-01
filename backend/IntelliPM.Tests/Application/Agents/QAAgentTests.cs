@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Tests.Application.Agents.TestHelpers;
 using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
@@ -21,13 +22,26 @@ public class QAAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("QA context: Historical defect patterns and quality metrics.");
 
+        var validJson = @"{
+  ""defectAnalysis"": ""Overall quality is good. Found recurring authentication issues. Recommend enhanced unit test coverage."",
+  ""patterns"": [
+    {
+      ""pattern"": ""Authentication Errors"",
+      ""frequency"": 3,
+      ""severity"": ""High"",
+      ""suggestion"": ""Review auth token handling""
+    }
+  ],
+  ""recommendations"": [""Rec 1"", ""Rec 2"", ""Rec 3""],
+  ""confidence"": 0.84
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Quality Analysis: Overall quality is good. Found recurring authentication issues. Recommend enhanced unit test coverage.");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<QAAgent>>();
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
         var projectId = 1;
         var recentDefects = new List<string>
         {
@@ -201,13 +215,32 @@ public class QAAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Context");
 
+        var validJson = @"{
+  ""defectAnalysis"": ""Defect analysis output"",
+  ""patterns"": [
+    {
+      ""pattern"": ""Authentication Errors"",
+      ""frequency"": 3,
+      ""severity"": ""High"",
+      ""suggestion"": ""Review auth logic""
+    },
+    {
+      ""pattern"": ""UI Layout Issues"",
+      ""frequency"": 2,
+      ""severity"": ""Medium"",
+      ""suggestion"": ""Review responsive design""
+    }
+  ],
+  ""recommendations"": [""Rec 1"", ""Rec 2"", ""Rec 3""],
+  ""confidence"": 0.84
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Defect analysis output");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<QAAgent>>();
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, new List<string>(), new Dictionary<string, int>(), CancellationToken.None);
@@ -235,13 +268,32 @@ public class QAAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Context");
 
+        var validJson = @"{
+  ""defectAnalysis"": ""Analysis"",
+  ""patterns"": [
+    {
+      ""pattern"": ""Authentication Errors"",
+      ""frequency"": 3,
+      ""severity"": ""High"",
+      ""suggestion"": ""Review auth token handling and expiration logic""
+    },
+    {
+      ""pattern"": ""UI Layout Issues"",
+      ""frequency"": 2,
+      ""severity"": ""Medium"",
+      ""suggestion"": ""Review responsive design patterns""
+    }
+  ],
+  ""recommendations"": [""Rec 1"", ""Rec 2"", ""Rec 3""],
+  ""confidence"": 0.84
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Analysis");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<QAAgent>>();
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, new List<string>(), new Dictionary<string, int>(), CancellationToken.None);

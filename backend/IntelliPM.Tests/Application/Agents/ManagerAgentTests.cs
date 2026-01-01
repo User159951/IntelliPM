@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Tests.Application.Agents.TestHelpers;
 using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
@@ -21,13 +22,19 @@ public class ManagerAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Manager context: Project milestones and key decisions from previous weeks.");
 
+        var validJson = @"{
+  ""executiveSummary"": ""This week showed significant progress. The team completed 85% of planned tasks. Key highlights include successful deployment of authentication module."",
+  ""keyDecisions"": [""Decision 1"", ""Decision 2""],
+  ""highlights"": [""Highlight 1"", ""Highlight 2""],
+  ""confidence"": 0.88
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Executive Summary: This week showed significant progress. The team completed 85% of planned tasks. Key highlights include successful deployment of authentication module.");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<ManagerAgent>>();
-        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
         var projectId = 1;
         var kpis = new Dictionary<string, object>
         {
@@ -195,13 +202,19 @@ public class ManagerAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Context");
 
+        var validJson = @"{
+  ""executiveSummary"": ""Executive summary text"",
+  ""keyDecisions"": [""Decision 1"", ""Decision 2""],
+  ""highlights"": [""Test highlight"", ""Highlight 2""],
+  ""confidence"": 0.88
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Executive summary text");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<ManagerAgent>>();
-        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
         var highlights = "Test highlight";
 
         // Act

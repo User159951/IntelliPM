@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Tests.Application.Agents.TestHelpers;
 using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
@@ -21,13 +22,37 @@ public class ProductAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Context data");
 
+        var validJson = @"{
+  ""items"": [
+    {
+      ""itemId"": 1,
+      ""title"": ""Story 1"",
+      ""priority"": 90,
+      ""rationale"": ""High value""
+    },
+    {
+      ""itemId"": 2,
+      ""title"": ""Story 2"",
+      ""priority"": 75,
+      ""rationale"": ""Medium value""
+    },
+    {
+      ""itemId"": 3,
+      ""title"": ""Story 3"",
+      ""priority"": 60,
+      ""rationale"": ""Lower value""
+    }
+  ],
+  ""confidence"": 0.85,
+  ""summary"": ""Generated prioritization output""
+}";
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Generated prioritization output");
+            .ReturnsAsync(validJson);
 
-        var mockParser = new Mock<IAgentOutputParser>();
+        var parser = AgentParserTestHelper.CreateRealParser();
         var mockLogger = new Mock<ILogger<ProductAgent>>();
-        var agent = new ProductAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
+        var agent = new ProductAgent(mockLlmClient.Object, mockVectorStore.Object, parser, mockLogger.Object);
         var backlogItems = new List<string> { "Story 1", "Story 2", "Story 3" };
         var recentCompletions = new List<string> { "Completed Story X" };
 
