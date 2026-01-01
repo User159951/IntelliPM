@@ -76,7 +76,7 @@ Return only the JSON object, no markdown formatting, no explanation text.
 
         // Fallback on parsing failure
         _logger.LogWarning("Failed to parse ManagerAgent output. Errors: {Errors}. Raw output: {Output}", 
-            string.Join("; ", errors), output);
+            string.Join("; ", errors ?? new List<string>()), output);
         
         return new ManagerAgentOutput(
             ExecutiveSummary: "Failed to parse agent output. Original response: " + output,

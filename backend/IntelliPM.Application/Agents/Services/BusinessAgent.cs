@@ -50,7 +50,7 @@ KEY PERFORMANCE INDICATORS:
 {kpisJson}
 
 COMPLETED FEATURES:
-{string.Join("\n", completedFeatures)}
+{string.Join("\n", completedFeatures ?? new List<string>())}
 
 BUSINESS METRICS:
 {metricsJson}
@@ -103,7 +103,7 @@ Return only the JSON object, no markdown formatting, no explanation text.
 
         // Fallback on parsing failure
         _logger.LogWarning("Failed to parse BusinessAgent output. Errors: {Errors}. Raw output: {Output}", 
-            string.Join("; ", errors), output);
+            string.Join("; ", errors ?? new List<string>()), output);
         
         return new BusinessAgentOutput(
             ValueDeliverySummary: "Failed to parse agent output. Original response: " + output,

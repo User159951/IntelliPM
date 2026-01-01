@@ -46,7 +46,7 @@ public class QAAgent
         var prompt = $@"You are a QA analyst. Analyze defect patterns and quality trends.
 
 RECENT DEFECTS:
-{string.Join("\n", recentDefects)}
+{string.Join("\n", recentDefects ?? new List<string>())}
 
 DEFECT STATISTICS:
 {statsJson}
@@ -97,7 +97,7 @@ Return only the JSON object, no markdown formatting, no explanation text.
 
         // Fallback on parsing failure
         _logger.LogWarning("Failed to parse QAAgent output. Errors: {Errors}. Raw output: {Output}", 
-            string.Join("; ", errors), output);
+            string.Join("; ", errors ?? new List<string>()), output);
         
         return new QAAgentOutput(
             DefectAnalysis: "Failed to parse agent output. Original response: " + output,

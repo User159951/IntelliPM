@@ -34,10 +34,10 @@ SPRINT PROGRESS:
 {sprintProgress}
 
 VELOCITY TREND (last 5 sprints):
-{string.Join(", ", velocityTrend)}
+{string.Join(", ", velocityTrend ?? new List<decimal>())}
 
 ACTIVE RISKS:
-{string.Join("\n", activeRisks)}
+{string.Join("\n", activeRisks ?? new List<string>())}
 
 PROJECT CONTEXT:
 {context}
@@ -74,7 +74,7 @@ Return only the JSON object, no markdown formatting, no explanation text.
 
         // Fallback on parsing failure
         _logger.LogWarning("Failed to parse DeliveryAgent output. Errors: {Errors}. Raw output: {Output}", 
-            string.Join("; ", errors), output);
+            string.Join("; ", errors ?? new List<string>()), output);
         
         return new DeliveryAgentOutput(
             RiskAssessment: "Failed to parse agent output. Original response: " + output,

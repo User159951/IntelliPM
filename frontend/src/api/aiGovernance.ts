@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { QuotaStatus } from '@/types/aiGovernance';
 
 export interface PagedResponse<T> {
   items: T[];

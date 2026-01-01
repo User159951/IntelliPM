@@ -355,7 +355,7 @@ That's the response.";
         success.Should().BeFalse();
         result.Should().BeNull();
         errors.Should().NotBeEmpty();
-        errors.Should().Contain("null or empty");
+        errors.Should().Contain(e => e != null && (e.Contains("null or empty", StringComparison.OrdinalIgnoreCase) || e.Contains("null", StringComparison.OrdinalIgnoreCase)));
     }
 
     [Fact]

@@ -33,10 +33,10 @@ public class ProductAgent
 
         var prompt = $@"You are a product strategist. Given the following:
 BACKLOG ITEMS:
-{string.Join("\n", backlogItems)}
+{string.Join("\n", backlogItems ?? new List<string>())}
 
 RECENT COMPLETIONS:
-{string.Join("\n", recentCompletions)}
+{string.Join("\n", recentCompletions ?? new List<string>())}
 
 PROJECT CONTEXT:
 {context}
@@ -72,7 +72,7 @@ Return only the JSON object, no markdown formatting, no explanation text.
 
         // Fallback on parsing failure
         _logger.LogWarning("Failed to parse ProductAgent output. Errors: {Errors}. Raw output: {Output}", 
-            string.Join("; ", errors), output);
+            string.Join("; ", errors ?? new List<string>()), output);
         
         return new ProductAgentOutput(
             PrioritizedItems: new List<PrioritizedItem>(),
