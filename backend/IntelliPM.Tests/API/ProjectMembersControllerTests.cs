@@ -44,19 +44,14 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
         var member = CreateTestUser("member@test.com", "member", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var projectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = member.Id,
-            Role = ProjectRole.Developer,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.AddRange(owner, member);
         db.Projects.Add(project);
-        db.ProjectMembers.Add(projectMember);
         await db.SaveChangesAsync();
+
+        // Add both users as project members - member needs to be member to view, owner needs to be member too
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
+        await _factory.AddProjectMemberAsync(project.Id, member.Id, ProjectRole.Developer, owner.Id);
 
         var token = GenerateJwtToken(member.Id, "member", "member@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -137,19 +132,13 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
         var invitee = CreateTestUser("invitee@test.com", "invitee", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var projectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.AddRange(owner, invitee);
         db.Projects.Add(project);
-        db.ProjectMembers.Add(projectMember);
         await db.SaveChangesAsync();
+
+        // Add owner as ProductOwner so they can invite members
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
 
         var token = GenerateJwtToken(owner.Id, "owner", "owner@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -178,19 +167,13 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         
         var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var projectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.Add(owner);
         db.Projects.Add(project);
-        db.ProjectMembers.Add(projectMember);
         await db.SaveChangesAsync();
+
+        // Add owner as ProductOwner
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
 
         var token = GenerateJwtToken(owner.Id, "owner", "owner@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -221,19 +204,13 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         var developer = CreateTestUser("developer@test.com", "developer", GlobalRole.User, org.Id);
         var invitee = CreateTestUser("invitee@test.com", "invitee", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var projectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = developer.Id,
-            Role = ProjectRole.Developer,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.AddRange(owner, developer, invitee);
         db.Projects.Add(project);
-        db.ProjectMembers.Add(projectMember);
         await db.SaveChangesAsync();
+
+        // Add developer as member (they need to be a member to attempt invite, but won't have permission)
+        await _factory.AddProjectMemberAsync(project.Id, developer.Id, ProjectRole.Developer, owner.Id);
 
         var token = GenerateJwtToken(developer.Id, "developer", "developer@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -263,27 +240,14 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
         var existingMember = CreateTestUser("existing@test.com", "existing", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var ownerMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
-        var existingProjectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = existingMember.Id,
-            Role = ProjectRole.Developer,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.AddRange(owner, existingMember);
         db.Projects.Add(project);
-        db.ProjectMembers.AddRange(ownerMember, existingProjectMember);
         await db.SaveChangesAsync();
+
+        // Add both users as project members
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
+        await _factory.AddProjectMemberAsync(project.Id, existingMember.Id, ProjectRole.Developer, owner.Id);
 
         var token = GenerateJwtToken(owner.Id, "owner", "owner@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -317,27 +281,14 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
         var member = CreateTestUser("member@test.com", "member", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var ownerMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
-        var projectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = member.Id,
-            Role = ProjectRole.Developer,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.AddRange(owner, member);
         db.Projects.Add(project);
-        db.ProjectMembers.AddRange(ownerMember, projectMember);
         await db.SaveChangesAsync();
+
+        // Add both users as project members
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
+        await _factory.AddProjectMemberAsync(project.Id, member.Id, ProjectRole.Developer, owner.Id);
 
         var token = GenerateJwtToken(owner.Id, "owner", "owner@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -368,35 +319,15 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         var scrumMaster = CreateTestUser("scrum@test.com", "scrum", GlobalRole.User, org.Id);
         var member = CreateTestUser("member@test.com", "member", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var ownerMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
-        var scrumMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = scrumMaster.Id,
-            Role = ProjectRole.ScrumMaster,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
-        var projectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = member.Id,
-            Role = ProjectRole.Developer,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.AddRange(owner, scrumMaster, member);
         db.Projects.Add(project);
-        db.ProjectMembers.AddRange(ownerMember, scrumMember, projectMember);
         await db.SaveChangesAsync();
+
+        // Add all users as project members
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
+        await _factory.AddProjectMemberAsync(project.Id, scrumMaster.Id, ProjectRole.ScrumMaster, owner.Id);
+        await _factory.AddProjectMemberAsync(project.Id, member.Id, ProjectRole.Developer, owner.Id);
 
         var token = GenerateJwtToken(scrumMaster.Id, "scrum", "scrum@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -425,19 +356,13 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         
         var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var ownerMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.Add(owner);
         db.Projects.Add(project);
-        db.ProjectMembers.Add(ownerMember);
         await db.SaveChangesAsync();
+
+        // Add owner as ProductOwner
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
 
         var token = GenerateJwtToken(owner.Id, "owner", "owner@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -471,27 +396,14 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
         var member = CreateTestUser("member@test.com", "member", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var ownerMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
-        var projectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = member.Id,
-            Role = ProjectRole.Developer,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.AddRange(owner, member);
         db.Projects.Add(project);
-        db.ProjectMembers.AddRange(ownerMember, projectMember);
         await db.SaveChangesAsync();
+
+        // Add both users as project members
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
+        await _factory.AddProjectMemberAsync(project.Id, member.Id, ProjectRole.Developer, owner.Id);
 
         var token = GenerateJwtToken(owner.Id, "owner", "owner@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -519,35 +431,15 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         var developer = CreateTestUser("developer@test.com", "developer", GlobalRole.User, org.Id);
         var member = CreateTestUser("member@test.com", "member", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var ownerMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
-        var devMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = developer.Id,
-            Role = ProjectRole.Developer,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
-        var projectMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = member.Id,
-            Role = ProjectRole.Developer,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.AddRange(owner, developer, member);
         db.Projects.Add(project);
-        db.ProjectMembers.AddRange(ownerMember, devMember, projectMember);
         await db.SaveChangesAsync();
+
+        // Add all users as project members
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
+        await _factory.AddProjectMemberAsync(project.Id, developer.Id, ProjectRole.Developer, owner.Id);
+        await _factory.AddProjectMemberAsync(project.Id, member.Id, ProjectRole.Developer, owner.Id);
 
         var token = GenerateJwtToken(developer.Id, "developer", "developer@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -573,19 +465,13 @@ public class ProjectMembersControllerTests : IClassFixture<CustomWebApplicationF
         
         var owner = CreateTestUser("owner@test.com", "owner", GlobalRole.User, org.Id);
         var project = CreateTestProject("Test Project", owner.Id, org.Id);
-        var ownerMember = new ProjectMember
-        {
-            ProjectId = project.Id,
-            UserId = owner.Id,
-            Role = ProjectRole.ProductOwner,
-            InvitedById = owner.Id,
-            InvitedAt = DateTime.UtcNow
-        };
         
         db.Users.Add(owner);
         db.Projects.Add(project);
-        db.ProjectMembers.Add(ownerMember);
         await db.SaveChangesAsync();
+
+        // Add owner as ProductOwner
+        await _factory.AddProjectMemberAsync(project.Id, owner.Id, ProjectRole.ProductOwner, owner.Id);
 
         var token = GenerateJwtToken(owner.Id, "owner", "owner@test.com");
         _client.DefaultRequestHeaders.Authorization = 
@@ -772,6 +658,37 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         // Set environment to Testing so appsettings.Testing.json is loaded
         builder.UseEnvironment("Testing");
+    }
+
+    /// <summary>
+    /// Helper method to add a ProjectMember to a project
+    /// </summary>
+    public async Task<ProjectMember> AddProjectMemberAsync(
+        int projectId,
+        int userId,
+        ProjectRole role,
+        int? invitedById = null)
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Use provided invitedById or default to userId
+        var inviterId = invitedById ?? userId;
+
+        var projectMember = new ProjectMember
+        {
+            ProjectId = projectId,
+            UserId = userId,
+            Role = role,
+            InvitedById = inviterId,
+            InvitedAt = DateTime.UtcNow,
+            JoinedAt = DateTimeOffset.UtcNow
+        };
+
+        context.ProjectMembers.Add(projectMember);
+        await context.SaveChangesAsync();
+
+        return projectMember;
     }
 }
 
