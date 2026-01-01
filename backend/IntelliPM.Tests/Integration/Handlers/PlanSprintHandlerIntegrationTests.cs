@@ -10,6 +10,7 @@ using IntelliPM.Domain.Constants;
 using IntelliPM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SystemTask = System.Threading.Tasks.Task;
 
 namespace IntelliPM.Tests.Integration.Handlers;
 
@@ -23,7 +24,7 @@ public class PlanSprintHandlerIntegrationTests : IClassFixture<AIAgentHandlerTes
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnPlan_WhenBacklogAvailable()
+    public async SystemTask Handle_ShouldReturnPlan_WhenBacklogAvailable()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
@@ -139,7 +140,7 @@ public class PlanSprintHandlerIntegrationTests : IClassFixture<AIAgentHandlerTes
     }
 
     [Fact]
-    public async Task Handle_ShouldConsiderTeamCapacity_WhenPlanning()
+    public async SystemTask Handle_ShouldConsiderTeamCapacity_WhenPlanning()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
@@ -217,7 +218,7 @@ public class PlanSprintHandlerIntegrationTests : IClassFixture<AIAgentHandlerTes
             UserId = member1.Id,
             Role = ProjectRole.Developer,
             InvitedById = user.Id,
-            InvitedAt = DateTimeOffset.UtcNow,
+            InvitedAt = DateTime.UtcNow,
             JoinedAt = DateTimeOffset.UtcNow
         };
         db.ProjectMembers.Add(projectMember);
@@ -277,7 +278,7 @@ public class PlanSprintHandlerIntegrationTests : IClassFixture<AIAgentHandlerTes
     }
 
     [Fact]
-    public async Task Handle_ShouldLogExecution_WhenSprintPlanningCompletes()
+    public async SystemTask Handle_ShouldLogExecution_WhenSprintPlanningCompletes()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();

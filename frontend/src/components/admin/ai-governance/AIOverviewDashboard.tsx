@@ -107,6 +107,14 @@ export function AIOverviewDashboard() {
   }));
 
   const RADIAN = Math.PI / 180;
+  interface PieLabelProps {
+    cx: number;
+    cy: number;
+    midAngle: number;
+    innerRadius: number;
+    outerRadius: number;
+    percent: number;
+  }
   const renderCustomLabel = ({
     cx,
     cy,
@@ -114,7 +122,7 @@ export function AIOverviewDashboard() {
     innerRadius,
     outerRadius,
     percent,
-  }: any) => {
+  }: PieLabelProps) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);

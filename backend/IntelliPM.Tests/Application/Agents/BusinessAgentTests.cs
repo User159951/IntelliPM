@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
 
@@ -15,6 +16,8 @@ public class BusinessAgentTests
         // Arrange
         var mockLlmClient = new Mock<ILlmClient>();
         var mockVectorStore = new Mock<IVectorStore>();
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<BusinessAgent>>();
 
         mockVectorStore.Setup(v => v.RetrieveContextAsync(
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -24,7 +27,7 @@ public class BusinessAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Business Value Summary: The project delivered significant ROI. Customer satisfaction improved by 40%. Market advantage gained through innovative features.");
 
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var projectId = 1;
         var kpis = new Dictionary<string, object>
         {
@@ -84,7 +87,9 @@ public class BusinessAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Business analysis complete.");
 
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<BusinessAgent>>();
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         await agent.RunAsync(1, new Dictionary<string, object>(), new List<string>(), new Dictionary<string, decimal>(), CancellationToken.None);
@@ -109,7 +114,9 @@ public class BusinessAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("VectorStore query failed"));
 
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<BusinessAgent>>();
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -134,7 +141,9 @@ public class BusinessAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("LLM service timeout"));
 
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<BusinessAgent>>();
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
@@ -164,7 +173,9 @@ public class BusinessAgentTests
                 return Task.FromResult("Response");
             });
 
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<BusinessAgent>>();
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var kpis = new Dictionary<string, object>
         {
             { "CompletedSprints", 20 },
@@ -206,7 +217,9 @@ public class BusinessAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Business value summary text");
 
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<BusinessAgent>>();
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, new Dictionary<string, object>(), new List<string>(), new Dictionary<string, decimal>(), CancellationToken.None);
@@ -242,7 +255,9 @@ public class BusinessAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Analysis");
 
-        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<BusinessAgent>>();
+        var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, new Dictionary<string, object>(), new List<string>(), new Dictionary<string, decimal>(), CancellationToken.None);

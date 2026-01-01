@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
 
@@ -24,7 +25,9 @@ public class QAAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Quality Analysis: Overall quality is good. Found recurring authentication issues. Recommend enhanced unit test coverage.");
 
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<QAAgent>>();
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var projectId = 1;
         var recentDefects = new List<string>
         {
@@ -77,7 +80,9 @@ public class QAAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("QA analysis complete.");
 
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<QAAgent>>();
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         await agent.RunAsync(1, new List<string>(), new Dictionary<string, int>(), CancellationToken.None);
@@ -102,7 +107,9 @@ public class QAAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("VectorStore database error"));
 
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<QAAgent>>();
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -127,7 +134,9 @@ public class QAAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("LLM timeout after 30s"));
 
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<QAAgent>>();
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
@@ -157,7 +166,9 @@ public class QAAgentTests
                 return Task.FromResult("Response");
             });
 
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<QAAgent>>();
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var recentDefects = new List<string> { "Critical: System crash", "High: Data loss bug" };
         var defectStats = new Dictionary<string, int>
         {
@@ -194,7 +205,9 @@ public class QAAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Defect analysis output");
 
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<QAAgent>>();
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, new List<string>(), new Dictionary<string, int>(), CancellationToken.None);
@@ -226,7 +239,9 @@ public class QAAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Analysis");
 
-        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<QAAgent>>();
+        var agent = new QAAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, new List<string>(), new Dictionary<string, int>(), CancellationToken.None);

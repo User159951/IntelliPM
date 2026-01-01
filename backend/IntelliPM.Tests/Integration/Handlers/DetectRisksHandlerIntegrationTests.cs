@@ -9,6 +9,7 @@ using IntelliPM.Domain.Enums;
 using IntelliPM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SystemTask = System.Threading.Tasks.Task;
 
 namespace IntelliPM.Tests.Integration.Handlers;
 
@@ -22,7 +23,7 @@ public class DetectRisksHandlerIntegrationTests : IClassFixture<AIAgentHandlerTe
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnRisks_WhenRisksExist()
+    public async SystemTask Handle_ShouldReturnRisks_WhenRisksExist()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
@@ -97,7 +98,6 @@ public class DetectRisksHandlerIntegrationTests : IClassFixture<AIAgentHandlerTe
                 ProjectId = project.Id,
                 Title = "External API Dependency",
                 Description = "Risk of delay",
-                Severity = "High",
                 Status = "Open",
                 CreatedAt = DateTimeOffset.UtcNow
             }
@@ -136,7 +136,7 @@ public class DetectRisksHandlerIntegrationTests : IClassFixture<AIAgentHandlerTe
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnAnalysis_WhenNoRisks()
+    public async SystemTask Handle_ShouldReturnAnalysis_WhenNoRisks()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
@@ -208,7 +208,7 @@ public class DetectRisksHandlerIntegrationTests : IClassFixture<AIAgentHandlerTe
     }
 
     [Fact]
-    public async Task Handle_ShouldCreateAlert_WhenRiskAnalysisCompletes()
+    public async SystemTask Handle_ShouldCreateAlert_WhenRiskAnalysisCompletes()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();

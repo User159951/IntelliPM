@@ -11,6 +11,7 @@ using IntelliPM.Infrastructure.Persistence;
 using IntelliPM.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using SystemTask = System.Threading.Tasks.Task;
 
@@ -53,10 +54,10 @@ public class AgentsControllerTests : IClassFixture<AIAgentApiTestFactory>
         // Add backlog items
         var backlogItems = new List<BacklogItem>
         {
-            new BacklogItem { ProjectId = project.Id, Title = "Feature A", Status = "Backlog", CreatedAt = DateTimeOffset.UtcNow },
-            new BacklogItem { ProjectId = project.Id, Title = "Feature B", Status = "Backlog", CreatedAt = DateTimeOffset.UtcNow }
+            new Feature { ProjectId = project.Id, Title = "Feature A", Status = "Backlog", CreatedAt = DateTimeOffset.UtcNow },
+            new Feature { ProjectId = project.Id, Title = "Feature B", Status = "Backlog", CreatedAt = DateTimeOffset.UtcNow }
         };
-        db.BacklogItems.AddRange(backlogItems);
+        db.Features.AddRange(backlogItems.Cast<Feature>());
         await db.SaveChangesAsync();
 
         var token = GenerateJwtToken(user.Id, user.Username, user.Email);
@@ -196,8 +197,8 @@ public class AgentsControllerTests : IClassFixture<AIAgentApiTestFactory>
         // Add some defects
         var defects = new List<Defect>
         {
-            new Defect { ProjectId = project.Id, Title = "Bug 1", Status = "Open", Severity = "High", CreatedAt = DateTimeOffset.UtcNow },
-            new Defect { ProjectId = project.Id, Title = "Bug 2", Status = "Open", Severity = "Medium", CreatedAt = DateTimeOffset.UtcNow }
+            new Defect { ProjectId = project.Id, Title = "Bug 1", Status = "Open", Severity = "High" },
+            new Defect { ProjectId = project.Id, Title = "Bug 2", Status = "Open", Severity = "Medium" }
         };
         db.Defects.AddRange(defects);
         await db.SaveChangesAsync();
@@ -261,7 +262,7 @@ public class AgentsControllerTests : IClassFixture<AIAgentApiTestFactory>
 
     #region Helper Methods
 
-    private async SystemTask<Organization> EnsureOrganizationExistsAsync(AppDbContext db)
+    private async System.Threading.Tasks.Task<Organization> EnsureOrganizationExistsAsync(AppDbContext db)
     {
         var org = await db.Organizations.FirstOrDefaultAsync();
         if (org == null)

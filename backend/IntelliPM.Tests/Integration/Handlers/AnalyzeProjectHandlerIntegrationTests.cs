@@ -10,6 +10,7 @@ using IntelliPM.Infrastructure.Persistence;
 using IntelliPM.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SystemTask = System.Threading.Tasks.Task;
 
 namespace IntelliPM.Tests.Integration.Handlers;
 
@@ -28,7 +29,7 @@ public class AnalyzeProjectHandlerIntegrationTests : IClassFixture<AIAgentHandle
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnProjectAnalysis_WhenProjectExists()
+    public async SystemTask Handle_ShouldReturnProjectAnalysis_WhenProjectExists()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
@@ -142,7 +143,7 @@ public class AnalyzeProjectHandlerIntegrationTests : IClassFixture<AIAgentHandle
     }
 
     [Fact]
-    public async Task Handle_ShouldLogExecution_WhenAnalysisCompletes()
+    public async SystemTask Handle_ShouldLogExecution_WhenAnalysisCompletes()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
@@ -209,7 +210,7 @@ public class AnalyzeProjectHandlerIntegrationTests : IClassFixture<AIAgentHandle
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnError_WhenProjectNotFound()
+    public async SystemTask Handle_ShouldReturnError_WhenProjectNotFound()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();

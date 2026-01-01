@@ -152,7 +152,7 @@ export const aiGovernanceApi = {
   },
 
   // User endpoints
-  getQuotaStatus: (organizationId: number): Promise<any> => {
+  getQuotaStatus: (organizationId: number): Promise<QuotaStatus> => {
     // TODO: Replace with actual endpoint when available
     // return apiClient.get(`/api/v1/ai/quota/status/${organizationId}`);
     // For now, return a promise that resolves with mock data

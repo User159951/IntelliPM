@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
 
@@ -24,7 +25,9 @@ public class ProductAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Generated prioritization output");
 
-        var agent = new ProductAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<ProductAgent>>();
+        var agent = new ProductAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var backlogItems = new List<string> { "Story 1", "Story 2", "Story 3" };
         var recentCompletions = new List<string> { "Completed Story X" };
 

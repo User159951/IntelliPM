@@ -357,7 +357,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
 
     #region Helper Methods
 
-    private async SystemTask<Organization> EnsureOrganizationExistsAsync(AppDbContext db)
+    private async System.Threading.Tasks.Task<Organization> EnsureOrganizationExistsAsync(AppDbContext db)
     {
         var org = await db.Organizations.FirstOrDefaultAsync();
         if (org == null)

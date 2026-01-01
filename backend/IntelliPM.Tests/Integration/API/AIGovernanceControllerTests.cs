@@ -12,6 +12,7 @@ using IntelliPM.Infrastructure.Persistence;
 using IntelliPM.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using SystemTask = System.Threading.Tasks.Task;
 
@@ -331,9 +332,9 @@ public class AIGovernanceControllerTests : IClassFixture<AIAgentApiTestFactory>
             IsActive = true,
             PeriodStartDate = DateTimeOffset.UtcNow,
             PeriodEndDate = DateTimeOffset.UtcNow.AddDays(30),
-            TokensLimit = 100000,
-            RequestsLimit = 1000,
-            CostLimit = 100.00m,
+            MaxTokensPerPeriod = 100000,
+            MaxRequestsPerPeriod = 1000,
+            MaxCostPerPeriod = 100.00m,
             CreatedAt = DateTimeOffset.UtcNow
         };
         db.AIQuotas.Add(quota);
@@ -392,7 +393,7 @@ public class AIGovernanceControllerTests : IClassFixture<AIAgentApiTestFactory>
 
     #region Helper Methods
 
-    private async SystemTask<Organization> EnsureOrganizationExistsAsync(AppDbContext db)
+    private async System.Threading.Tasks.Task<Organization> EnsureOrganizationExistsAsync(AppDbContext db)
     {
         var org = await db.Organizations.FirstOrDefaultAsync();
         if (org == null)

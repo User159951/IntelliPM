@@ -7,6 +7,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Moq;
 using IntelliPM.Infrastructure.Persistence;
+using IntelliPM.Infrastructure.VectorStore;
 using IntelliPM.Application.Common.Interfaces;
 
 namespace IntelliPM.Tests.Integration.Handlers;

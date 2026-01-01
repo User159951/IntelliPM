@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
 
@@ -24,7 +25,9 @@ public class DeliveryAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Risk assessment: Project is on track. Current sprint shows good progress. Velocity trend is consistent.");
 
-        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<DeliveryAgent>>();
+        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var projectId = 1;
         var sprintProgress = "Sprint 5: 12/20 tasks completed";
         var velocityTrend = new List<decimal> { 25.5m, 28.0m, 27.0m, 26.5m, 27.5m };
@@ -65,7 +68,9 @@ public class DeliveryAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Risk analysis complete.");
 
-        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<DeliveryAgent>>();
+        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         await agent.RunAsync(1, "Sprint progress", new List<decimal>(), new List<string>(), CancellationToken.None);
@@ -90,7 +95,9 @@ public class DeliveryAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("VectorStore unavailable"));
 
-        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<DeliveryAgent>>();
+        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -115,7 +122,9 @@ public class DeliveryAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("LLM request timed out"));
 
-        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<DeliveryAgent>>();
+        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
@@ -145,7 +154,9 @@ public class DeliveryAgentTests
                 return Task.FromResult("Response");
             });
 
-        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<DeliveryAgent>>();
+        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var sprintProgress = "Sprint 3: 15/18 tasks completed";
         var velocityTrend = new List<decimal> { 30.0m, 32.0m, 31.5m };
         var activeRisks = new List<string> { "High: Critical dependency delay" };
@@ -178,7 +189,9 @@ public class DeliveryAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Detailed risk assessment output");
 
-        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<DeliveryAgent>>();
+        var agent = new DeliveryAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         var result = await agent.RunAsync(1, "Progress", new List<decimal>(), new List<string>(), CancellationToken.None);

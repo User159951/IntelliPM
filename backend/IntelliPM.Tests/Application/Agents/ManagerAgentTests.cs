@@ -4,6 +4,7 @@ using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Tests.Application.Agents;
 
@@ -24,7 +25,9 @@ public class ManagerAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Executive Summary: This week showed significant progress. The team completed 85% of planned tasks. Key highlights include successful deployment of authentication module.");
 
-        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<ManagerAgent>>();
+        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var projectId = 1;
         var kpis = new Dictionary<string, object>
         {
@@ -72,7 +75,9 @@ public class ManagerAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Executive summary generated.");
 
-        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<ManagerAgent>>();
+        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act
         await agent.RunAsync(1, new Dictionary<string, object>(), "", "", CancellationToken.None);
@@ -97,7 +102,9 @@ public class ManagerAgentTests
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("VectorStore connection failed"));
 
-        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<ManagerAgent>>();
+        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -122,7 +129,9 @@ public class ManagerAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TaskCanceledException("LLM request exceeded timeout"));
 
-        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<ManagerAgent>>();
+        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<TaskCanceledException>(async () =>
@@ -152,7 +161,9 @@ public class ManagerAgentTests
                 return Task.FromResult("Response");
             });
 
-        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<ManagerAgent>>();
+        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var kpis = new Dictionary<string, object>
         {
             { "CompletedSprints", 10 },
@@ -188,7 +199,9 @@ public class ManagerAgentTests
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Executive summary text");
 
-        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object);
+        var mockParser = new Mock<IAgentOutputParser>();
+        var mockLogger = new Mock<ILogger<ManagerAgent>>();
+        var agent = new ManagerAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var highlights = "Test highlight";
 
         // Act
