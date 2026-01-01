@@ -3,6 +3,7 @@ using Xunit;
 using Moq;
 using FluentAssertions;
 using IntelliPM.Application.Agents.Services;
+using IntelliPM.Application.Agents.DTOs;
 using IntelliPM.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -26,6 +27,7 @@ public class BusinessAgentTests
         mockLlmClient.Setup(l => l.GenerateTextAsync(
             It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Business Value Summary: The project delivered significant ROI. Customer satisfaction improved by 40%. Market advantage gained through innovative features.");
+
 
         var agent = new BusinessAgent(mockLlmClient.Object, mockVectorStore.Object, mockParser.Object, mockLogger.Object);
         var projectId = 1;
