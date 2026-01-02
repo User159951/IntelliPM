@@ -90,6 +90,19 @@ export default function NotificationBell() {
     enabled: isAuthenticated && !isAuthLoading, // Only fetch when authenticated
     staleTime: 1000 * 30, // 30 seconds
     refetchInterval: isAuthenticated ? 1000 * 60 : false, // Poll every minute only when authenticated
+    retry: (failureCount, error) => {
+      // Don't retry on 401 (Unauthorized) errors
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    onError: (error) => {
+      // Silently handle 401 errors - user is not authenticated
+      if (error instanceof Error && !error.message.includes('Unauthorized')) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    },
   });
 
   const notifications = notificationsData?.notifications ?? [];
@@ -101,6 +114,19 @@ export default function NotificationBell() {
     enabled: isAuthenticated && !isAuthLoading,
     refetchInterval: isAuthenticated ? 1000 * 30 : false, // Refresh every 30 seconds
     staleTime: 1000 * 10, // Cache valid for 10 seconds
+    retry: (failureCount, error) => {
+      // Don't retry on 401 (Unauthorized) errors
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    onError: (error) => {
+      // Silently handle 401 errors - user is not authenticated
+      if (error instanceof Error && !error.message.includes('Unauthorized')) {
+        console.error('Failed to fetch unread count:', error);
+      }
+    },
   });
 
   const unreadCount = unreadData?.unreadCount ?? 0;

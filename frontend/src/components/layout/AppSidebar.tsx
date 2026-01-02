@@ -11,6 +11,7 @@ import {
   Bot,
   Zap,
   Shield,
+  Settings,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {
@@ -28,7 +29,6 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { QuotaStatusWidget } from '@/components/ai-governance/QuotaStatusWidget';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -47,6 +47,10 @@ const teamNavItems = [
   { title: 'Metrics', url: '/metrics', icon: BarChart3 },
   { title: 'Insights', url: '/insights', icon: Lightbulb },
   { title: 'AI Agents', url: '/agents', icon: Bot },
+];
+
+const settingsNavItems = [
+  { title: 'AI Quota', url: '/settings/ai-quota', icon: Zap },
 ];
 
 export function AppSidebar() {
@@ -142,6 +146,30 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>
+            Settings
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settingsNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                  >
+                    <NavLink to={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-4">
@@ -157,7 +185,6 @@ export function AppSidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         )}
-        <QuotaStatusWidget compact={collapsed} />
         {!collapsed && (
           <div className="space-y-1 mt-2">
             <div className="text-xs text-muted-foreground">

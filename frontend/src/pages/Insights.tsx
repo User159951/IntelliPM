@@ -1,23 +1,19 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { Project } from '@/types';
 import { insightsApi } from '@/api/insights';
-import { agentsApi } from '@/api/agents';
+import { RiskDetectionDashboard } from '@/components/agents/RiskDetectionDashboard';
 import { projectsApi } from '@/api/projects';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { showSuccess, showError } from "@/lib/sweetalert";
 import { 
   Lightbulb, 
   AlertTriangle, 
   TrendingUp, 
-  Shield, 
-  Loader2,
   Sparkles,
-  Copy,
 } from 'lucide-react';
 
 const insightTypeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -37,7 +33,6 @@ const insightTypeColors: Record<string, string> = {
 export default function Insights() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [riskAnalysis, setRiskAnalysis] = useState<string | null>(null);
 
   const { data: projectsData } = useQuery({
     queryKey: ['projects'],
@@ -56,23 +51,6 @@ export default function Insights() {
     enabled: !!projectId,
   });
 
-  const analyzeRisksMutation = useMutation({
-    mutationFn: () => agentsApi.analyzeRisks(parseInt(projectId!)),
-    onSuccess: (data: { content?: string; metadata?: Record<string, unknown> }) => {
-      const content = data.content || '';
-      const metadata = data.metadata ? JSON.stringify(data.metadata, null, 2) : '';
-      setRiskAnalysis(content || metadata || 'Risk analysis completed');
-      showSuccess("Risk analysis complete");
-    },
-    onError: () => {
-      showError('Failed to analyze risks');
-    },
-  });
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    showSuccess("Copied to clipboard");
-  };
 
   const getIcon = (type: string) => {
     const Icon = insightTypeIcons[type.toLowerCase()] || insightTypeIcons.default;
@@ -116,45 +94,9 @@ export default function Insights() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Risk Analysis
-            </CardTitle>
-            <CardDescription>
-              Get AI-powered risk analysis for your project
-            </CardDescription>
-          </div>
-          <Button
-            onClick={() => analyzeRisksMutation.mutate()}
-            disabled={!projectId || analyzeRisksMutation.isPending}
-          >
-            {analyzeRisksMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="mr-2 h-4 w-4" />
-            )}
-            Analyze Risks
-          </Button>
-        </CardHeader>
-        {riskAnalysis && (
-          <CardContent>
-            <div className="relative rounded-lg bg-muted p-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-2"
-                onClick={() => copyToClipboard(riskAnalysis)}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-              <pre className="whitespace-pre-wrap text-sm">{riskAnalysis}</pre>
-            </div>
-          </CardContent>
-        )}
-      </Card>
+      {projectId && (
+        <RiskDetectionDashboard projectId={parseInt(projectId)} />
+      )}
 
       {isLoading ? (
         <div className="space-y-4">

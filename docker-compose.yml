@@ -122,6 +122,8 @@ services:
     environment:
       # Point frontend to the backend localhost URL (for API calls from browser)
       - VITE_API_BASE_URL=http://localhost:5001
+      # Configure HMR client port to match the host port mapping
+      - VITE_HMR_CLIENT_PORT=3001
     depends_on:
       - backend
     networks:

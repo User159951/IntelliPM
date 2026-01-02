@@ -85,9 +85,10 @@ export const releasesApi = {
 
   /**
    * Remove a sprint from a release.
+   * Backend route: DELETE /api/v1/Releases/sprints/{sprintId}
    */
   removeSprintFromRelease: async (sprintId: number): Promise<void> => {
-    await apiClient.delete(`/api/v1/releases/sprints/${sprintId}`);
+    await apiClient.delete(`/api/v1/Releases/sprints/${sprintId}`);
   },
 
   /**

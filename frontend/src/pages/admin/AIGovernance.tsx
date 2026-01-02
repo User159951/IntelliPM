@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, LayoutDashboard, Brain, Gauge } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { AIOverviewDashboard } from '@/components/admin/ai-governance/AIOverviewDashboard';
 import { AIDecisionsList } from './components/AIDecisionsList';
 import { AIQuotasList } from './components/AIQuotasList';
@@ -58,6 +59,18 @@ export default function AIGovernance() {
         </TabsContent>
 
         <TabsContent value="quotas" className="space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              Manage AI quotas for all organizations. Users can view their personal quota details in{' '}
+              <Link
+                to="/settings/ai-quota"
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                Settings → AI Quota
+              </Link>
+              .
+            </p>
+          </div>
           <AIQuotasList />
         </TabsContent>
       </Tabs>

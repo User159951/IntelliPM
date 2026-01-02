@@ -3,20 +3,24 @@
  */
 
 export interface QuotaStatus {
-  organizationId: number;
-  tierName: string; // 'Free' | 'Pro' | 'Enterprise' | 'Disabled'
-  maxRequests: number;
-  maxTokens: number;
-  maxDecisions: number;
-  currentRequests: number;
-  currentTokens: number;
-  currentDecisions: number;
-  resetDate: string; // ISO date string
-  isAlertThreshold: boolean; // true if >80%
-  isDisabled: boolean;
-  requestsPercentage: number;
-  tokensPercentage: number;
-  decisionsPercentage: number;
+  quotaId: number;
+  tierName: string; // 'Free' | 'Pro' | 'Enterprise' | 'Disabled' | 'None'
+  isActive: boolean;
+  usage: {
+    tokensUsed: number;
+    tokensLimit: number;
+    tokensPercentage: number;
+    requestsUsed: number;
+    requestsLimit: number;
+    requestsPercentage: number;
+    costAccumulated: number;
+    costLimit: number;
+    costPercentage: number;
+  };
+  periodEndDate: string; // ISO date string
+  daysRemaining: number;
+  isExceeded: boolean;
+  alertSent: boolean;
 }
 
 export interface QuotaUsageHistory {

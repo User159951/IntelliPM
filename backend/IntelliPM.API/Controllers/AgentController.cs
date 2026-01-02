@@ -36,10 +36,29 @@ public class AgentController : BaseApiController
     /// <summary>
     /// Improves a messy task description using AI with automatic function calling
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     POST /api/v1/Agent/improve-task
+    ///     {
+    ///        "description": "fix bug in login"
+    ///     }
+    /// 
+    /// The AI will improve the description to be more detailed and professional.
+    /// </remarks>
+    /// <param name="request">Task description to improve</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Improved task description</returns>
+    /// <response code="200">Task description improved successfully</response>
+    /// <response code="400">Bad request - Description is empty or too long (max 5000 characters)</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="403">AI is disabled for the organization</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost("improve-task")]
     [ProducesResponseType(typeof(AgentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ImproveTask(
         [FromBody] ImproveTaskRequest request,
@@ -102,8 +121,18 @@ public class AgentController : BaseApiController
     /// <summary>
     /// Analyzes project risks using AI
     /// </summary>
+    /// <param name="projectId">Project ID to analyze for risks</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Agent execution result with detected risks</returns>
+    /// <response code="200">Risk analysis completed successfully</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="403">AI is disabled for the organization</response>
+    /// <response code="404">Project not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("analyze-risks/{projectId}")]
     [ProducesResponseType(typeof(AgentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> AnalyzeProjectRisks(
@@ -148,9 +177,21 @@ public class AgentController : BaseApiController
     /// <summary>
     /// Gets paginated audit log of all agent executions
     /// </summary>
+    /// <param name="page">Page number (default: 1, minimum: 1)</param>
+    /// <param name="pageSize">Number of items per page (default: 50, minimum: 1, maximum: 100)</param>
+    /// <param name="agentId">Optional filter by agent ID</param>
+    /// <param name="userId">Optional filter by user ID</param>
+    /// <param name="status">Optional filter by status (Pending, Success, Error)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of agent execution logs</returns>
+    /// <response code="200">Returns the paginated audit log</response>
+    /// <response code="400">Bad request - Invalid pagination parameters</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("audit-log")]
     [ProducesResponseType(typeof(GetAgentAuditLogsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetAuditLog(
         [FromQuery] int page = 1,
@@ -205,8 +246,14 @@ public class AgentController : BaseApiController
     /// <summary>
     /// Gets agent execution statistics and metrics
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Agent execution metrics (total executions, success rate, average execution time, etc.)</returns>
+    /// <response code="200">Returns the agent metrics</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("metrics")]
     [ProducesResponseType(typeof(AgentMetricsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetMetrics(CancellationToken cancellationToken = default)
     {

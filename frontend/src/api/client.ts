@@ -121,9 +121,13 @@ class ApiClient {
           isRefreshing = false;
           return this.request<T>(endpoint, options);
         } catch (refreshError) {
-          // Refresh failed, redirect to login
+          // Refresh failed, notify auth context and redirect to login
           isRefreshing = false;
           isRedirecting = true;
+          
+          // Notify auth context that authentication failed
+          window.dispatchEvent(new Event('auth:failed'));
+          
           window.location.href = '/login';
           // Reset flag after navigation
           setTimeout(() => {

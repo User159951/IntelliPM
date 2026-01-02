@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { showSuccess, showError } from "@/lib/sweetalert";
+import { showSuccess, showError, showToast } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
 import { tasksApi } from '@/api/tasks';
 import { sprintsApi } from '@/api/sprints';
@@ -20,6 +20,7 @@ import { useTaskDependencies } from '@/hooks/useTaskDependencies';
 import { apiClient } from '@/api/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import BlockedBadge from './BlockedBadge';
+import { TaskImproverDialog } from './TaskImproverDialog';
 import {
   Plus,
   Trash2,
@@ -30,6 +31,7 @@ import {
   MessageSquare,
   Loader2,
   AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -63,6 +65,7 @@ export function TaskDetailSheet({
   const [acceptanceCriteria, setAcceptanceCriteria] = useState<string[]>([]);
   const [newCriterion, setNewCriterion] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [isImproverDialogOpen, setIsImproverDialogOpen] = useState(false);
 
   // Load full task data when opened
   const { data: fullTask } = useQuery({
@@ -294,9 +297,23 @@ export function TaskDetailSheet({
           <div className="space-y-6">
             {/* Description */}
             <div className="space-y-2">
-              <Label>Description</Label>
+              <div className="flex items-center justify-between">
+                <Label>Description</Label>
+                {!permissions.isViewer && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsImproverDialogOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    Améliorer avec l'IA
+                  </Button>
+                )}
+              </div>
               <Textarea
-                value={localTask.description}
+                value={localTask.description || ''}
                 onChange={(e) => handleFieldChange('description', e.target.value)}
                 rows={6}
                 placeholder="Describe the task..."
@@ -717,6 +734,20 @@ export function TaskDetailSheet({
             )}
           </div>
         </div>
+
+        {/* Task Improver Dialog */}
+        <TaskImproverDialog
+          taskId={localTask.id}
+          currentDescription={localTask.description || ''}
+          currentTitle={localTask.title}
+          projectId={projectId}
+          isOpen={isImproverDialogOpen}
+          onClose={() => setIsImproverDialogOpen(false)}
+          onApply={(improvedDescription) => {
+            handleFieldChange('description', improvedDescription);
+            showToast('Description mise à jour', 'success');
+          }}
+        />
       </SheetContent>
     </Sheet>
   );

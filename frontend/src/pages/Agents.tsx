@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Project } from '@/types';
 import { agentsApi } from '@/api/agents';
@@ -54,7 +54,14 @@ export default function Agents() {
     queryFn: () => projectsApi.getAll(),
   });
 
-  const projectId = selectedProjectId || projectsData?.items?.[0]?.id?.toString();
+  // Initialize selectedProjectId with the first project when projectsData is loaded
+  useEffect(() => {
+    if (!selectedProjectId && projectsData?.items?.[0]?.id) {
+      setSelectedProjectId(projectsData.items[0].id.toString());
+    }
+  }, [projectsData, selectedProjectId]);
+
+  const projectId = selectedProjectId || projectsData?.items?.[0]?.id?.toString() || '';
 
   const agents: AgentConfig[] = [
     {
@@ -132,7 +139,7 @@ export default function Agents() {
           <h1 className="text-2xl font-bold text-foreground">AI Agents</h1>
           <p className="text-muted-foreground">Run intelligent agents to analyze your project</p>
         </div>
-        <Select value={projectId} onValueChange={setSelectedProjectId}>
+        <Select value={selectedProjectId || ''} onValueChange={setSelectedProjectId}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select project" />
           </SelectTrigger>

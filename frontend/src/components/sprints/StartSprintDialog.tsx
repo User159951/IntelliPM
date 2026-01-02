@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tasksApi } from '@/api/tasks';
+import { sprintsApi } from '@/api/sprints';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +12,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { format, differenceInDays } from 'date-fns';
+import { Sparkles } from 'lucide-react';
+import { SprintPlanningAI } from './SprintPlanningAI';
+import { showToast } from '@/lib/sweetalert';
 import type { Sprint } from '@/types';
 
 interface StartSprintDialogProps {
@@ -28,10 +34,25 @@ export function StartSprintDialog({
   onConfirm,
   isLoading = false,
 }: StartSprintDialogProps) {
+  const queryClient = useQueryClient();
+  const [showAIPlanning, setShowAIPlanning] = useState(false);
+
   const { data: tasksData } = useQuery({
     queryKey: ['tasks', sprint.projectId],
     queryFn: () => tasksApi.getByProject(sprint.projectId),
     enabled: open,
+  });
+
+  const assignTasksMutation = useMutation({
+    mutationFn: (taskIds: number[]) => sprintsApi.assignTasks(sprint.id, taskIds),
+    onSuccess: (_, taskIds) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', sprint.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['sprints', sprint.projectId] });
+      showToast(`${taskIds.length} tâches ajoutées au sprint`, 'success');
+    },
+    onError: () => {
+      showToast('Erreur lors de l\'assignation des tâches', 'error');
+    },
   });
 
   const sprintTasks = tasksData?.tasks?.filter((t) => t.sprintId === sprint.id) || [];
@@ -53,34 +74,67 @@ export function StartSprintDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Start Sprint {sprint.name}?</AlertDialogTitle>
           <AlertDialogDescription>
-            {!canStart ? (
-              <div className="space-y-2 mt-2">
-                {taskCount === 0 && (
-                  <p className="text-destructive">⚠️ Sprint must have at least 1 task</p>
-                )}
-                {(!startDate || !endDate) && (
-                  <p className="text-destructive">⚠️ Sprint must have dates defined</p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3 mt-4">
-                <div className="space-y-1">
-                  <p className="font-medium">Sprint Summary:</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                    <li>
-                      <strong>{taskCount}</strong> {taskCount === 1 ? 'task' : 'tasks'} ({storyPoints} story points)
-                    </li>
-                    {startDate && endDate && (
-                      <li>
-                        Duration: {format(startDate, 'MMM d, yyyy')} to {format(endDate, 'MMM d, yyyy')} ({duration} {duration === 1 ? 'day' : 'days'})
-                      </li>
-                    )}
-                    <li>Team capacity: {capacity} SP</li>
-                  </ul>
+            <div className="space-y-4 mt-2">
+              {/* AI Planning Section */}
+              {taskCount === 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold">Sélectionner les Tâches</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAIPlanning(!showAIPlanning)}
+                      className="flex items-center gap-2"
+                    >
+                      <Sparkles className="h-4 w-4 text-purple-500" />
+                      {showAIPlanning ? 'Masquer' : 'Afficher'} Planification IA
+                    </Button>
+                  </div>
+                  {showAIPlanning && (
+                    <div className="mb-4 p-4 border rounded-lg bg-purple-50 dark:bg-purple-950">
+                      <SprintPlanningAI
+                        sprintId={sprint.id}
+                        onTasksSelected={(taskIds) => {
+                          if (taskIds.length > 0) {
+                            assignTasksMutation.mutate(taskIds);
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm">This will mark the sprint as active and notify all team members.</p>
-              </div>
-            )}
+              )}
+
+              {!canStart ? (
+                <div className="space-y-2">
+                  {taskCount === 0 && (
+                    <p className="text-destructive">⚠️ Sprint must have at least 1 task</p>
+                  )}
+                  {(!startDate || !endDate) && (
+                    <p className="text-destructive">⚠️ Sprint must have dates defined</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <p className="font-medium">Sprint Summary:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      <li>
+                        <strong>{taskCount}</strong> {taskCount === 1 ? 'task' : 'tasks'} ({storyPoints} story points)
+                      </li>
+                      {startDate && endDate && (
+                        <li>
+                          Duration: {format(startDate, 'MMM d, yyyy')} to {format(endDate, 'MMM d, yyyy')} ({duration} {duration === 1 ? 'day' : 'days'})
+                        </li>
+                      )}
+                      <li>Team capacity: {capacity} SP</li>
+                    </ul>
+                  </div>
+                  <p className="text-sm">This will mark the sprint as active and notify all team members.</p>
+                </div>
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

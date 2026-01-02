@@ -153,25 +153,11 @@ export const aiGovernanceApi = {
   },
 
   // User endpoints
-  getQuotaStatus: (organizationId: number): Promise<QuotaStatus> => {
-    // TODO: Replace with actual endpoint when available
-    // return apiClient.get(`/api/v1/ai/quota/status/${organizationId}`);
-    // For now, return a promise that resolves with mock data
-    return Promise.resolve({
-      organizationId,
-      tierName: 'Free',
-      maxRequests: 100,
-      maxTokens: 100000,
-      maxDecisions: 50,
-      currentRequests: 75,
-      currentTokens: 45000,
-      currentDecisions: 30,
-      resetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      isAlertThreshold: true,
-      isDisabled: false,
-      requestsPercentage: 75,
-      tokensPercentage: 45,
-      decisionsPercentage: 60,
-    });
+  /**
+   * Obtient le statut du quota AI pour l'organisation de l'utilisateur courant
+   * @returns Statut du quota AI
+   */
+  getQuotaStatus: (): Promise<QuotaStatus> => {
+    return apiClient.get<QuotaStatus>('/api/v1/ai/quota');
   },
 };

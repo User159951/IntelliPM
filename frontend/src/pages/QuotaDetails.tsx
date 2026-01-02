@@ -7,56 +7,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import type { QuotaDetails, QuotaStatus } from '@/types/aiGovernance';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { aiGovernanceApi } from '@/api/aiGovernance';
+import type { QuotaStatus } from '@/types/aiGovernance';
 import { cn } from '@/lib/utils';
-
-// Mock API calls - will be replaced with actual endpoints when available
-async function getQuotaDetails(organizationId: number): Promise<QuotaDetails> {
-  // Temporary mock implementation
-  const status: QuotaStatus = {
-    organizationId,
-    tierName: 'Free',
-    maxRequests: 100,
-    maxTokens: 100000,
-    maxDecisions: 50,
-    currentRequests: 75,
-    currentTokens: 45000,
-    currentDecisions: 30,
-    resetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    isAlertThreshold: true,
-    isDisabled: false,
-    requestsPercentage: 75,
-    tokensPercentage: 45,
-    decisionsPercentage: 60,
-  };
-
-  // Generate mock history (30 days)
-  const usageHistory = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (29 - i));
-    return {
-      date: date.toISOString().split('T')[0],
-      requests: Math.floor(Math.random() * 5) + 1,
-      tokens: Math.floor(Math.random() * 5000) + 1000,
-      decisions: Math.floor(Math.random() * 2),
-    };
-  });
-
-  const breakdownByAgent = [
-    { agentType: 'Product', requests: 25, tokens: 15000, decisions: 10 },
-    { agentType: 'QA', requests: 20, tokens: 12000, decisions: 8 },
-    { agentType: 'Business', requests: 15, tokens: 10000, decisions: 7 },
-    { agentType: 'Manager', requests: 10, tokens: 6000, decisions: 3 },
-    { agentType: 'Delivery', requests: 5, tokens: 2000, decisions: 2 },
-  ];
-
-  return {
-    status,
-    usageHistory,
-    breakdownByAgent,
-  };
-}
 
 function getPercentageColor(percentage: number): string {
   if (percentage >= 80) return 'bg-red-500';
@@ -104,12 +58,11 @@ const TIER_COMPARISON = [
 export default function QuotaDetails() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const organizationId = user?.organizationId || 0;
 
-  const { data: quotaDetails, isLoading } = useQuery({
-    queryKey: ['ai-quota-details', organizationId],
-    queryFn: () => getQuotaDetails(organizationId),
-    enabled: organizationId > 0,
+  const { data: quotaStatus, isLoading, error } = useQuery({
+    queryKey: ['ai-quota-status'],
+    queryFn: () => aiGovernanceApi.getQuotaStatus(),
+    refetchInterval: 60000, // Rafraîchir toutes les minutes
   });
 
   if (isLoading) {
@@ -122,7 +75,31 @@ export default function QuotaDetails() {
     );
   }
 
-  if (!quotaDetails) {
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Erreur de Chargement</h3>
+              <p className="text-muted-foreground">
+                Impossible de charger les détails du quota AI.
+              </p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="mt-4"
+              >
+                Réessayer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!quotaStatus) {
     return (
       <div className="space-y-6">
         <Card>
@@ -134,7 +111,30 @@ export default function QuotaDetails() {
     );
   }
 
-  const { status, usageHistory, breakdownByAgent } = quotaDetails;
+  // Map backend structure to frontend display structure
+  const status = quotaStatus;
+  const usage = status.usage;
+  
+  // Generate mock history (30 days) - TODO: Replace with real endpoint when available
+  const usageHistory = Array.from({ length: 30 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    return {
+      date: date.toISOString().split('T')[0],
+      requests: Math.floor(Math.random() * 5) + 1,
+      tokens: Math.floor(Math.random() * 5000) + 1000,
+      decisions: Math.floor(Math.random() * 2),
+    };
+  });
+
+  // Generate mock breakdown - TODO: Replace with real endpoint when available
+  const breakdownByAgent = [
+    { agentType: 'Product', requests: 25, tokens: 15000, decisions: 10 },
+    { agentType: 'QA', requests: 20, tokens: 12000, decisions: 8 },
+    { agentType: 'Business', requests: 15, tokens: 10000, decisions: 7 },
+    { agentType: 'Manager', requests: 10, tokens: 6000, decisions: 3 },
+    { agentType: 'Delivery', requests: 5, tokens: 2000, decisions: 2 },
+  ];
 
   const chartData = usageHistory.map((entry) => ({
     date: new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -175,7 +175,7 @@ export default function QuotaDetails() {
             </Badge>
           </div>
           <CardDescription>
-            Reset date: {new Date(status.resetDate).toLocaleDateString()}
+            Reset date: {new Date(status.periodEndDate).toLocaleDateString()} ({status.daysRemaining} days remaining)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -185,16 +185,16 @@ export default function QuotaDetails() {
               <span className="font-medium">Requests</span>
               <span className={cn(
                 'text-sm',
-                status.requestsPercentage >= 80 ? 'text-red-500 font-semibold' :
-                status.requestsPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
+                usage.requestsPercentage >= 80 ? 'text-red-500 font-semibold' :
+                usage.requestsPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
               )}>
-                {status.currentRequests.toLocaleString()} / {status.maxRequests.toLocaleString()}
-                {' '}({status.requestsPercentage.toFixed(0)}%)
+                {usage.requestsUsed.toLocaleString()} / {usage.requestsLimit.toLocaleString()}
+                {' '}({usage.requestsPercentage.toFixed(1)}%)
               </span>
             </div>
             <Progress
-              value={status.requestsPercentage}
-              className={cn('h-3', getPercentageColor(status.requestsPercentage))}
+              value={usage.requestsPercentage}
+              className={cn('h-3', getPercentageColor(usage.requestsPercentage))}
             />
           </div>
 
@@ -204,35 +204,35 @@ export default function QuotaDetails() {
               <span className="font-medium">Tokens</span>
               <span className={cn(
                 'text-sm',
-                status.tokensPercentage >= 80 ? 'text-red-500 font-semibold' :
-                status.tokensPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
+                usage.tokensPercentage >= 80 ? 'text-red-500 font-semibold' :
+                usage.tokensPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
               )}>
-                {status.currentTokens.toLocaleString()} / {status.maxTokens.toLocaleString()}
-                {' '}({status.tokensPercentage.toFixed(0)}%)
+                {usage.tokensUsed.toLocaleString()} / {usage.tokensLimit.toLocaleString()}
+                {' '}({usage.tokensPercentage.toFixed(1)}%)
               </span>
             </div>
             <Progress
-              value={status.tokensPercentage}
-              className={cn('h-3', getPercentageColor(status.tokensPercentage))}
+              value={usage.tokensPercentage}
+              className={cn('h-3', getPercentageColor(usage.tokensPercentage))}
             />
           </div>
 
-          {/* Decisions */}
+          {/* Cost */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Decisions</span>
+              <span className="font-medium">Cost</span>
               <span className={cn(
                 'text-sm',
-                status.decisionsPercentage >= 80 ? 'text-red-500 font-semibold' :
-                status.decisionsPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
+                usage.costPercentage >= 80 ? 'text-red-500 font-semibold' :
+                usage.costPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
               )}>
-                {status.currentDecisions.toLocaleString()} / {status.maxDecisions.toLocaleString()}
-                {' '}({status.decisionsPercentage.toFixed(0)}%)
+                ${usage.costAccumulated.toFixed(2)} / ${usage.costLimit.toFixed(2)}
+                {' '}({usage.costPercentage.toFixed(1)}%)
               </span>
             </div>
             <Progress
-              value={status.decisionsPercentage}
-              className={cn('h-3', getPercentageColor(status.decisionsPercentage))}
+              value={usage.costPercentage}
+              className={cn('h-3', getPercentageColor(usage.costPercentage))}
             />
           </div>
         </CardContent>

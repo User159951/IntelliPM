@@ -35,6 +35,7 @@ import Backlog from "./pages/Backlog";
 import Defects from "./pages/Defects";
 import Profile from "./pages/Profile";
 import Users from "./pages/Users";
+import QuotaDetails from "./pages/QuotaDetails";
 import NotFound from "./pages/NotFound";
 
 // Admin pages
@@ -102,6 +103,7 @@ const App = () => (
                   <Route path="/metrics" element={<Metrics />} />
                   <Route path="/insights" element={<Insights />} />
                   <Route path="/agents" element={<Agents />} />
+                  <Route path="/settings/ai-quota" element={<QuotaDetails />} />
                 </Route>
 
                 {/* Admin routes */}

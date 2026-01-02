@@ -28,7 +28,7 @@ export const milestonesApi = {
     if (status) params.append('status', status);
     if (includeCompleted !== undefined) params.append('includeCompleted', includeCompleted.toString());
 
-    return apiClient.get<MilestoneDto[]>(`/api/v1/projects/${projectId}/milestones?${params}`);
+    return apiClient.get<MilestoneDto[]>(`/projects/${projectId}/milestones?${params}`);
   },
 
   /**
@@ -38,7 +38,7 @@ export const milestonesApi = {
    */
   getNextMilestone: async (projectId: number): Promise<MilestoneDto | null> => {
     try {
-      return await apiClient.get<MilestoneDto | null>(`/api/v1/projects/${projectId}/milestones/next`);
+      return await apiClient.get<MilestoneDto | null>(`/projects/${projectId}/milestones/next`);
     } catch (error: unknown) {
       const apiError = error as { response?: { status?: number } };
       if (apiError?.response?.status === 404) return null;
@@ -51,8 +51,17 @@ export const milestonesApi = {
    * @param id - The milestone ID
    * @returns The milestone
    */
+  getById: async (id: number): Promise<MilestoneDto> => {
+    return apiClient.get<MilestoneDto>(`/Milestones/${id}`);
+  },
+
+  /**
+   * Alias for getById (backward compatibility).
+   * @param id - The milestone ID
+   * @returns The milestone
+   */
   getMilestone: async (id: number): Promise<MilestoneDto> => {
-    return apiClient.get<MilestoneDto>(`/api/v1/milestones/${id}`);
+    return apiClient.get<MilestoneDto>(`/Milestones/${id}`);
   },
 
   /**
@@ -65,7 +74,7 @@ export const milestonesApi = {
     projectId: number,
     data: CreateMilestoneRequest
   ): Promise<MilestoneDto> => {
-    return apiClient.post<MilestoneDto>(`/api/v1/projects/${projectId}/milestones`, data);
+    return apiClient.post<MilestoneDto>(`/projects/${projectId}/milestones`, data);
   },
 
   /**
@@ -78,7 +87,7 @@ export const milestonesApi = {
     id: number,
     data: UpdateMilestoneRequest
   ): Promise<MilestoneDto> => {
-    return apiClient.put<MilestoneDto>(`/api/v1/milestones/${id}`, data);
+    return apiClient.put<MilestoneDto>(`/Milestones/${id}`, data);
   },
 
   /**
@@ -91,7 +100,7 @@ export const milestonesApi = {
     id: number,
     data?: CompleteMilestoneRequest
   ): Promise<MilestoneDto> => {
-    return apiClient.post<MilestoneDto>(`/api/v1/milestones/${id}/complete`, data || {});
+    return apiClient.post<MilestoneDto>(`/Milestones/${id}/complete`, data || {});
   },
 
   /**
@@ -99,7 +108,7 @@ export const milestonesApi = {
    * @param id - The milestone ID
    */
   deleteMilestone: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/v1/milestones/${id}`);
+    await apiClient.delete(`/Milestones/${id}`);
   },
 
   /**
@@ -108,15 +117,36 @@ export const milestonesApi = {
    * @returns Milestone statistics
    */
   getMilestoneStatistics: async (projectId: number): Promise<MilestoneStatistics> => {
-    return apiClient.get<MilestoneStatistics>(`/api/v1/projects/${projectId}/milestones/statistics`);
+    return apiClient.get<MilestoneStatistics>(`/projects/${projectId}/milestones/statistics`);
   },
 
   /**
    * Get all overdue milestones across all projects.
+   * Backend route: GET /api/v1/Milestones/overdue
    * @returns Array of overdue milestones
    */
-  getOverdueMilestones: async (): Promise<MilestoneDto[]> => {
-    return apiClient.get<MilestoneDto[]>('/api/v1/milestones/overdue');
+  getAllOverdueMilestones: async (): Promise<MilestoneDto[]> => {
+    return apiClient.get<MilestoneDto[]>('/Milestones/overdue');
+  },
+
+  /**
+   * Récupère les milestones en retard pour un projet
+   * @param projectId - ID du projet
+   * @returns Liste des milestones en retard
+   */
+  getOverdueMilestones: async (projectId: number): Promise<MilestoneDto[]> => {
+    try {
+      // Try the project-specific endpoint first
+      return await apiClient.get<MilestoneDto[]>(`/projects/${projectId}/milestones/overdue`);
+    } catch (error: unknown) {
+      // If endpoint doesn't exist (404), fallback to filtering all overdue milestones
+      const apiError = error as { response?: { status?: number } };
+      if (apiError?.response?.status === 404) {
+        const allOverdue = await apiClient.get<MilestoneDto[]>('/Milestones/overdue');
+        return allOverdue.filter(milestone => milestone.projectId === projectId);
+      }
+      throw error;
+    }
   },
 };
 

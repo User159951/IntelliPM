@@ -16,7 +16,7 @@ import { Card } from '@/components/ui/card';
 import { UserCard } from '@/components/users/UserCard';
 import { showError } from '@/lib/sweetalert';
 import { Search, Users as UsersIcon, AlertCircle } from 'lucide-react';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState('');

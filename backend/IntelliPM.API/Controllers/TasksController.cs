@@ -28,10 +28,21 @@ public class TasksController : BaseApiController
     /// <summary>
     /// Get all tasks for a project with optional filters
     /// </summary>
+    /// <param name="projectId">Project ID</param>
+    /// <param name="status">Optional status filter (Todo, InProgress, Blocked, Done)</param>
+    /// <param name="assigneeId">Optional assignee ID filter</param>
+    /// <param name="priority">Optional priority filter (Low, Medium, High, Critical)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of tasks matching the filters</returns>
+    /// <response code="200">Returns the list of tasks</response>
+    /// <response code="400">Bad request - Invalid filter parameters</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("project/{projectId}")]
     [RequirePermission("tasks.view")]
     [ProducesResponseType(typeof(GetTasksByProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetTasksByProject(
         int projectId,
@@ -63,9 +74,17 @@ public class TasksController : BaseApiController
     /// <summary>
     /// Get a specific task by ID
     /// </summary>
+    /// <param name="taskId">Task ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Task details</returns>
+    /// <response code="200">Returns the task details</response>
+    /// <response code="404">Task not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{taskId}")]
     [RequirePermission("tasks.view")]
     [ProducesResponseType(typeof(TaskDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetTaskById(int taskId, CancellationToken ct = default)
@@ -153,11 +172,34 @@ public class TasksController : BaseApiController
     /// <summary>
     /// Create a new task
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     POST /api/v1/Tasks
+    ///     {
+    ///        "title": "Implement user authentication",
+    ///        "description": "Add JWT-based authentication to the API",
+    ///        "projectId": 1,
+    ///        "priority": "High",
+    ///        "storyPoints": 5,
+    ///        "assigneeId": 2
+    ///     }
+    /// 
+    /// </remarks>
+    /// <param name="request">Task creation request</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Created task</returns>
+    /// <response code="201">Task created successfully</response>
+    /// <response code="400">Bad request - Validation failed</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="403">User does not have permission to create tasks</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost]
     [RequirePermission("tasks.create")]
     [ProducesResponseType(typeof(TaskDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateTask(
         [FromBody] CreateTaskRequest request,

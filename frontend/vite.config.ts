@@ -13,14 +13,14 @@ const buildDate = new Date().toISOString().split('T')[0].replace(/-/g, '.');
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
-    host: "::",
-    port: 8080,
+    host: "0.0.0.0", // Listen on all interfaces for Docker compatibility
+    port: 5173, // Standard Vite port (matches docker-compose.yml)
     hmr: {
       // Configure HMR to work with port mapping (e.g., Docker 3001:5173)
-      // If running in Docker, the client port might be different from server port
+      // When running in Docker, the browser connects to host port 3001, but HMR needs to know
       clientPort: process.env.VITE_HMR_CLIENT_PORT 
         ? parseInt(process.env.VITE_HMR_CLIENT_PORT) 
-        : undefined, // Auto-detect if not set
+        : 3001, // Default to 3001 (host port from docker-compose)
     },
   },
   plugins: [react()],
@@ -35,6 +35,8 @@ export default defineConfig(() => ({
   },
   build: {
     rollupOptions: {
+      // Note: Files in /src/dev/ are automatically excluded from production builds
+      // because they are not imported anywhere in the application code.
       output: {
         manualChunks: (id) => {
           // Vendor chunks
@@ -78,6 +80,7 @@ export default defineConfig(() => ({
       exclude: [
         'node_modules/',
         'src/test/',
+        'src/dev/', // Exclude dev tools from test coverage
         '**/*.d.ts',
         '**/*.config.*',
         '**/mockServiceWorker.js',

@@ -29,12 +29,20 @@ public class ProjectsController : BaseApiController
     }
 
     /// <summary>
-    /// Get all projects for the current user
+    /// Get all projects for the current user with pagination
     /// </summary>
+    /// <param name="page">Page number (default: 1, minimum: 1)</param>
+    /// <param name="pageSize">Number of items per page (default: 20, minimum: 1, maximum: 100)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated list of projects</returns>
+    /// <response code="200">Returns the paginated list of projects</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet]
     [RequirePermission("projects.view")]
     [ProducesResponseType(typeof(PagedResponse<ProjectListDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetProjects(
         [FromQuery] int page = 1,
@@ -84,9 +92,17 @@ public class ProjectsController : BaseApiController
     /// <summary>
     /// Get a specific project by ID
     /// </summary>
+    /// <param name="id">Project ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Project details</returns>
+    /// <response code="200">Returns the project details</response>
+    /// <response code="404">Project not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{id}")]
     [RequirePermission("projects.view")]
     [ProducesResponseType(typeof(GetProjectByIdResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetProject(int id, CancellationToken ct = default)
@@ -120,9 +136,17 @@ public class ProjectsController : BaseApiController
     /// <summary>
     /// Get the current user's role in a project
     /// </summary>
+    /// <param name="id">Project ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>User's role in the project (or null if not a member)</returns>
+    /// <response code="200">Returns the user's role in the project</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{id}/my-role")]
-    [ProducesResponseType(typeof(ProjectRole), StatusCodes.Status200OK)]
+    [RequirePermission("projects.view")]
+    [ProducesResponseType(typeof(ProjectRole?), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetMyRole(int id, CancellationToken ct = default)
     {
@@ -160,11 +184,35 @@ public class ProjectsController : BaseApiController
     /// <summary>
     /// Create a new project
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     POST /api/v1/Projects
+    ///     {
+    ///        "name": "My New Project",
+    ///        "description": "Project description",
+    ///        "type": "Scrum",
+    ///        "sprintDurationDays": 14,
+    ///        "status": "Active",
+    ///        "startDate": "2025-01-01T00:00:00Z",
+    ///        "memberIds": [1, 2, 3]
+    ///     }
+    /// 
+    /// </remarks>
+    /// <param name="req">Project creation request</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Created project</returns>
+    /// <response code="201">Project created successfully</response>
+    /// <response code="400">Bad request - Validation failed</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="403">User does not have permission to create projects</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost]
     [RequirePermission("projects.create")]
     [ProducesResponseType(typeof(CreateProjectResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateProject(
         [FromBody] CreateProjectRequest req,
@@ -388,7 +436,16 @@ public class ProjectsController : BaseApiController
     /// <summary>
     /// Get all members of a project
     /// </summary>
+    /// <param name="id">Project ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of project members</returns>
+    /// <response code="200">Returns the list of project members</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="403">User does not have permission to view project members</response>
+    /// <response code="404">Project not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{id}/members")]
+    [RequirePermission("projects.view")]
     [ProducesResponseType(typeof(List<ProjectMemberDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -446,6 +503,26 @@ public class ProjectsController : BaseApiController
     /// <summary>
     /// Invite a member to a project
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    /// 
+    ///     POST /api/v1/Projects/{id}/members
+    ///     {
+    ///        "email": "user@example.com",
+    ///        "role": "Developer"
+    ///     }
+    /// 
+    /// </remarks>
+    /// <param name="id">Project ID</param>
+    /// <param name="request">Invitation request with email and role</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Created member ID</returns>
+    /// <response code="201">Member invited successfully</response>
+    /// <response code="400">Bad request - Validation failed</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="403">User does not have permission to invite members</response>
+    /// <response code="404">Project or user not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost("{id}/members")]
     [RequirePermission("projects.members.invite")]
     [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
@@ -542,6 +619,7 @@ public class ProjectsController : BaseApiController
     /// <response code="404">Not Found - Project or team not found</response>
     /// <response code="500">Internal server error</response>
     [HttpPost("{projectId}/assign-team")]
+    [RequirePermission("projects.edit")]
     [ProducesResponseType(typeof(AssignTeamToProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]

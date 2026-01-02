@@ -15,10 +15,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Link } from 'react-router-dom';
 import { showSuccess, showError } from "@/lib/sweetalert";
-import { ArrowLeft, Settings, Play, CheckCircle2, Plus, Pencil, Trash2, Package } from 'lucide-react';
+import { ArrowLeft, Settings, Play, CheckCircle2, Plus, Pencil, Trash2, Package, Sparkles, GitBranch } from 'lucide-react';
 import { ProjectInsightPanel } from '@/components/agents/ProjectInsightPanel';
 import { RiskDetectionPanel } from '@/components/agents/RiskDetectionPanel';
 import { SprintPlanningAssistant } from '@/components/agents/SprintPlanningAssistant';
+import { ProjectAnalysisPanel } from '@/components/agents/ProjectAnalysisPanel';
+import { DependencyAnalyzerPanel } from '@/components/tasks/DependencyAnalyzerPanel';
 import { EditProjectDialog } from '@/components/projects/EditProjectDialog';
 import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { ProjectTimeline } from '@/components/projects/ProjectTimeline';
@@ -294,6 +296,14 @@ export default function ProjectDetail() {
           {permissions.canEditProject && (
             <TabsTrigger value="settings">Settings</TabsTrigger>
           )}
+          <TabsTrigger value="ai-analysis" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            AI Analysis
+          </TabsTrigger>
+          <TabsTrigger value="dependencies" className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" />
+            Dependencies
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -587,6 +597,40 @@ export default function ProjectDetail() {
             </Card>
           </TabsContent>
         )}
+
+        <TabsContent value="ai-analysis" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                Analyse IA du Projet
+              </CardTitle>
+              <CardDescription>
+                Analyse complète du projet par l'intelligence artificielle : insights, risques et recommandations.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProjectAnalysisPanel projectId={projectId} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dependencies" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GitBranch className="h-5 w-5 text-blue-500" />
+                Analyse des Dépendances de Tâches
+              </CardTitle>
+              <CardDescription>
+                Visualisez et analysez les dépendances entre les tâches du projet. Identifiez les dépendances circulaires et le chemin critique.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DependencyAnalyzerPanel projectId={projectId} />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <div className="space-y-4">

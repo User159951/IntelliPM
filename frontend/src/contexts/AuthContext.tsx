@@ -15,6 +15,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Event to notify auth context when authentication fails
+const AUTH_FAILED_EVENT = 'auth:failed';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +38,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
+
+  // Listen for authentication failure events from API client
+  useEffect(() => {
+    const handleAuthFailed = () => {
+      setUser(null);
+    };
+
+    window.addEventListener(AUTH_FAILED_EVENT, handleAuthFailed);
+    return () => {
+      window.removeEventListener(AUTH_FAILED_EVENT, handleAuthFailed);
+    };
+  }, []);
 
   // Set Sentry user context when user is loaded
   useEffect(() => {

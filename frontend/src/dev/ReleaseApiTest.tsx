@@ -1,3 +1,7 @@
+// NOTE: This is a development/debug page for testing Release API endpoints.
+// This file is located in /dev folder and is excluded from production builds.
+// It is not routed in App.tsx and should only be used during development.
+// To use it, temporarily add a route in App.tsx (with import.meta.env.DEV check) or access via direct import.
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

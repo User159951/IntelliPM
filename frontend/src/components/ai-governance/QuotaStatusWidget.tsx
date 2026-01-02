@@ -215,6 +215,18 @@ export function QuotaStatusWidget({ organizationId: propOrgId, compact = false }
             </span>
           </div>
         )}
+
+        {/* View Details Button */}
+        <div className="pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => navigate('/settings/ai-quota')}
+          >
+            View Details
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

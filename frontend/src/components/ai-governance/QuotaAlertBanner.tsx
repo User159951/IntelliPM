@@ -46,7 +46,7 @@ export function QuotaAlertBanner({ organizationId: propOrgId }: QuotaAlertBanner
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/admin/ai-governance')}
+            onClick={() => navigate('/settings/ai-quota')}
           >
             View Details
           </Button>
