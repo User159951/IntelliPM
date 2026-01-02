@@ -93,11 +93,11 @@ Résultat attendu :
 
 Après avoir appliqué la migration, vous pouvez supprimer :
 
-- `backend/IntelliPM.API/Controllers/AdminHashGeneratorController.cs`
+- ~~`backend/IntelliPM.API/Controllers/AdminHashGeneratorController.cs`~~ (REMOVED - Security vulnerability)
 - `backend/IntelliPM.API/Scripts/GenerateAdminHash.cs`
 - `backend/IntelliPM.API/Scripts/ADMIN_USER_MIGRATION_GUIDE.md` (ce fichier)
 
-**Note** : Il est recommandé de garder le contrôleur `AdminHashGeneratorController` commenté ou supprimé en production pour des raisons de sécurité.
+**Note** : Le contrôleur `AdminHashGeneratorController` a été supprimé pour des raisons de sécurité. L'utilisateur admin est maintenant créé automatiquement via `DataSeeder.SeedDevelopmentAdminUserAsync()` dans `Program.cs`.
 
 ## Vérification de l'idempotence
 

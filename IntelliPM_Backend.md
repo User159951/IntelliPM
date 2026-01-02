@@ -374,7 +374,7 @@ IntelliPM.API/
 │   ├── HealthController.cs
 │   ├── HealthApiController.cs    # API smoke tests (no versioning)
 │   ├── TestController.cs         # DEBUG-only: Conditioned with #if DEBUG
-│   ├── AdminHashGeneratorController.cs
+│   ├── ~~AdminHashGeneratorController.cs~~ (REMOVED - Security vulnerability)
 │   ├── Admin/                     # Admin controllers (8 controllers)
 │   │   ├── UsersController.cs
 │   │   ├── FeatureFlagsController.cs
@@ -2263,7 +2263,7 @@ public abstract class BaseApiController : ControllerBase
 | `AIGovernanceController` | AI Governance (User) | View AI decisions, quota status, usage statistics |
 | `ReadModelsController` | Read Models (User) | Get read model data for current organization |
 | `TestController` | Testing | Test endpoints (DEBUG-only, #if DEBUG) |
-| `AdminHashGeneratorController` | Admin utilities | Password hash generation utility |
+| ~~`AdminHashGeneratorController`~~ | ~~Admin utilities~~ | ~~REMOVED - Security vulnerability~~ |
 
 ### 7.2 Middleware
 
