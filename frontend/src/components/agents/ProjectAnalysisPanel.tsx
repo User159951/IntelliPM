@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, CheckCircle2, TrendingUp } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
-import type { AgentResponse } from '@/types';
 
 interface ProjectAnalysisPanelProps {
   projectId: number;
@@ -51,7 +50,7 @@ export function ProjectAnalysisPanel({ projectId }: ProjectAnalysisPanelProps) {
     analysis = parsed as ProjectAnalysis;
   } catch {
     // If content is not JSON, try to extract from metadata
-    analysis = (response.metadata as ProjectAnalysis) || null;
+    analysis = (response.metadata as unknown as ProjectAnalysis) || null;
   }
 
   if (!analysis) {

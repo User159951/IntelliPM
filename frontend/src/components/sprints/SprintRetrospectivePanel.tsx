@@ -15,7 +15,7 @@ interface SprintRetrospectivePanelProps {
   sprintName?: string;
 }
 
-export function SprintRetrospectivePanel({ sprintId, sprintName }: SprintRetrospectivePanelProps) {
+export function SprintRetrospectivePanel({ sprintId }: SprintRetrospectivePanelProps) {
   const [retrospective, setRetrospective] = useState<SprintRetrospective | null>(null);
 
   const generateMutation = useMutation({

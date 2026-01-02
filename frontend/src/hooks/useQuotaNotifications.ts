@@ -28,9 +28,9 @@ export function useQuotaNotifications() {
     if (!quota || !organizationId) return;
 
     const maxPercentage = Math.max(
-      quota.requestsPercentage,
-      quota.tokensPercentage,
-      quota.decisionsPercentage
+      quota.requestsPercentage ?? quota.usage.requestsPercentage,
+      quota.tokensPercentage ?? quota.usage.tokensPercentage,
+      quota.decisionsPercentage ?? 0
     );
 
     // Check if quota is exceeded (100%+)

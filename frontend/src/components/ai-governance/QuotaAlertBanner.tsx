@@ -27,9 +27,10 @@ export function QuotaAlertBanner({ organizationId: propOrgId }: QuotaAlertBanner
   }
 
   // Check if quota is exceeded (100%+)
-  const isExceeded = quota.requestsPercentage >= 100 || 
-                    quota.tokensPercentage >= 100 || 
-                    quota.decisionsPercentage >= 100;
+  const requestsPct = quota.requestsPercentage ?? quota.usage.requestsPercentage;
+  const tokensPct = quota.tokensPercentage ?? quota.usage.tokensPercentage;
+  const decisionsPct = quota.decisionsPercentage ?? 0;
+  const isExceeded = requestsPct >= 100 || tokensPct >= 100 || decisionsPct >= 100;
 
   if (quota.isDisabled) {
     return (
@@ -95,9 +96,9 @@ export function QuotaAlertBanner({ organizationId: propOrgId }: QuotaAlertBanner
       <AlertDescription className="flex items-center justify-between gap-4">
         <span className="text-yellow-700 dark:text-yellow-300">
           ⚠️ Vous avez utilisé {Math.max(
-            quota.requestsPercentage,
-            quota.tokensPercentage,
-            quota.decisionsPercentage
+            quota.requestsPercentage ?? quota.usage.requestsPercentage,
+            quota.tokensPercentage ?? quota.usage.tokensPercentage,
+            quota.decisionsPercentage ?? 0
           ).toFixed(0)}% de votre quota mensuel. Passez au plan Pro.
         </span>
         <div className="flex gap-2">

@@ -155,9 +155,13 @@ export const aiGovernanceApi = {
   // User endpoints
   /**
    * Obtient le statut du quota AI pour l'organisation de l'utilisateur courant
+   * @param organizationId Optional organization ID (defaults to current user's org)
    * @returns Statut du quota AI
    */
-  getQuotaStatus: (): Promise<QuotaStatus> => {
-    return apiClient.get<QuotaStatus>('/api/v1/ai/quota');
+  getQuotaStatus: (organizationId?: number): Promise<QuotaStatus> => {
+    const endpoint = organizationId 
+      ? `/api/v1/ai/quota?organizationId=${organizationId}`
+      : '/api/v1/ai/quota';
+    return apiClient.get<QuotaStatus>(endpoint);
   },
 };

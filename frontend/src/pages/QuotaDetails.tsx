@@ -5,11 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts';
-import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { aiGovernanceApi } from '@/api/aiGovernance';
-import type { QuotaStatus } from '@/types/aiGovernance';
 import { cn } from '@/lib/utils';
 
 function getPercentageColor(percentage: number): string {
@@ -56,7 +54,6 @@ const TIER_COMPARISON = [
 ];
 
 export default function QuotaDetails() {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const { data: quotaStatus, isLoading, error } = useQuery({

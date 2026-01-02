@@ -78,9 +78,9 @@ export function QuotaStatusWidget({ organizationId: propOrgId, compact = false }
 
   if (compact) {
     const maxPercentage = Math.max(
-      quota.requestsPercentage,
-      quota.tokensPercentage,
-      quota.decisionsPercentage
+      quota.requestsPercentage ?? quota.usage.requestsPercentage,
+      quota.tokensPercentage ?? quota.usage.tokensPercentage,
+      quota.decisionsPercentage ?? 0
     );
 
     return (
@@ -146,7 +146,7 @@ export function QuotaStatusWidget({ organizationId: propOrgId, compact = false }
           )}
         </div>
         <CardDescription>
-          Reset date: {new Date(quota.resetDate).toLocaleDateString()}
+          Reset date: {quota.resetDate ? new Date(quota.resetDate).toLocaleDateString() : new Date(quota.periodEndDate).toLocaleDateString()}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -156,16 +156,16 @@ export function QuotaStatusWidget({ organizationId: propOrgId, compact = false }
             <span className="font-medium">Requests</span>
             <span className={cn(
               'text-sm',
-              quota.requestsPercentage >= 80 ? 'text-red-500 font-semibold' :
-              quota.requestsPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
+              (quota.requestsPercentage ?? quota.usage.requestsPercentage) >= 80 ? 'text-red-500 font-semibold' :
+              (quota.requestsPercentage ?? quota.usage.requestsPercentage) >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
             )}>
-              {quota.currentRequests.toLocaleString()} / {quota.maxRequests.toLocaleString()}
-              {' '}({quota.requestsPercentage.toFixed(0)}%)
+              {(quota.currentRequests ?? quota.usage.requestsUsed).toLocaleString()} / {(quota.maxRequests ?? quota.usage.requestsLimit).toLocaleString()}
+              {' '}({(quota.requestsPercentage ?? quota.usage.requestsPercentage).toFixed(0)}%)
             </span>
           </div>
           <Progress
-            value={quota.requestsPercentage}
-            className={cn('h-2', getPercentageColor(quota.requestsPercentage))}
+            value={quota.requestsPercentage ?? quota.usage.requestsPercentage}
+            className={cn('h-2', getPercentageColor(quota.requestsPercentage ?? quota.usage.requestsPercentage))}
           />
         </div>
 
@@ -175,16 +175,16 @@ export function QuotaStatusWidget({ organizationId: propOrgId, compact = false }
             <span className="font-medium">Tokens</span>
             <span className={cn(
               'text-sm',
-              quota.tokensPercentage >= 80 ? 'text-red-500 font-semibold' :
-              quota.tokensPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
+              (quota.tokensPercentage ?? quota.usage.tokensPercentage) >= 80 ? 'text-red-500 font-semibold' :
+              (quota.tokensPercentage ?? quota.usage.tokensPercentage) >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
             )}>
-              {quota.currentTokens.toLocaleString()} / {quota.maxTokens.toLocaleString()}
-              {' '}({quota.tokensPercentage.toFixed(0)}%)
+              {(quota.currentTokens ?? quota.usage.tokensUsed).toLocaleString()} / {(quota.maxTokens ?? quota.usage.tokensLimit).toLocaleString()}
+              {' '}({(quota.tokensPercentage ?? quota.usage.tokensPercentage).toFixed(0)}%)
             </span>
           </div>
           <Progress
-            value={quota.tokensPercentage}
-            className={cn('h-2', getPercentageColor(quota.tokensPercentage))}
+            value={quota.tokensPercentage ?? quota.usage.tokensPercentage}
+            className={cn('h-2', getPercentageColor(quota.tokensPercentage ?? quota.usage.tokensPercentage))}
           />
         </div>
 
@@ -194,16 +194,16 @@ export function QuotaStatusWidget({ organizationId: propOrgId, compact = false }
             <span className="font-medium">Decisions</span>
             <span className={cn(
               'text-sm',
-              quota.decisionsPercentage >= 80 ? 'text-red-500 font-semibold' :
-              quota.decisionsPercentage >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
+              (quota.decisionsPercentage ?? 0) >= 80 ? 'text-red-500 font-semibold' :
+              (quota.decisionsPercentage ?? 0) >= 50 ? 'text-yellow-500' : 'text-muted-foreground'
             )}>
-              {quota.currentDecisions.toLocaleString()} / {quota.maxDecisions.toLocaleString()}
-              {' '}({quota.decisionsPercentage.toFixed(0)}%)
+              {(quota.currentDecisions ?? 0).toLocaleString()} / {(quota.maxDecisions ?? 0).toLocaleString()}
+              {' '}({(quota.decisionsPercentage ?? 0).toFixed(0)}%)
             </span>
           </div>
           <Progress
-            value={quota.decisionsPercentage}
-            className={cn('h-2', getPercentageColor(quota.decisionsPercentage))}
+            value={quota.decisionsPercentage ?? 0}
+            className={cn('h-2', getPercentageColor(quota.decisionsPercentage ?? 0))}
           />
         </div>
 

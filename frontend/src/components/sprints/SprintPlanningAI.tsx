@@ -42,7 +42,7 @@ export function SprintPlanningAI({ sprintId, onTasksSelected }: SprintPlanningAI
         setPlan(parsed as SprintPlan);
         showToast('Plan de sprint généré avec succès', 'success');
       } catch {
-        const parsed = (data.metadata as SprintPlan) || null;
+        const parsed = (data.metadata as unknown as SprintPlan) || null;
         if (parsed) {
           setPlan(parsed);
           showToast('Plan de sprint généré avec succès', 'success');

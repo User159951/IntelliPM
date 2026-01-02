@@ -21,6 +21,19 @@ export interface QuotaStatus {
   daysRemaining: number;
   isExceeded: boolean;
   alertSent: boolean;
+  // Computed properties for convenience
+  requestsPercentage: number;
+  tokensPercentage: number;
+  decisionsPercentage: number;
+  currentRequests: number;
+  maxRequests: number;
+  currentTokens: number;
+  maxTokens: number;
+  currentDecisions: number;
+  maxDecisions: number;
+  isAlertThreshold: boolean;
+  isDisabled: boolean;
+  resetDate?: string;
 }
 
 export interface QuotaUsageHistory {

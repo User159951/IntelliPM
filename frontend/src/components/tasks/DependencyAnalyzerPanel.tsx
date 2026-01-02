@@ -42,7 +42,7 @@ export function DependencyAnalyzerPanel({ projectId }: DependencyAnalyzerPanelPr
         setAnalysis(parsed as DependencyAnalysis);
         showToast('Analyse des dépendances terminée', 'success');
       } catch {
-        const parsed = (data.metadata as DependencyAnalysis) || null;
+        const parsed = (data.metadata as unknown as DependencyAnalysis) || null;
         if (parsed) {
           setAnalysis(parsed);
           showToast('Analyse des dépendances terminée', 'success');

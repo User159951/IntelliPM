@@ -11,7 +11,6 @@ import {
   Bot,
   Zap,
   Shield,
-  Settings,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {

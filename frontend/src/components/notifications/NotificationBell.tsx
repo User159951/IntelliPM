@@ -97,15 +97,9 @@ export default function NotificationBell() {
       }
       return failureCount < 3;
     },
-    onError: (error) => {
-      // Silently handle 401 errors - user is not authenticated
-      if (error instanceof Error && !error.message.includes('Unauthorized')) {
-        console.error('Failed to fetch notifications:', error);
-      }
-    },
   });
 
-  const notifications = notificationsData?.notifications ?? [];
+  const notifications = (notificationsData as GetNotificationsResponse)?.notifications ?? [];
 
   // ✅ New query for unread count using dedicated endpoint
   const { data: unreadData } = useQuery({
@@ -120,12 +114,6 @@ export default function NotificationBell() {
         return false;
       }
       return failureCount < 3;
-    },
-    onError: (error) => {
-      // Silently handle 401 errors - user is not authenticated
-      if (error instanceof Error && !error.message.includes('Unauthorized')) {
-        console.error('Failed to fetch unread count:', error);
-      }
     },
   });
 
@@ -210,7 +198,7 @@ export default function NotificationBell() {
         <ScrollArea className="h-[400px]">
           {notifications.length > 0 ? (
             <div className="divide-y">
-              {notifications.map((notification) => (
+              {notifications.map((notification: Notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}

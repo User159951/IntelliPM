@@ -20,7 +20,6 @@ interface TaskImproverDialogProps {
 }
 
 export function TaskImproverDialog({
-  taskId,
   currentDescription,
   currentTitle,
   projectId,

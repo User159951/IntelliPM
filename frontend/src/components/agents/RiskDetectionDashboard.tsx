@@ -41,7 +41,7 @@ export function RiskDetectionDashboard({ projectId }: RiskDetectionDashboardProp
         showToast(`${result.risks?.length || 0} risque(s) détecté(s)`, 'success');
       } catch {
         // Try metadata
-        const result = (data.metadata as RiskDetectionResult) || { risks: [] };
+        const result = (data.metadata as unknown as RiskDetectionResult) || { risks: [] };
         setRisks(result.risks);
         showToast(`${result.risks.length} risque(s) détecté(s)`, 'success');
       }
