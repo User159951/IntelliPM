@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace IntelliPM.Domain.Entities;
 
 /// <summary>
-/// Tracks AI usage limits and billing per organization.
+/// Tracks AI usage limits per organization.
 /// Enforces quota limits, tracks usage over time, and supports different tier levels.
 /// </summary>
 public class AIQuota : IAggregateRoot
@@ -58,9 +58,9 @@ public class AIQuota : IAggregateRoot
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? LastResetAt { get; set; }
 
-    // Billing
-    public string? BillingReferenceId { get; set; } // External billing system reference
-    public bool IsPaid { get; set; } = true; // False if payment failed
+    // Legacy field - kept for database compatibility (not used)
+    public string? BillingReferenceId { get; set; }
+    public bool IsPaid { get; set; } = true;
 
     // Navigation properties
     public Organization Organization { get; set; } = null!;

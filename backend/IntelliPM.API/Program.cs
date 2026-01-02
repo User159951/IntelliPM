@@ -541,8 +541,7 @@ app.UseExceptionHandler(appBuilder =>
                     quotaType = quotaEx.QuotaType,
                     currentUsage = quotaEx.CurrentUsage,
                     maxLimit = quotaEx.MaxLimit,
-                    tierName = quotaEx.TierName,
-                    upgradeUrl = "/settings/billing"
+                    tierName = quotaEx.TierName
                 }
             },
             IntelliPM.Application.Common.Exceptions.AIDisabledException aiDisabledEx => new

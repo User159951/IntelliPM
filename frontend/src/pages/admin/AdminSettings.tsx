@@ -690,10 +690,11 @@ export default function AdminSettings() {
                               if (result.success) {
                                 showToast('Test email sent', "success");
                               } else {
-                                showError('Failed to send test email');
+                                showError('Failed to send test email', result.message || 'Unknown error');
                               }
-                            } catch {
-                              showError('Error');
+                            } catch (error) {
+                              const errorMessage = error instanceof Error ? error.message : 'Failed to send test email. Please check SMTP configuration.';
+                              showError('Error sending test email', errorMessage);
                             }
                           }}
                           disabled={updateMutation.isPending}

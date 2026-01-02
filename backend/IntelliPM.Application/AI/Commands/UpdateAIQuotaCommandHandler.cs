@@ -1,7 +1,6 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
-using IntelliPM.Application.Interfaces;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Enums;
@@ -13,26 +12,23 @@ namespace IntelliPM.Application.AI.Commands;
 
 /// <summary>
 /// Handler for updating AI quota limits for organizations.
-/// Handles tier changes, billing integration, audit logging, and email notifications.
+/// Handles tier changes, audit logging, and email notifications.
 /// </summary>
 public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand, UpdateAIQuotaResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IBillingService _billingService;
     private readonly IEmailService _emailService;
     private readonly ILogger<UpdateAIQuotaCommandHandler> _logger;
 
     public UpdateAIQuotaCommandHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
-        IBillingService billingService,
         IEmailService emailService,
         ILogger<UpdateAIQuotaCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
-        _billingService = billingService;
         _emailService = emailService;
         _logger = logger;
     }
@@ -62,44 +58,6 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
         var organization = await _unitOfWork.Repository<Organization>()
             .GetByIdAsync(request.OrganizationId, ct)
             ?? throw new NotFoundException($"Organization {request.OrganizationId} not found");
-
-        string? billingReferenceId = null;
-        bool wasBillingTriggered = false;
-
-        // Check if tier is changing
-        bool isTierChange = currentQuota == null || currentQuota.TierName != request.TierName;
-
-        if (isTierChange)
-        {
-            // Trigger billing system webhook
-            try
-            {
-                var billingResult = await _billingService.UpdateSubscriptionAsync(new UpdateSubscriptionRequest
-                {
-                    OrganizationId = request.OrganizationId,
-                    OldTier = currentQuota?.TierName ?? "None",
-                    NewTier = request.TierName,
-                    ApplyImmediately = request.ApplyImmediately,
-                    ScheduledDate = request.ScheduledDate
-                }, ct);
-
-                if (billingResult.Success)
-                {
-                    billingReferenceId = billingResult.ReferenceId;
-                    wasBillingTriggered = true;
-                    _logger.LogInformation("Billing system updated: {ReferenceId}", billingReferenceId);
-                }
-                else
-                {
-                    _logger.LogWarning("Billing system update failed: {ErrorMessage}", billingResult.ErrorMessage);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to update billing system for organization {OrganizationId}", request.OrganizationId);
-                // Continue with quota update even if billing fails
-            }
-        }
 
         AIQuota quota;
 
@@ -134,7 +92,6 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
                 OverageRate = request.OverageRate ?? tierLimits.OverageRate,
                 EnforceQuota = request.EnforceQuota ?? true,
                 AlertThresholdPercentage = AIQuotaConstants.DefaultAlertThreshold,
-                BillingReferenceId = billingReferenceId,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -187,8 +144,7 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
                     quota.MaxDecisionsPerPeriod,
                     quota.MaxCostPerPeriod
                 },
-                Reason = request.Reason,
-                BillingReferenceId = billingReferenceId
+                Reason = request.Reason
             }),
             CreatedAt = DateTimeOffset.UtcNow
         };
@@ -246,9 +202,7 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
                 quotaStatus.CostPercentage,
                 quotaStatus.IsExceeded,
                 quotaStatus.DaysRemaining
-            ),
-            wasBillingTriggered,
-            billingReferenceId
+            )
         );
     }
 }

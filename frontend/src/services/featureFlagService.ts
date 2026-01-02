@@ -183,7 +183,7 @@ class FeatureFlagService {
         params.append('organizationId', organizationId);
       }
 
-      const endpoint = `/api/v1/feature-flags/${encodeURIComponent(flagName)}${params.toString() ? `?${params.toString()}` : ''}`;
+      const endpoint = `/api/admin/feature-flags/${encodeURIComponent(flagName)}${params.toString() ? `?${params.toString()}` : ''}`;
       const flag = await apiClient.get<FeatureFlag>(endpoint);
       return flag;
     } catch (error) {
@@ -206,7 +206,7 @@ class FeatureFlagService {
         params.append('organizationId', organizationId);
       }
 
-      const endpoint = `/api/v1/feature-flags${params.toString() ? `?${params.toString()}` : ''}`;
+      const endpoint = `/api/admin/feature-flags${params.toString() ? `?${params.toString()}` : ''}`;
       const flags = await apiClient.get<FeatureFlag[]>(endpoint);
       return Array.isArray(flags) ? flags : [];
     } catch (error) {

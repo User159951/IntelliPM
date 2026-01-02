@@ -116,14 +116,12 @@ export function QuotaStatusWidget({ organizationId: propOrgId, compact = false }
             className="w-full h-7 text-xs"
             onClick={() => navigate('/settings/ai-quota')}
           >
-            Upgrade
+            View Details
           </Button>
         )}
       </div>
     );
   }
-
-  const canUpgrade = quota.tierName === 'Free' || quota.tierName === 'Pro';
 
   return (
     <Card className="w-full">
@@ -135,15 +133,6 @@ export function QuotaStatusWidget({ organizationId: propOrgId, compact = false }
               {quota.tierName}
             </Badge>
           </div>
-          {canUpgrade && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/settings/billing')}
-            >
-              Upgrade
-            </Button>
-          )}
         </div>
         <CardDescription>
           Reset date: {quota.resetDate ? new Date(quota.resetDate).toLocaleDateString() : new Date(quota.periodEndDate).toLocaleDateString()}

@@ -116,8 +116,6 @@ public static class DependencyInjection
         services.AddHostedService<OutboxProcessor>();
         services.AddHostedService<MilestoneStatusUpdater>();
 
-        // Billing Service
-        services.AddScoped<IBillingService, BillingService>();
 
         return services;
     }

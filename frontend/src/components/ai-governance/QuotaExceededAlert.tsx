@@ -30,9 +30,9 @@ export function QuotaExceededAlert() {
     return null;
   }
 
-  const handleUpgrade = () => {
+  const handleViewDetails = () => {
     clearQuotaError();
-    navigate(quotaError.upgradeUrl);
+    navigate('/settings/ai-quota');
   };
 
   const handleDismiss = () => {
@@ -46,11 +46,6 @@ export function QuotaExceededAlert() {
     ? 'tokens' 
     : quotaError.quotaType.toLowerCase();
 
-  const nextTier = quotaError.tierName === 'Free' 
-    ? 'Pro' 
-    : quotaError.tierName === 'Pro' 
-    ? 'Enterprise' 
-    : 'Enterprise';
 
   return (
     <Alert variant="destructive" className="mb-4">
@@ -63,10 +58,10 @@ export function QuotaExceededAlert() {
               Vous avez atteint la limite mensuelle de {quotaTypeDisplay} ({quotaError.currentUsage.toLocaleString()}/{quotaError.maxLimit.toLocaleString()}).
             </p>
             <p className="text-sm">
-              Passez au plan <strong>{nextTier}</strong> pour continuer à utiliser les fonctionnalités AI.
+              Contactez votre administrateur pour augmenter votre quota AI.
             </p>
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Plan actuel:</span>
+              <span className="text-sm text-muted-foreground">Tier actuel:</span>
               <Badge variant="outline">{quotaError.tierName}</Badge>
             </div>
           </div>
@@ -81,9 +76,9 @@ export function QuotaExceededAlert() {
             <Button 
               variant="default" 
               size="sm"
-              onClick={handleUpgrade}
+              onClick={handleViewDetails}
             >
-              Mettre à niveau
+              Voir détails
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>

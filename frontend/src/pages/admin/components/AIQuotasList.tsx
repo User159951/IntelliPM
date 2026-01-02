@@ -256,7 +256,7 @@ export function AIQuotasList() {
                 id="reason"
                 value={disableReason}
                 onChange={(e) => setDisableReason(e.target.value)}
-                placeholder="e.g., Abuse detected, billing issues..."
+                placeholder="e.g., Abuse detected, quota exceeded..."
                 className="mt-1"
               />
             </div>

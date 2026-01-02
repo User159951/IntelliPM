@@ -14,7 +14,6 @@ export interface QuotaErrorDetails {
   currentUsage: number;
   maxLimit: number;
   tierName: string;
-  upgradeUrl: string;
 }
 
 export interface AIDisabledErrorDetails {
@@ -174,7 +173,6 @@ class ApiClient {
             currentUsage: errorData.details.currentUsage || 0,
             maxLimit: errorData.details.maxLimit || 0,
             tierName: errorData.details.tierName || 'Free',
-            upgradeUrl: errorData.details.upgradeUrl || '/settings/billing',
           };
           // Clear AI disabled error when quota is exceeded
           lastAIDisabledError = null;

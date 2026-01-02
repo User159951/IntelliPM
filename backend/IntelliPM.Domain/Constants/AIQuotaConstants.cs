@@ -1,7 +1,7 @@
 namespace IntelliPM.Domain.Constants;
 
 /// <summary>
-/// Constants for AI quota tiers, limits, and billing.
+/// Constants for AI quota tiers and limits.
 /// </summary>
 public static class AIQuotaConstants
 {

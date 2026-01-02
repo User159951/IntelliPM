@@ -5,7 +5,7 @@ namespace IntelliPM.Application.AI.Commands;
 
 /// <summary>
 /// Command to update AI quota limits for an organization.
-/// Supports tier upgrades/downgrades, custom limits, and billing integration.
+/// Supports tier upgrades/downgrades and custom limits.
 /// </summary>
 public record UpdateAIQuotaCommand : IRequest<UpdateAIQuotaResponse>
 {
@@ -24,16 +24,14 @@ public record UpdateAIQuotaCommand : IRequest<UpdateAIQuotaResponse>
 }
 
 /// <summary>
-/// Response containing updated quota information and billing details.
+/// Response containing updated quota information.
 /// </summary>
 public record UpdateAIQuotaResponse(
     int QuotaId,
     int OrganizationId,
     string TierName,
     QuotaLimitsDto Limits,
-    QuotaStatus CurrentStatus,
-    bool WasBillingTriggered,
-    string? BillingReferenceId
+    QuotaStatus CurrentStatus
 );
 
 /// <summary>

@@ -29,29 +29,6 @@ function getTierBadgeClass(tierName: string): string {
   }
 }
 
-const TIER_COMPARISON = [
-  {
-    tier: 'Free',
-    requests: 100,
-    tokens: 100000,
-    decisions: 50,
-    features: ['Basic AI agents', 'Standard support'],
-  },
-  {
-    tier: 'Pro',
-    requests: 1000,
-    tokens: 1000000,
-    decisions: 500,
-    features: ['All AI agents', 'Priority support', 'Advanced analytics'],
-  },
-  {
-    tier: 'Enterprise',
-    requests: 10000,
-    tokens: 10000000,
-    decisions: 5000,
-    features: ['All AI agents', 'Dedicated support', 'Custom integrations', 'SLA guarantee'],
-  },
-];
 
 export default function QuotaDetails() {
   const navigate = useNavigate();
@@ -140,7 +117,6 @@ export default function QuotaDetails() {
     decisions: entry.decisions,
   }));
 
-  const canUpgrade = status.tierName === 'Free' || status.tierName === 'Pro';
 
   return (
     <div className="space-y-6">
@@ -155,11 +131,6 @@ export default function QuotaDetails() {
             <p className="text-muted-foreground">Monitor your AI usage and quota limits</p>
           </div>
         </div>
-        {canUpgrade && (
-          <Button onClick={() => navigate('/settings/billing')}>
-            Upgrade Plan
-          </Button>
-        )}
       </div>
 
       {/* Current Status */}
@@ -311,71 +282,6 @@ export default function QuotaDetails() {
         </CardContent>
       </Card>
 
-      {/* Tier Comparison */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Plan Comparison</CardTitle>
-          <CardDescription>Compare features across different tiers</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {TIER_COMPARISON.map((tier) => (
-              <Card
-                key={tier.tier}
-                className={cn(
-                  'relative',
-                  tier.tier === status.tierName && 'border-primary ring-2 ring-primary'
-                )}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{tier.tier}</CardTitle>
-                    {tier.tier === status.tierName && (
-                      <Badge variant="outline">Current</Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="text-sm">
-                      <span className="font-medium">Requests:</span>{' '}
-                      {tier.requests.toLocaleString()}/month
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-medium">Tokens:</span>{' '}
-                      {(tier.tokens / 1000).toLocaleString()}K/month
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-medium">Decisions:</span>{' '}
-                      {tier.decisions.toLocaleString()}/month
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Features:</div>
-                    <ul className="space-y-1 text-sm text-muted-foreground">
-                      {tier.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span>
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  {tier.tier !== status.tierName && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => navigate('/settings/billing')}
-                    >
-                      {tier.tier === 'Free' ? 'Downgrade' : 'Upgrade'}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

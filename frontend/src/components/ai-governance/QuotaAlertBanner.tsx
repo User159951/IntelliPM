@@ -63,24 +63,15 @@ export function QuotaAlertBanner({ organizationId: propOrgId }: QuotaAlertBanner
         <AlertTitle>Quota Exceeded</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-4">
           <span>
-            🚫 Quota mensuel dépassé. Mise à niveau requise pour continuer.
+            🚫 Quota mensuel dépassé. Contactez votre administrateur pour augmenter votre quota.
           </span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/settings/billing')}
-            >
-              Mettre à niveau
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/settings/ai-quota')}
-            >
-              Voir détails
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/settings/ai-quota')}
+          >
+            Voir détails
+          </Button>
         </AlertDescription>
       </Alert>
     );
@@ -99,26 +90,16 @@ export function QuotaAlertBanner({ organizationId: propOrgId }: QuotaAlertBanner
             quota.requestsPercentage ?? quota.usage.requestsPercentage,
             quota.tokensPercentage ?? quota.usage.tokensPercentage,
             quota.decisionsPercentage ?? 0
-          ).toFixed(0)}% de votre quota mensuel. Passez au plan Pro.
+          ).toFixed(0)}% de votre quota mensuel. Contactez votre administrateur pour augmenter votre quota.
         </span>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-yellow-500 text-yellow-700 hover:bg-yellow-500/20"
-            onClick={() => navigate('/settings/billing')}
-          >
-            Mettre à niveau
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-yellow-700 hover:bg-yellow-500/20"
-            onClick={() => navigate('/settings/ai-quota')}
-          >
-            Voir détails
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-yellow-700 hover:bg-yellow-500/20"
+          onClick={() => navigate('/settings/ai-quota')}
+        >
+          Voir détails
+        </Button>
       </AlertDescription>
     </Alert>
   );
