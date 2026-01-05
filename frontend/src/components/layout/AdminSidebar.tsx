@@ -8,6 +8,8 @@ import {
   FileText,
   Activity,
   Brain,
+  Zap,
+  Building2,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {
@@ -36,10 +38,22 @@ const adminNavItems = [
   { title: 'Audit Logs', url: '/admin/audit-logs', icon: FileText },
   { title: 'System Health', url: '/admin/system-health', icon: Activity },
   { title: 'AI Governance', url: '/admin/ai-governance', icon: Brain },
+  { title: 'AI Quota', url: '/admin/ai-quota', icon: Zap },
+];
+
+const superAdminNavItems = [
+  { title: 'Organizations', url: '/admin/organizations', icon: Building2 },
+];
+
+const adminOwnOrgNavItems = [
+  { title: 'My Organization', url: '/admin/organization', icon: Building2 },
+  { title: 'Members', url: '/admin/organization/members', icon: Users },
+  { title: 'Member AI Quotas', url: '/admin/ai-quotas', icon: Zap },
+  { title: 'Member Permissions', url: '/admin/permissions/members', icon: Shield },
 ];
 
 export function AdminSidebar() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
@@ -92,6 +106,54 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>SuperAdmin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {superAdminNavItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {!isSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>Organization</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminOwnOrgNavItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4">

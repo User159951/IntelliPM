@@ -66,13 +66,15 @@ public class AuthService : IAuthService
 
         // For public registration, get or create a default organization
         // In a multi-tenant system, new users need an organization
-        var defaultOrganization = await _context.Organizations.FirstOrDefaultAsync(ct);
+        var defaultOrganization = await _context.Organizations
+            .FirstOrDefaultAsync(o => o.Code == "default", ct);
         if (defaultOrganization == null)
         {
             // Create a default organization if none exists
             defaultOrganization = new Organization
             {
                 Name = "Default Organization",
+                Code = "default",
                 CreatedAt = DateTimeOffset.UtcNow
             };
             _context.Organizations.Add(defaultOrganization);

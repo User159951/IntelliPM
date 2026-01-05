@@ -89,6 +89,10 @@ export default function QuotaDetails() {
   const status = quotaStatus;
   const usage = status.usage;
   
+  // NOTE: Mock data for usage history and breakdown
+  // TODO: Replace with real endpoints when available:
+  // - GET /api/admin/ai-quota/usage-history?startDate=...&endDate=...
+  // - GET /api/admin/ai-quota/breakdown?period=...
   // Generate mock history (30 days) - TODO: Replace with real endpoint when available
   const usageHistory = Array.from({ length: 30 }, (_, i) => {
     const date = new Date();

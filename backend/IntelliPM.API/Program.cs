@@ -440,10 +440,27 @@ using (var scope = app.Services.CreateScope())
         await dataSeeder.SeedRolePermissionsAsync();
         logger.LogInformation("Permissions and role permissions seeded");
 
+        // Seed default organization (idempotent - safe to run on every startup)
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<IntelliPM.Infrastructure.Identity.PasswordHasher>();
+        await IntelliPM.Infrastructure.Persistence.DataSeeder.SeedDefaultOrganizationAsync(
+            appContext,
+            logger);
+
+                // Seed SuperAdmin user from configuration (idempotent - safe to run on every startup)
+                await IntelliPM.Infrastructure.Persistence.DataSeeder.SeedSuperAdminUserAsync(
+                    appContext,
+                    passwordHasher,
+                    logger,
+                    builder.Configuration);
+
+                // Seed OrganizationAIQuota for all organizations (idempotent - safe to run on every startup)
+                await IntelliPM.Infrastructure.Persistence.DataSeeder.SeedOrganizationAIQuotasAsync(
+                    appContext,
+                    logger);
+
         // Seed development admin user (development environment only)
         if (app.Environment.IsDevelopment())
         {
-            var passwordHasher = scope.ServiceProvider.GetRequiredService<IntelliPM.Infrastructure.Identity.PasswordHasher>();
             await IntelliPM.Infrastructure.Persistence.DataSeeder.SeedDevelopmentAdminUserAsync(
                 appContext,
                 passwordHasher,

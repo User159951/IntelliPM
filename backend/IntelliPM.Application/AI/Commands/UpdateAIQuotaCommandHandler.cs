@@ -1,6 +1,7 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
+using IntelliPM.Application.Common.Services;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Enums;
@@ -18,17 +19,20 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
+    private readonly OrganizationScopingService _scopingService;
     private readonly IEmailService _emailService;
     private readonly ILogger<UpdateAIQuotaCommandHandler> _logger;
 
     public UpdateAIQuotaCommandHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
+        OrganizationScopingService scopingService,
         IEmailService emailService,
         ILogger<UpdateAIQuotaCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
+        _scopingService = scopingService;
         _emailService = emailService;
         _logger = logger;
     }
@@ -46,6 +50,9 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
         {
             throw new UnauthorizedException("User not authenticated");
         }
+
+        // Ensure organization access (SuperAdmin can update any, Admin only their own)
+        _scopingService.EnsureOrganizationAccess(request.OrganizationId);
 
         _logger.LogInformation("Updating AI quota for organization {OrganizationId} to tier {TierName}",
             request.OrganizationId, request.TierName);

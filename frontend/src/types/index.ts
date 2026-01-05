@@ -1,5 +1,5 @@
 // Auth types
-export type GlobalRole = 'User' | 'Admin';
+export type GlobalRole = 'User' | 'Admin' | 'SuperAdmin';
 
 export interface LoginRequest {
   username: string;

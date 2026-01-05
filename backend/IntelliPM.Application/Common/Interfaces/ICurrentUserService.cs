@@ -1,3 +1,5 @@
+using IntelliPM.Domain.Enums;
+
 namespace IntelliPM.Application.Common.Interfaces;
 
 /// <summary>
@@ -18,9 +20,21 @@ public interface ICurrentUserService
     int GetOrganizationId();
 
     /// <summary>
-    /// Checks if the current user is an admin
+    /// Gets the current user's global role
     /// </summary>
-    /// <returns>True if user has "Admin" role, false otherwise</returns>
+    /// <returns>GlobalRole enum value, or User if not found</returns>
+    GlobalRole GetGlobalRole();
+
+    /// <summary>
+    /// Checks if the current user is an admin (Admin or SuperAdmin)
+    /// </summary>
+    /// <returns>True if user has "Admin" or "SuperAdmin" role, false otherwise</returns>
     bool IsAdmin();
+
+    /// <summary>
+    /// Checks if the current user is a SuperAdmin
+    /// </summary>
+    /// <returns>True if user has "SuperAdmin" role, false otherwise</returns>
+    bool IsSuperAdmin();
 }
 

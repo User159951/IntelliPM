@@ -1,7 +1,7 @@
 # IntelliPM Backend Documentation
 
-**Version:** 2.12.0  
-**Last Updated:** January 2, 2025  
+**Version:** 2.14.1  
+**Last Updated:** January 4, 2025  
 **Technology Stack:** .NET 8.0, ASP.NET Core, Entity Framework Core, SQL Server, PostgreSQL, Semantic Kernel
 
 ---
@@ -58,6 +58,8 @@ IntelliPM is an intelligent project management system that combines traditional 
 - **File Attachments**: File upload/download with validation
 - **AI Governance**: Decision logging, quota management, and kill switch
 - **Read Models**: CQRS read models for optimized queries (TaskBoard, SprintSummary, ProjectOverview)
+- **Organization Permission Policies**: Per-organization permission restrictions managed by SuperAdmin
+- **Member Permission Management**: Admin-level member role and permission management with policy enforcement
 
 ### 1.3 Technology Stack
 
@@ -149,7 +151,7 @@ IntelliPM.sln
 
 ```
 IntelliPM.Domain/
-├── Entities/                      # Domain entities (39 entities)
+├── Entities/                      # Domain entities (44 entities)
 │   ├── Project.cs
 │   ├── User.cs
 │   ├── ProjectTask.cs
@@ -189,7 +191,8 @@ IntelliPM.Domain/
 │   ├── Milestone.cs              # Milestone entity
 │   ├── Release.cs                # Release entity
 │   ├── QualityGate.cs            # Quality gate entity
-│   └── TaskDependency.cs         # Task dependency entity
+│   ├── TaskDependency.cs         # Task dependency entity
+│   └── OrganizationPermissionPolicy.cs # Organization permission policy entity
 ├── Events/                        # Domain events (23 events)
 │   ├── IDomainEvent.cs           # Domain event interface
 │   ├── CommentAddedEvent.cs      # Event when comment is added
@@ -272,7 +275,6 @@ IntelliPM.Application/
 │   │   ├── IDomainEventDispatcher.cs
 │   │   ├── IFeatureFlagService.cs
 │   │   ├── IEmailService.cs
-│   │   ├── IBillingService.cs     # Billing integration interface
 │   │   └── ...
 │   ├── Models/                    # Common models
 │   └── Services/                  # Application services
@@ -348,7 +350,7 @@ IntelliPM.Infrastructure/
 
 ```
 IntelliPM.API/
-├── Controllers/                   # API controllers (37 controllers total: 29 standard + 8 admin, TestController is DEBUG-only)
+├── Controllers/                   # API controllers (41 controllers total: 26 standard + 14 admin + 1 superadmin + 1 DEBUG-only TestController)
 │   ├── BaseApiController.cs      # Base controller
 │   ├── ProjectsController.cs
 │   ├── TasksController.cs
@@ -375,7 +377,7 @@ IntelliPM.API/
 │   ├── HealthApiController.cs    # API smoke tests (no versioning)
 │   ├── TestController.cs         # DEBUG-only: Conditioned with #if DEBUG
 │   ├── ~~AdminHashGeneratorController.cs~~ (REMOVED - Security vulnerability)
-│   ├── Admin/                     # Admin controllers (8 controllers)
+│   ├── Admin/                     # Admin controllers (14 controllers)
 │   │   ├── UsersController.cs
 │   │   ├── FeatureFlagsController.cs
 │   │   ├── DashboardController.cs
@@ -383,7 +385,14 @@ IntelliPM.API/
 │   │   ├── SystemHealthController.cs
 │   │   ├── DeadLetterQueueController.cs
 │   │   ├── ReadModelsController.cs
-│   │   └── AIGovernanceController.cs
+│   │   ├── AIGovernanceController.cs
+│   │   ├── AdminMemberPermissionsController.cs
+│   │   ├── AdminAIQuotaController.cs
+│   │   ├── OrganizationsController.cs
+│   │   ├── OrganizationController.cs
+│   │   └── SuperAdminAIQuotaController.cs (Admin access to SuperAdmin features)
+│   └── SuperAdmin/                # SuperAdmin controllers (1 controller)
+│       └── SuperAdminPermissionPolicyController.cs
 │   └── ...
 ├── Authorization/                 # Authorization attributes
 │   └── RequirePermissionAttribute.cs
@@ -674,7 +683,42 @@ public class AIDecisionLog : IAggregateRoot
 }
 ```
 
-#### 4.1.9 AIQuota Entity
+#### 4.1.9 OrganizationPermissionPolicy Entity
+
+```csharp
+public class OrganizationPermissionPolicy : IAggregateRoot
+{
+    public int Id { get; set; }
+    public int OrganizationId { get; set; } // Unique - one policy per organization
+    public string AllowedPermissionsJson { get; set; } = "[]"; // JSON array of permission names
+    public bool IsActive { get; set; } = true; // If false, all permissions allowed
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    
+    // Navigation properties
+    public Organization Organization { get; set; } = null!;
+    
+    // Helper methods
+    public List<string> GetAllowedPermissions();
+    public void SetAllowedPermissions(List<string> permissions);
+    public bool IsPermissionAllowed(string permission);
+}
+```
+
+**Key Features:**
+- **One Policy Per Organization**: Unique constraint on `OrganizationId`
+- **JSON Storage**: Permissions stored as JSON array for flexibility
+- **Default Behavior**: If no policy exists or policy is inactive, all permissions are allowed
+- **Permission Checking**: `IsPermissionAllowed()` method checks if a permission is in the allowed list
+- **Case-Insensitive**: Permission name matching is case-insensitive
+
+**Default Behavior:**
+- If `OrganizationPermissionPolicy` doesn't exist for an organization → all permissions allowed
+- If `IsActive = false` → all permissions allowed
+- If `AllowedPermissionsJson` is empty → all permissions allowed
+- If `IsActive = true` and permissions are specified → only listed permissions allowed
+
+#### 4.1.10 AIQuota Entity
 
 ```csharp
 public class AIQuota : IAggregateRoot
@@ -723,6 +767,7 @@ public class AIQuota : IAggregateRoot
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? LastResetAt { get; set; }
+    // Legacy field - kept for database compatibility (not used)
     public string? BillingReferenceId { get; set; }
     public bool IsPaid { get; set; } = true;
     
@@ -828,6 +873,7 @@ Entities implementing `IAggregateRoot`:
 - Release
 - QualityGate
 - TaskDependency
+- OrganizationPermissionPolicy
 
 ### 4.5 Domain Events
 
@@ -1176,8 +1222,8 @@ public class OrganizationInvitation
 
 The application layer uses CQRS (Command Query Responsibility Segregation) pattern:
 
-- **Commands**: Write operations (Create, Update, Delete) - **Total: 88 Commands**
-- **Queries**: Read operations (Get, List, Search) - **Total: 68 Queries**
+- **Commands**: Write operations (Create, Update, Delete) - **Total: 98 Commands**
+- **Queries**: Read operations (Get, List, Search) - **Total: 76 Queries**
 
 ### 5.2 Command Pattern
 
@@ -1459,20 +1505,7 @@ public interface IFileStorageService
 
 Service for file storage operations. Supports local file system or cloud storage implementations.
 
-#### 5.6.11 IBillingService
-
-```csharp
-public interface IBillingService
-{
-    Task<BillingResult> UpdateSubscriptionAsync(UpdateSubscriptionRequest request, CancellationToken ct);
-    Task<BillingResult> CancelSubscriptionAsync(int organizationId, CancellationToken ct);
-    Task<BillingInvoice> GenerateInvoiceAsync(int organizationId, DateTimeOffset startDate, DateTimeOffset endDate, CancellationToken ct);
-}
-```
-
-Service for integrating with external billing systems (Stripe, PayPal, etc.). Handles subscription updates, cancellations, and invoice generation.
-
-#### 5.6.12 IAIAvailabilityService
+#### 5.6.11 IAIAvailabilityService
 
 ```csharp
 public interface IAIAvailabilityService
@@ -2037,27 +2070,42 @@ public class LocalFileStorageService : IFileStorageService
 }
 ```
 
-### 6.9 Billing Service
+### 6.9 Organization Permission Policy Service
 
-#### 6.9.1 BillingService (Stub)
+#### 6.9.1 OrganizationPermissionPolicyService
 
 ```csharp
-public class BillingService : IBillingService
+public class OrganizationPermissionPolicyService
 {
-    private readonly ILogger<BillingService> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<OrganizationPermissionPolicyService> _logger;
     
-    public async Task<BillingResult> UpdateSubscriptionAsync(UpdateSubscriptionRequest request, CancellationToken ct);
-    public async Task<BillingResult> CancelSubscriptionAsync(int organizationId, CancellationToken ct);
-    public async Task<BillingInvoice> GenerateInvoiceAsync(int organizationId, DateTimeOffset startDate, DateTimeOffset endDate, CancellationToken ct);
+    // Gets the organization permission policy
+    public async Task<OrganizationPermissionPolicy?> GetPolicyAsync(int organizationId, CancellationToken ct);
+    
+    // Checks if a permission is allowed for the organization
+    public async Task<bool> IsPermissionAllowedAsync(int organizationId, string permission, CancellationToken ct);
+    
+    // Validates that all given permissions are allowed
+    public async Task ValidatePermissionsAsync(int organizationId, IEnumerable<string> permissions, CancellationToken ct);
+    
+    // Gets all allowed permissions for an organization
+    public async Task<List<string>> GetAllowedPermissionsAsync(int organizationId, CancellationToken ct);
 }
 ```
 
 **Features:**
-- Stub implementation for external billing system integration
-- Logs all operations for debugging
-- Returns mock data for development
-- Can be replaced with actual Stripe/PayPal integration
+- **Policy Retrieval**: Gets organization permission policy (returns null if not exists)
+- **Permission Checking**: Checks if a specific permission is allowed
+- **Bulk Validation**: Validates multiple permissions at once (throws exception if any disallowed)
+- **Default Behavior**: Returns empty list if no policy exists (indicating all permissions allowed)
+- **Used By**: `UpdateMemberPermissionCommandHandler`, `UpdateRolePermissionsCommandHandler`
+
+**Default Behavior:**
+- No policy exists → all permissions allowed
+- Policy inactive (`IsActive = false`) → all permissions allowed
+- Policy active with empty permissions → all permissions allowed
+- Policy active with permissions → only listed permissions allowed
 
 ### 6.10 AI Availability Service
 
@@ -2260,6 +2308,12 @@ public abstract class BaseApiController : ControllerBase
 | `Admin/DeadLetterQueueController` | Dead Letter Queue | View, retry, and delete DLQ messages |
 | `Admin/ReadModelsController` | Read Models (Admin) | Rebuild read models, get read model data |
 | `Admin/AIGovernanceController` | AI Governance (Admin) | Manage AI quotas, disable/enable AI, view all decisions |
+| `Admin/AdminMemberPermissionsController` | Member Permissions (Admin) | View and update member roles/permissions within own organization |
+| `Admin/AdminAIQuotaController` | AI Quota Management (Admin) | Manage AI quotas for organization members |
+| `Admin/OrganizationsController` | Organizations (Admin) | Manage organizations (SuperAdmin access) |
+| `Admin/OrganizationController` | Organization (Admin) | Manage own organization details |
+| `Admin/SuperAdminAIQuotaController` | SuperAdmin AI Quota (Admin) | Manage organization AI quotas (SuperAdmin access) |
+| `SuperAdmin/SuperAdminPermissionPolicyController` | Permission Policies (SuperAdmin) | Manage organization permission policies |
 | `AIGovernanceController` | AI Governance (User) | View AI decisions, quota status, usage statistics |
 | `ReadModelsController` | Read Models (User) | Get read model data for current organization |
 | `TestController` | Testing | Test endpoints (DEBUG-only, #if DEBUG) |
@@ -4099,6 +4153,152 @@ Export AI decisions to CSV (Admin only).
 
 **Response:** CSV file download
 
+### 14.12.1 Admin Member Permissions Endpoints
+
+#### GET /api/admin/permissions/members
+
+Get a paginated list of organization members with their permissions (Admin only - own organization).
+
+**Authorization:** `[Authorize(Roles = "Admin,SuperAdmin")]`
+
+**Query Parameters:**
+- `page` (int, default: 1): Page number
+- `pageSize` (int, default: 20, max: 100): Page size
+- `searchTerm` (string, optional): Search by name or email
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "userId": 1,
+      "email": "user@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "fullName": "John Doe",
+      "globalRole": "User",
+      "organizationId": 1,
+      "organizationName": "Acme Corp",
+      "permissions": ["projects.view", "tasks.create"],
+      "permissionIds": [1, 5]
+    }
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "totalCount": 50,
+  "totalPages": 3
+}
+```
+
+**Features:**
+- Returns only members from the current user's organization (tenant isolation)
+- Permissions are derived from the user's `GlobalRole` via `RolePermission` table
+- Search functionality filters by email, first name, last name, or username
+
+#### PUT /api/admin/permissions/members/{userId}
+
+Update a member's role and/or permissions (Admin only - own organization).
+
+**Authorization:** `[Authorize(Roles = "Admin,SuperAdmin")]`
+
+**Request:**
+```json
+{
+  "globalRole": "Admin",  // Optional: update role (User or Admin only)
+  "permissionIds": [1, 2, 3]  // Optional: explicit permission IDs
+}
+```
+
+**Response:**
+```json
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "fullName": "John Doe",
+  "globalRole": "Admin",
+  "organizationId": 1,
+  "organizationName": "Acme Corp",
+  "permissions": ["projects.create", "projects.edit", "users.view"],
+  "permissionIds": [1, 2, 3]
+}
+```
+
+**Validation:**
+- Admin cannot assign SuperAdmin role
+- Admin can only assign Admin or User roles
+- Admin cannot change their own role/permissions (prevents lockout)
+- Assigned permissions must be subset of organization's allowed permissions (policy enforcement)
+- Tenant isolation: Admin can only modify users in their own organization
+
+**Error Responses:**
+- `400 Bad Request`: Validation failed or permissions not allowed by organization policy
+- `403 Forbidden`: User doesn't have permission or trying to change own permissions
+- `404 Not Found`: User not found or not in same organization
+
+### 14.12.2 SuperAdmin Permission Policy Endpoints
+
+#### GET /api/superadmin/organizations/{orgId}/permission-policy
+
+Get organization permission policy by organization ID (SuperAdmin only).
+
+**Authorization:** `[RequireSuperAdmin]`
+
+**Response:**
+```json
+{
+  "id": 1,
+  "organizationId": 1,
+  "organizationName": "Acme Corp",
+  "organizationCode": "acme-corp",
+  "allowedPermissions": ["projects.create", "projects.edit", "users.view"],
+  "isActive": true,
+  "createdAt": "2025-01-02T10:00:00Z",
+  "updatedAt": "2025-01-02T11:00:00Z"
+}
+```
+
+**Note:** If no policy exists, returns default policy with `id: 0` and empty `allowedPermissions` array (indicating all permissions allowed).
+
+#### PUT /api/superadmin/organizations/{orgId}/permission-policy
+
+Upsert (create or update) organization permission policy (SuperAdmin only).
+
+**Authorization:** `[RequireSuperAdmin]`
+
+**Request:**
+```json
+{
+  "allowedPermissions": ["projects.create", "projects.edit", "users.view"],
+  "isActive": true
+}
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "organizationId": 1,
+  "organizationName": "Acme Corp",
+  "organizationCode": "acme-corp",
+  "allowedPermissions": ["projects.create", "projects.edit", "users.view"],
+  "isActive": true,
+  "createdAt": "2025-01-02T10:00:00Z",
+  "updatedAt": "2025-01-02T11:00:00Z"
+}
+```
+
+**Validation:**
+- All permission names must exist in the system
+- Invalid permissions return `400 Bad Request` with list of invalid permissions
+- Creates policy if not exists, updates if exists (upsert operation)
+
+**Error Responses:**
+- `400 Bad Request`: Invalid permissions specified
+- `403 Forbidden`: User is not SuperAdmin
+- `404 Not Found`: Organization not found
+
 ### 14.13 Agent Endpoints
 
 #### POST /api/v1/Agent/improve-task
@@ -5053,18 +5253,15 @@ Based on comprehensive audit (December 2024), the following features are identif
 3. Implement test coverage calculation
 4. Integrate with Release quality gates
 
-### 20.2 Missing API Endpoints
+### 20.2 API Endpoints Status
 
 #### 20.2.1 Notifications
 
-**Missing Endpoint:**
-- ❌ `GET /api/v1/Notifications/unread-count` - **Not Implemented**
-
-**Current Workaround:**
-- `GET /api/v1/Notifications` returns `GetNotificationsResponse` with `UnreadCount` property
-- Frontend can extract `unreadCount` from the response
-
-**Status:** ⚠️ **Workaround Available** - Endpoint not critical but would improve performance
+**Status:** ✅ **All Endpoints Implemented**
+- ✅ `GET /api/v1/Notifications/unread-count` - **Implemented**
+  - Returns `GetUnreadNotificationCountResponse` with `unreadCount` property
+  - Dedicated endpoint for efficient unread count retrieval
+  - Used by frontend notification bell for badge display
 
 #### 20.2.2 Comments & Attachments
 
@@ -5091,9 +5288,9 @@ Based on comprehensive audit (December 2024), the following features are identif
 | **TestExecution** | ❌ Missing | 🟡 MEDIUM | (included above) |
 | **Comments API** | ✅ Implemented | - | - |
 | **Attachments API** | ✅ Implemented | - | - |
-| **Notifications/unread-count** | ⚠️ Workaround | 🟡 LOW | 1 day |
+| **Notifications/unread-count** | ✅ Implemented | - | - |
 
-**Total Estimated Effort:** 9-13 days remaining
+**Total Estimated Effort:** 8-12 days remaining (unread-count endpoint now implemented)
 
 ---
 
@@ -5105,7 +5302,7 @@ This section documents the actual API endpoints available in the backend compare
 
 #### 21.1.1 Controllers Summary
 
-**Total Controllers:** 37 controllers (29 standard + 8 admin)
+**Total Controllers:** 41 controllers (26 standard + 14 admin + 1 superadmin + 1 DEBUG-only TestController)
 
 | Controller | Route Pattern | Endpoints | Status | Notes |
 |------------|---------------|-----------|--------|
@@ -5116,7 +5313,7 @@ This section documents the actual API endpoints available in the backend compare
 | `DefectsController` | `/api/v1/Defects` | 5 | ✅ Documented |
 | `UsersController` | `/api/v1/Users` | 6 | ✅ Documented |
 | `AuthController` | `/api/v1/Auth` | 10 | ✅ Documented | Includes login, register (deprecated), refresh, logout, getMe, validateInvite, acceptInvite |
-| `NotificationsController` | `/api/v1/Notifications` | 3 | ⚠️ Missing `/unread-count` |
+| `NotificationsController` | `/api/v1/Notifications` | 4 | ✅ Documented |
 | `CommentsController` | `/api/v1/Comments` | 4 | ✅ Documented (v2.6) |
 | `AttachmentsController` | `/api/v1/Attachments` | 4 | ✅ Documented (v2.6) |
 | `MetricsController` | `/api/v1/Metrics` | 4 | ✅ Documented |
@@ -5142,13 +5339,15 @@ This section documents the actual API endpoints available in the backend compare
 | `Admin/DeadLetterQueueController` | `/api/admin/dead-letter-queue` | 3 | ✅ Documented |
 | `Admin/ReadModelsController` | `/api/admin/read-models` | 2 | ✅ Documented |
 | `Admin/AIGovernanceController` | `/api/admin/ai` | 5 | ✅ Documented |
+| `Admin/AdminMemberPermissionsController` | `/api/admin/permissions` | 2 | ✅ Documented |
+| `SuperAdmin/SuperAdminPermissionPolicyController` | `/api/superadmin/organizations` | 2 | ✅ Documented |
 | `MilestonesController` | `/api/v1/Milestones` | 9 | ✅ Documented | Includes CRUD, complete, statistics, overdue |
 | `ReleasesController` | `/api/v1/Releases` | 17 | ✅ Documented |
 | `TestController` | `/api/v1/Test` | 1 | ⚠️ DEBUG-only (#if DEBUG) |
 
 #### 21.1.2 Endpoint Coverage
 
-**Total Endpoints:** ~171 endpoints
+**Total Endpoints:** ~175 endpoints
 
 | Category | Documented | Implemented | Coverage |
 |----------|------------|-------------|----------|
@@ -5161,7 +5360,7 @@ This section documents the actual API endpoints available in the backend compare
 | **Users** | 6 | 6 | 100% |
 | **Comments** | 4 | 4 | 100% |
 | **Attachments** | 4 | 4 | 100% |
-| **Notifications** | 2 | 3* | 67%* |
+| **Notifications** | 4 | 4 | 100% |
 | **Metrics** | 4 | 4 | 100% |
 | **AI Agents** | 10 | 10 | 100% |
 | **Admin** | 20 | 20 | 100% |
@@ -5179,9 +5378,7 @@ This section documents the actual API endpoints available in the backend compare
 | **Milestones** | 8 | 8 | 100% |
 | **Releases** | 17 | 17 | 100% |
 
-*`/unread-count` endpoint missing but workaround available via main endpoint
-
-**Overall Coverage:** ~98% (1 missing endpoint with workaround)
+**Overall Coverage:** 100% (all endpoints implemented and documented)
 
 #### 21.1.3 Endpoints Recently Added (v2.6-v2.7)
 
@@ -5215,7 +5412,7 @@ This section documents the actual API endpoints available in the backend compare
 
 **Notifications API:**
 - ✅ Changed `markAllAsRead()` from `POST` to `PATCH /api/v1/Notifications/mark-all-read`
-- ⚠️ `GET /api/v1/Notifications/unread-count` not implemented (workaround: use main endpoint)
+- ✅ `GET /api/v1/Notifications/unread-count` - Implemented and documented
 
 **Projects API:**
 - ✅ Removed explicit `/api/v1` prefix in `assignTeam()` - uses relative path
@@ -5243,6 +5440,30 @@ This section documents the actual API endpoints available in the backend compare
 
 ## Changelog
 
+### Version 2.14.1 (January 4, 2025)
+- ✅ **Documentation Update**: Comprehensive codebase scan and documentation refresh
+  - Updated controller count: 38 → 41 controllers (26 standard + 14 admin + 1 superadmin + 1 DEBUG-only TestController)
+  - Updated command count: 90 → 98 commands (accurate count from codebase scan)
+  - Updated query count: 70 → 76 queries (accurate count from codebase scan)
+  - Updated entity count: 39 → 44 entities (added OrganizationPermissionPolicy, UserAIQuota, OrganizationAIQuota, UserAIUsageCounter, UserAIQuotaOverride)
+  - Updated endpoint count: ~171 → ~175 endpoints
+  - Added missing admin controllers to documentation (AdminAIQuotaController, OrganizationsController, OrganizationController, SuperAdminAIQuotaController)
+  - Verified all controllers, commands, queries, and entities are accurately documented
+  - Updated "Last Updated" date to January 4, 2025
+
+### Version 2.13.0 (January 2, 2025)
+- ✅ **Billing System Removal**: Removed all billing/subscription/plan features
+  - Deleted `BillingService` and `IBillingService` interfaces
+  - Removed billing service registration from DependencyInjection
+  - Removed billing integration from `UpdateAIQuotaCommandHandler`
+  - Removed `WasBillingTriggered` and `BillingReferenceId` from `UpdateAIQuotaResponse`
+  - Removed `upgradeUrl` from error handling in `Program.cs` and `client.ts`
+  - Updated `AIQuota` entity comments (BillingReferenceId kept for DB compatibility only)
+  - Updated all frontend components to remove billing navigation and upgrade buttons
+  - Removed "Plan Comparison" section from QuotaDetails page
+  - Updated error messages to direct users to contact administrators instead of upgrade prompts
+  - No regressions: AI quota functionality remains fully intact
+
 ### Version 2.12.0 (January 2, 2025)
 - ✅ **TestController Production Safety**: Conditioned TestController with #if DEBUG
   - Wrapped entire TestController class with `#if DEBUG` / `#endif` directives
@@ -5269,7 +5490,7 @@ This section documents the actual API endpoints available in the backend compare
   - Changed health check endpoint from `/api/health/live` to `/api/health/api`
   - Uses API smoke tests for more comprehensive container health validation
 - ✅ **Documentation Updates**:
-  - Added HealthApiController to controllers list (38 total controllers)
+  - Added HealthApiController to controllers list (36 total controllers)
   - Updated API endpoints audit with HealthApiController endpoint
   - Added comprehensive health checks documentation in `docs/HEALTH_CHECKS.md`
   - Updated controller count and endpoint coverage statistics
@@ -5436,7 +5657,6 @@ This section documents the actual API endpoints available in the backend compare
   - IMentionParser: Parses @username mentions from text
   - INotificationPreferenceService: Manages notification preferences
   - IFileStorageService: Handles file storage operations
-  - IBillingService: Billing system integration interface
   - IAIAvailabilityService: Checks AI availability for organizations
 - ✅ **Domain Events**: New domain events for comment system
   - CommentAddedEvent: Published when comment is added
@@ -5563,13 +5783,65 @@ Teams (1:N)
 
 ---
 
+### Version 2.14.0 (January 2, 2025)
+- ✅ **Organization Permission Policy System**: Complete permission policy management with two-level enforcement
+  - **New Entity**: `OrganizationPermissionPolicy` - Defines allowed permissions per organization
+    - Unique constraint: one policy per organization
+    - JSON storage for permission names array
+    - `IsActive` flag to enable/disable policy (inactive = allow all)
+    - Default behavior: if no policy exists, all permissions allowed
+  - **New Service**: `OrganizationPermissionPolicyService` - Permission policy enforcement service
+    - `GetPolicyAsync()`: Retrieves organization policy (returns null if not exists)
+    - `IsPermissionAllowedAsync()`: Checks if permission is allowed
+    - `ValidatePermissionsAsync()`: Validates multiple permissions (throws if any disallowed)
+    - `GetAllowedPermissionsAsync()`: Gets all allowed permissions
+  - **SuperAdmin Endpoints**: `/api/superadmin/organizations/{orgId}/permission-policy`
+    - `GET`: Get organization permission policy (returns default if not exists)
+    - `PUT`: Upsert permission policy (create or update)
+    - Validates all permission names exist in system
+    - Returns `400 Bad Request` if invalid permissions specified
+  - **Admin Endpoints**: `/api/admin/permissions/members`
+    - `GET`: Get paginated list of organization members with permissions (own organization only)
+    - `PUT /members/{userId}`: Update member role and/or permissions
+    - Policy enforcement: assigned permissions must be subset of org allowed permissions
+    - Tenant isolation: Admin can only manage members in their own organization
+    - Self-modification prevention: Admin cannot change own role/permissions
+    - Role restrictions: Admin cannot assign SuperAdmin role
+  - **New Commands/Queries**:
+    - `UpsertOrganizationPermissionPolicyCommand` + Handler + Validator
+    - `GetOrganizationPermissionPolicyQuery` + Handler
+    - `UpdateMemberPermissionCommand` + Handler + Validator
+    - `GetMemberPermissionsQuery` + Handler
+  - **New DTOs**:
+    - `OrganizationPermissionPolicyDto`: Policy information with organization details
+    - `UpdateOrganizationPermissionPolicyRequest`: Request DTO for policy updates
+    - `MemberPermissionDto`: Member information with permissions
+    - `UpdateMemberPermissionRequest`: Request DTO for member permission updates
+  - **Integration Points**:
+    - `UpdateRolePermissionsCommandHandler`: Enforces organization policy when Admin updates role permissions
+    - `UpdateMemberPermissionCommandHandler`: Enforces organization policy when Admin updates member permissions
+    - `OrganizationScopingService`: Ensures tenant isolation for Admin operations
+  - **Database Migration**: `AddOrganizationPermissionPolicy` migration
+    - Creates `OrganizationPermissionPolicies` table
+    - Unique index on `OrganizationId`
+    - Foreign key to `Organizations` table with `DeleteBehavior.Restrict`
+  - **Controller Count**: Updated from 38 to 41 controllers (added AdminMemberPermissionsController, SuperAdminPermissionPolicyController, AdminAIQuotaController, OrganizationsController, OrganizationController, SuperAdminAIQuotaController)
+  - **Command/Query Count**: Updated from 90/70 to 98/76 (added 8 commands, 6 queries including permission policy and AI quota management)
+  - **Entity Count**: Updated from 40 to 44 entities (added OrganizationPermissionPolicy, UserAIQuota, OrganizationAIQuota, UserAIUsageCounter, UserAIQuotaOverride)
+  - **Documentation Update** (January 4, 2025):
+    - Updated controller count from 38 to 41 (accurate count: 26 standard + 14 admin + 1 superadmin + 1 DEBUG-only TestController)
+    - Updated command count from 90 to 98 (accurate count from codebase scan)
+    - Updated query count from 70 to 76 (accurate count from codebase scan)
+    - Updated endpoint count from ~171 to ~175 endpoints
+    - Added missing admin controllers to controller list (AdminAIQuotaController, OrganizationsController, OrganizationController, SuperAdminAIQuotaController)
+
 ### Version 2.11.0 (January 1, 2025)
 - ✅ **Statistics Update**: Updated documentation with actual implementation counts from comprehensive audit
-  - 38 controllers (30 standard + 8 admin)
+  - 36 controllers (27 standard + 8 admin + 1 DEBUG-only TestController)
   - ~171 endpoints (was ~120+)
   - 88 Commands (CQRS) - all with Handlers
   - 68 Queries (CQRS) - all with Handlers
-  - 39 entities - all configured (17 dedicated + 22 inline)
+  - 44 entities - all configured (17 dedicated + 27 inline)
 - ✅ **Validators**: Most Commands have FluentValidation validators
   - ⚠️ **Note**: A few Commands (DeleteTaskCommand, UpdateSprintCommand) have inline validation instead of dedicated validators
   - ✅ **Recommendation**: Create dedicated validators for consistency
@@ -5578,9 +5850,9 @@ Teams (1:N)
   - Added ProducesResponseType attributes
   - ⚠️ **Note**: Some endpoints still need complete Swagger documentation
 - ✅ **Permissions**: All endpoints have `[RequirePermission]` attributes
-- ✅ **EF Core Configurations**: All 39 entities have configurations
+- ✅ **EF Core Configurations**: All 44 entities have configurations
   - 17 entities have dedicated configuration files
-  - 22 entities configured inline in AppDbContext.cs
+  - 27 entities configured inline in AppDbContext.cs
   - All relations properly configured with DeleteBehavior.Restrict
 - ✅ **CQRS Coverage**: Complete CQRS implementation
   - All Commands have Handlers

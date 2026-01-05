@@ -15,7 +15,7 @@ namespace IntelliPM.API.Controllers.Admin;
 [ApiController]
 [Route("api/admin/audit-logs")]
 [ApiVersion("1.0")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AuditLogsController : BaseApiController
 {
     private readonly IMediator _mediator;

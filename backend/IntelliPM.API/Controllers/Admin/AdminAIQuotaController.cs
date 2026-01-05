@@ -1,0 +1,306 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
+using IntelliPM.Application.AI.Commands;
+using IntelliPM.Application.AI.Queries;
+using IntelliPM.Application.AI.DTOs;
+using IntelliPM.Application.Common.Models;
+using IntelliPM.Application.Common.Exceptions;
+using ApplicationException = IntelliPM.Application.Common.Exceptions.ApplicationException;
+
+namespace IntelliPM.API.Controllers.Admin;
+
+/// <summary>
+/// Admin controller for managing AI quota per organization member.
+/// Allows administrators to view and set per-user quota overrides.
+/// </summary>
+[ApiController]
+[Route("api/admin/ai-quota")]
+[ApiVersion("1.0")]
+[Authorize(Roles = "Admin,SuperAdmin")]
+public class AdminAIQuotaController : BaseApiController
+{
+    private readonly IMediator _mediator;
+    private readonly ILogger<AdminAIQuotaController> _logger;
+
+    public AdminAIQuotaController(IMediator mediator, ILogger<AdminAIQuotaController> logger)
+    {
+        _mediator = mediator;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Get paginated list of organization members with their AI quota information.
+    /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 20, max: 100)</param>
+    /// <param name="searchTerm">Search by email or name (optional)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated list of members with quota information</returns>
+    [HttpGet("members")]
+    [ProducesResponseType(typeof(PagedResponse<AdminAiQuotaMemberDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetMembers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? searchTerm = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var query = new GetAdminAiQuotaMembersQuery
+            {
+                Page = page,
+                PageSize = pageSize,
+                SearchTerm = searchTerm
+            };
+
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (Application.Common.Exceptions.UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to get AI quota members");
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting AI quota members");
+            return Problem(
+                title: "Error retrieving members",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Update or create a user AI quota override.
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="request">Quota override request</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Updated quota override information</returns>
+    [HttpPut("members/{userId}")]
+    [ProducesResponseType(typeof(UpdateUserAIQuotaOverrideResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateMemberQuota(
+        [FromRoute] int userId,
+        [FromBody] UpdateMemberQuotaRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var command = new UpdateUserAIQuotaOverrideCommand
+            {
+                UserId = userId,
+                MaxTokensPerPeriod = request.MaxTokensPerPeriod,
+                MaxRequestsPerPeriod = request.MaxRequestsPerPeriod,
+                MaxDecisionsPerPeriod = request.MaxDecisionsPerPeriod,
+                MaxCostPerPeriod = request.MaxCostPerPeriod,
+                Reason = request.Reason
+            };
+
+            var result = await _mediator.Send(command, ct);
+            return Ok(result);
+        }
+        catch (Application.Common.Exceptions.ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error updating quota for user {UserId}", userId);
+            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+        }
+        catch (Application.Common.Exceptions.NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Application.Common.Exceptions.UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to update quota for user {UserId}", userId);
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating quota for user {UserId}", userId);
+            return Problem(
+                title: "Error updating quota",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Reset (delete) a user AI quota override, reverting to organization default.
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Reset operation result</returns>
+    [HttpPost("members/{userId}/reset")]
+    [ProducesResponseType(typeof(ResetUserAIQuotaOverrideResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ResetMemberQuota(
+        [FromRoute] int userId,
+        CancellationToken ct)
+    {
+        try
+        {
+            var command = new ResetUserAIQuotaOverrideCommand
+            {
+                UserId = userId
+            };
+
+            var result = await _mediator.Send(command, ct);
+            return Ok(result);
+        }
+        catch (Application.Common.Exceptions.NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Application.Common.Exceptions.UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to reset quota for user {UserId}", userId);
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting quota for user {UserId}", userId);
+            return Problem(
+                title: "Error resetting quota",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Get paginated list of organization members with their effective AI quotas (new model).
+    /// Uses OrganizationAIQuota and UserAIQuota entities.
+    /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 20, max: 100)</param>
+    /// <param name="searchTerm">Search by email or name (optional)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated list of members with effective quota information</returns>
+    [HttpGet("ai-quotas/members")]
+    [ProducesResponseType(typeof(PagedResponse<MemberAIQuotaDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetMemberAIQuotas(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? searchTerm = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var query = new GetMemberAIQuotasQuery
+            {
+                Page = page,
+                PageSize = pageSize,
+                SearchTerm = searchTerm
+            };
+
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to get member AI quotas");
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting member AI quotas");
+            return Problem(
+                title: "Error retrieving member AI quotas",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Update or create a user AI quota override (new model).
+    /// Uses OrganizationAIQuota and UserAIQuota entities.
+    /// Validates that override values don't exceed organization limits.
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="request">Quota override request</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Updated member quota information with effective quota</returns>
+    [HttpPut("ai-quotas/members/{userId}")]
+    [ProducesResponseType(typeof(MemberAIQuotaDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateMemberAIQuota(
+        [FromRoute] int userId,
+        [FromBody] UpdateMemberAIQuotaRequest request,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var command = new UpdateMemberAIQuotaCommand
+            {
+                UserId = userId,
+                MonthlyTokenLimitOverride = request.MonthlyTokenLimitOverride,
+                MonthlyRequestLimitOverride = request.MonthlyRequestLimitOverride,
+                IsAIEnabledOverride = request.IsAIEnabledOverride
+            };
+
+            var result = await _mediator.Send(command, ct);
+            return Ok(result);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error updating member AI quota for user {UserId}", userId);
+            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to update member AI quota for user {UserId}", userId);
+            return Forbid();
+        }
+        catch (ApplicationException ex)
+        {
+            _logger.LogWarning(ex, "Application error updating member AI quota for user {UserId}", userId);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating member AI quota for user {UserId}", userId);
+            return Problem(
+                title: "Error updating member AI quota",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+}
+
+/// <summary>
+/// Request model for updating member quota.
+/// </summary>
+public record UpdateMemberQuotaRequest(
+    int? MaxTokensPerPeriod,
+    int? MaxRequestsPerPeriod,
+    int? MaxDecisionsPerPeriod,
+    decimal? MaxCostPerPeriod,
+    string? Reason
+);
+

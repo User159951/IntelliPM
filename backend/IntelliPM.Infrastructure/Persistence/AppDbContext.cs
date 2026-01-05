@@ -69,6 +69,11 @@ public class AppDbContext : DbContext
     public DbSet<Milestone> Milestones { get; set; }
     public DbSet<Release> Releases { get; set; }
     public DbSet<QualityGate> QualityGates { get; set; }
+        public DbSet<UserAIQuotaOverride> UserAIQuotaOverrides { get; set; }
+        public DbSet<UserAIUsageCounter> UserAIUsageCounters { get; set; }
+        public DbSet<OrganizationAIQuota> OrganizationAIQuotas { get; set; }
+        public DbSet<UserAIQuota> UserAIQuotas { get; set; }
+        public DbSet<OrganizationPermissionPolicy> OrganizationPermissionPolicies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,20 +86,7 @@ public class AppDbContext : DbContext
             relationship.DeleteBehavior = DeleteBehavior.Restrict;
         }
 
-        // Organization
-        modelBuilder.Entity<Organization>()
-            .ToTable("Organizations");
-        modelBuilder.Entity<Organization>()
-            .HasKey(o => o.Id);
-        modelBuilder.Entity<Organization>()
-            .Property(o => o.Name)
-            .IsRequired()
-            .HasMaxLength(200);
-        modelBuilder.Entity<Organization>()
-            .Property(o => o.CreatedAt)
-            .IsRequired();
-        modelBuilder.Entity<Organization>()
-            .HasIndex(o => o.Name);
+        // Organization configuration is applied via OrganizationConfiguration.cs (see below)
 
         // GlobalSetting
         modelBuilder.Entity<GlobalSetting>()
@@ -429,6 +421,11 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AttachmentConfiguration());
         modelBuilder.ApplyConfiguration(new AIDecisionLogConfiguration());
         modelBuilder.ApplyConfiguration(new AIQuotaConfiguration());
+        modelBuilder.ApplyConfiguration(new UserAIQuotaOverrideConfiguration());
+        modelBuilder.ApplyConfiguration(new UserAIUsageCounterConfiguration());
+        modelBuilder.ApplyConfiguration(new OrganizationAIQuotaConfiguration());
+        modelBuilder.ApplyConfiguration(new UserAIQuotaConfiguration());
+        modelBuilder.ApplyConfiguration(new OrganizationPermissionPolicyConfiguration());
         modelBuilder.ApplyConfiguration(new TaskDependencyConfiguration());
         modelBuilder.ApplyConfiguration(new MilestoneConfiguration());
         modelBuilder.ApplyConfiguration(new ReleaseConfiguration());

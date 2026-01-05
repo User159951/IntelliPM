@@ -21,7 +21,6 @@ import {
 import { showToast, showError } from '@/lib/sweetalert';
 import { Loader2, Copy, Check } from 'lucide-react';
 import { usersApi } from '@/api/users';
-import type { GlobalRole } from '@/types';
 
 interface InviteUserDialogProps {
   open: boolean;
@@ -34,14 +33,14 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [role, setRole] = useState<GlobalRole>('User');
+  const [role, setRole] = useState<'Admin' | 'User'>('User');
   const [invitationLink, setInvitationLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const inviteMutation = useMutation({
     mutationFn: async (data: {
       email: string;
-      role: GlobalRole;
+      role: 'Admin' | 'User';
       firstName: string;
       lastName: string;
     }) => {
@@ -202,7 +201,11 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                 <Label htmlFor="role">Rôle *</Label>
                 <Select
                   value={role}
-                  onValueChange={(value) => setRole(value as GlobalRole)}
+                  onValueChange={(value) => {
+                    if (value === 'Admin' || value === 'User') {
+                      setRole(value);
+                    }
+                  }}
                   disabled={inviteMutation.isPending}
                 >
                   <SelectTrigger id="role">

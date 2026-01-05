@@ -1501,22 +1501,66 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name");
+                    b.ToTable("Organizations");
+                });
 
-                    b.ToTable("Organizations", (string)null);
+            modelBuilder.Entity("IntelliPM.Domain.Entities.OrganizationAIQuota", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsAIEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("MonthlyRequestLimit")
+                        .HasColumnType("int");
+
+                    b.Property<long>("MonthlyTokenLimit")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ResetDayOfMonth")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_OrganizationAIQuotas_OrganizationId");
+
+                    b.ToTable("OrganizationAIQuotas", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrganizationAIQuotas_ResetDayOfMonth", "[ResetDayOfMonth] IS NULL OR ([ResetDayOfMonth] >= 1 AND [ResetDayOfMonth] <= 31)");
+                        });
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.OrganizationInvitation", b =>
@@ -1566,6 +1610,44 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.HasIndex("Email", "OrganizationId", "IsUsed");
 
                     b.ToTable("OrganizationInvitations", (string)null);
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.OrganizationPermissionPolicy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AllowedPermissionsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("[]");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_OrganizationPermissionPolicies_OrganizationId");
+
+                    b.ToTable("OrganizationPermissionPolicies", (string)null);
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.OutboxMessage", b =>
@@ -2473,6 +2555,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Property<int?>("ReleaseId")
                         .HasColumnType("int");
 
+                    b.Property<string>("RetrospectiveNotes")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -2992,6 +3077,172 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("IntelliPM.Domain.Entities.UserAIQuota", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool?>("IsAIEnabledOverride")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("MonthlyRequestLimitOverride")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("MonthlyTokenLimitOverride")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("IX_UserAIQuotas_OrganizationId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserAIQuotas_UserId");
+
+                    b.ToTable("UserAIQuotas", (string)null);
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.UserAIQuotaOverride", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("MaxCostPerPeriod")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int?>("MaxDecisionsPerPeriod")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxRequestsPerPeriod")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxTokensPerPeriod")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("PeriodEndDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("PeriodStartDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("IX_UserAIQuotaOverrides_OrganizationId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UserAIQuotaOverrides_UserId");
+
+                    b.HasIndex("OrganizationId", "UserId")
+                        .HasDatabaseName("IX_UserAIQuotaOverrides_Org_User");
+
+                    b.HasIndex("UserId", "PeriodStartDate", "PeriodEndDate")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserAIQuotaOverrides_User_Period");
+
+                    b.ToTable("UserAIQuotaOverrides", (string)null);
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.UserAIUsageCounter", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("CostAccumulated")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("DecisionsMade")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("LastAggregatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("PeriodEndDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("PeriodStartDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("RequestsUsed")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TokensUsed")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("IX_UserAIUsageCounters_OrganizationId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UserAIUsageCounters_UserId");
+
+                    b.HasIndex("OrganizationId", "UserId")
+                        .HasDatabaseName("IX_UserAIUsageCounters_Org_User");
+
+                    b.HasIndex("UserId", "PeriodStartDate", "PeriodEndDate")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserAIUsageCounters_User_Period");
+
+                    b.ToTable("UserAIUsageCounters", (string)null);
+                });
+
             modelBuilder.Entity("IntelliPM.Domain.Entities.Epic", b =>
                 {
                     b.HasBaseType("IntelliPM.Domain.Entities.BacklogItem");
@@ -3391,6 +3642,28 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.OrganizationAIQuota", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.OrganizationPermissionPolicy", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithOne()
+                        .HasForeignKey("IntelliPM.Domain.Entities.OrganizationPermissionPolicy", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.PasswordResetToken", b =>
@@ -3797,6 +4070,70 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.UserAIQuota", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IntelliPM.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.UserAIQuotaOverride", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IntelliPM.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.UserAIUsageCounter", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IntelliPM.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Epic", b =>

@@ -1,5 +1,6 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Services;
 using IntelliPM.Application.Admin.SystemHealth.Queries;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
@@ -12,17 +13,20 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
+    private readonly OrganizationScopingService _scopingService;
     private readonly IMediator _mediator;
     private readonly ILogger<GetAdminDashboardStatsQueryHandler> _logger;
 
     public GetAdminDashboardStatsQueryHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
+        OrganizationScopingService scopingService,
         IMediator mediator,
         ILogger<GetAdminDashboardStatsQueryHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
+        _scopingService = scopingService;
         _mediator = mediator;
         _logger = logger;
     }
@@ -33,15 +37,6 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         {
             _logger.LogInformation("Starting GetAdminDashboardStatsQueryHandler");
             
-            var organizationId = _currentUserService.GetOrganizationId();
-            _logger.LogInformation("OrganizationId retrieved: {OrganizationId}", organizationId);
-            
-            if (organizationId <= 0)
-            {
-                _logger.LogWarning("Invalid organizationId: {OrganizationId}", organizationId);
-                throw new InvalidOperationException($"Invalid organization ID: {organizationId}");
-            }
-            
             _logger.LogInformation("Getting repositories");
             var userRepo = _unitOfWork.Repository<User>();
             var projectRepo = _unitOfWork.Repository<Project>();
@@ -49,11 +44,13 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             var activityRepo = _unitOfWork.Repository<IntelliPM.Domain.Entities.Activity>();
             _logger.LogInformation("Repositories retrieved successfully");
 
-            // User statistics
+            // User statistics (with organization scoping)
             _logger.LogInformation("Getting user statistics");
             var usersQuery = userRepo.Query()
-                .AsNoTracking()
-                .Where(u => u.OrganizationId == organizationId);
+                .AsNoTracking();
+            
+            // Apply organization scoping (SuperAdmin sees all, Admin sees only their org)
+            usersQuery = _scopingService.ApplyOrganizationScope(usersQuery);
 
             var totalUsers = await usersQuery.CountAsync(cancellationToken);
             _logger.LogInformation("Total users: {TotalUsers}", totalUsers);
@@ -64,21 +61,32 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             var userCount = await usersQuery.CountAsync(u => u.GlobalRole == GlobalRole.User, cancellationToken);
             _logger.LogInformation("User statistics completed");
 
-            // Project statistics
+            // Project statistics (with organization scoping)
             _logger.LogInformation("Getting project statistics");
             var projectsQuery = projectRepo.Query()
-                .AsNoTracking()
-                .Where(p => p.OrganizationId == organizationId);
+                .AsNoTracking();
+            
+            // Apply organization scoping (SuperAdmin sees all, Admin sees only their org)
+            projectsQuery = _scopingService.ApplyOrganizationScope(projectsQuery);
 
             var totalProjects = await projectsQuery.CountAsync(cancellationToken);
             var activeProjects = await projectsQuery.CountAsync(p => p.Status == "Active", cancellationToken);
             _logger.LogInformation("Project statistics completed: Total={Total}, Active={Active}", totalProjects, activeProjects);
 
-            // Organization count (for current organization, typically 1, but could be more in multi-org scenarios)
+            // Organization count
+            // SuperAdmin sees all organizations, Admin sees only their own (1)
             _logger.LogInformation("Getting organization count");
-            var totalOrganizations = await organizationRepo.Query()
-                .AsNoTracking()
-                .CountAsync(cancellationToken);
+            int totalOrganizations;
+            if (_currentUserService.IsSuperAdmin())
+            {
+                totalOrganizations = await organizationRepo.Query()
+                    .AsNoTracking()
+                    .CountAsync(cancellationToken);
+            }
+            else
+            {
+                totalOrganizations = 1; // Admin only sees their own organization
+            }
             _logger.LogInformation("Organization count: {Count}", totalOrganizations);
 
             // User growth (last 6 months)
@@ -114,11 +122,15 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             }
 
             // Recent activities (last 10) - filter by organization via Project
-            // Get project IDs for the organization first, then filter activities
+            // Get project IDs for the scoped organization(s) first, then filter activities
             _logger.LogInformation("Getting organization project IDs");
-            var organizationProjectIds = await projectRepo.Query()
-                .AsNoTracking()
-                .Where(p => p.OrganizationId == organizationId)
+            var scopedProjectsQuery = projectRepo.Query()
+                .AsNoTracking();
+            
+            // Apply organization scoping
+            scopedProjectsQuery = _scopingService.ApplyOrganizationScope(scopedProjectsQuery);
+            
+            var organizationProjectIds = await scopedProjectsQuery
                 .Select(p => p.Id)
                 .ToListAsync(cancellationToken);
             _logger.LogInformation("Found {Count} projects for organization", organizationProjectIds.Count);

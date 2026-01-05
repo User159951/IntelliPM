@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as Sentry from '@sentry/react';
 import { authApi } from '@/api/auth';
-import type { User, LoginRequest, RegisterRequest } from '@/types';
+import type { User, LoginRequest, RegisterRequest, GlobalRole } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
+  getGlobalRole: () => GlobalRole | null;
   login: (data: LoginRequest) => Promise<User>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
@@ -94,7 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const isAdmin = user?.globalRole === 'Admin';
+  const isAdmin = user?.globalRole === 'Admin' || user?.globalRole === 'SuperAdmin';
+  const isSuperAdmin = user?.globalRole === 'SuperAdmin';
+  const getGlobalRole = (): GlobalRole | null => {
+    return user?.globalRole || null;
+  };
 
   return (
     <AuthContext.Provider
@@ -103,6 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         isAdmin,
+        isSuperAdmin,
+        getGlobalRole,
         login,
         register,
         logout,

@@ -15,7 +15,7 @@ namespace IntelliPM.API.Controllers.Admin;
 /// </summary>
 [ApiController]
 [Route("api/admin/ai")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class AdminAIGovernanceController : BaseApiController
 {
     private readonly IMediator _mediator;

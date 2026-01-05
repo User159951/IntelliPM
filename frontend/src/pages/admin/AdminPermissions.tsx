@@ -31,15 +31,18 @@ export default function AdminPermissions() {
       setRolePermissions({
         Admin: new Set(data.rolePermissions.Admin ?? []),
         User: new Set(data.rolePermissions.User ?? []),
+        SuperAdmin: new Set(data.rolePermissions.SuperAdmin ?? []),
       });
     }
   }, [data, rolePermissions]);
 
   const togglePermission = (role: GlobalRole, permissionId: number) => {
     if (!rolePermissions) return;
+    if (role === 'SuperAdmin') return; // Don't allow editing SuperAdmin permissions
     const next = {
       Admin: new Set(rolePermissions.Admin),
       User: new Set(rolePermissions.User),
+      SuperAdmin: new Set(rolePermissions.SuperAdmin),
     };
     const set = role === 'Admin' ? next.Admin : next.User;
     if (set.has(permissionId)) {
@@ -64,6 +67,7 @@ export default function AdminPermissions() {
           rolePermissions: {
             Admin: Array.from(payload.Admin),
             User: Array.from(payload.User),
+            SuperAdmin: Array.from(payload.SuperAdmin),
           },
         });
       }

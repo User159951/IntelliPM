@@ -1,6 +1,7 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
+using IntelliPM.Application.Common.Services;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -12,15 +13,18 @@ public class UpdateRolePermissionsCommandHandler : IRequestHandler<UpdateRolePer
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly IPermissionService _permissionService;
+    private readonly OrganizationPermissionPolicyService _policyService;
 
     public UpdateRolePermissionsCommandHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        OrganizationPermissionPolicyService policyService)
     {
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
         _permissionService = permissionService;
+        _policyService = policyService;
     }
 
     public async Task<Unit> Handle(UpdateRolePermissionsCommand request, CancellationToken cancellationToken)
@@ -46,14 +50,13 @@ public class UpdateRolePermissionsCommandHandler : IRequestHandler<UpdateRolePer
         var rolePermissionRepo = _unitOfWork.Repository<RolePermission>();
 
         // Validate that permissions exist
-        var existingPermissionIds = await permissionRepo.Query()
+        var existingPermissions = await permissionRepo.Query()
             .Where(p => requestedIds.Contains(p.Id))
-            .Select(p => p.Id)
             .ToListAsync(cancellationToken);
 
-        if (existingPermissionIds.Count != requestedIds.Count)
+        if (existingPermissions.Count != requestedIds.Count)
         {
-            var missing = requestedIds.Except(existingPermissionIds).ToList();
+            var missing = requestedIds.Except(existingPermissions.Select(p => p.Id)).ToList();
             throw new ValidationException("Some permissions do not exist")
             {
                 Errors = new Dictionary<string, string[]>
@@ -61,6 +64,17 @@ public class UpdateRolePermissionsCommandHandler : IRequestHandler<UpdateRolePer
                     { "PermissionIds", new[] { $"Invalid permission IDs: {string.Join(", ", missing)}" } }
                 }
             };
+        }
+
+        // If Admin is updating permissions, enforce organization permission policy
+        if (!_currentUserService.IsSuperAdmin())
+        {
+            var organizationId = _currentUserService.GetOrganizationId();
+            if (organizationId > 0)
+            {
+                var permissionNames = existingPermissions.Select(p => p.Name).ToList();
+                await _policyService.ValidatePermissionsAsync(organizationId, permissionNames, cancellationToken);
+            }
         }
 
         // Remove existing role-permissions for this role

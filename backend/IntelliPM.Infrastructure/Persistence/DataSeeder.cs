@@ -1043,20 +1043,8 @@ public class DataSeeder
 
             logger.LogInformation("Seeding development admin user...");
 
-            // Ensure there is at least one Organization
-            var organization = await context.Organizations.FirstOrDefaultAsync();
-            if (organization == null)
-            {
-                logger.LogInformation("No organization found, creating 'Dev Organization'...");
-                organization = new Organization
-                {
-                    Name = "Dev Organization",
-                    CreatedAt = DateTimeOffset.UtcNow
-                };
-                context.Organizations.Add(organization);
-                await context.SaveChangesAsync();
-                logger.LogInformation("Created 'Dev Organization' with ID {OrganizationId}", organization.Id);
-            }
+            // Ensure there is at least one Organization (use default organization)
+            var organization = await SeedDefaultOrganizationAsync(context, logger);
 
             // DEV-ONLY password: "Admin123!" - This is intentionally simple for dev convenience
             // WARNING: This password MUST NEVER be used in production environments
@@ -1096,6 +1084,196 @@ public class DataSeeder
         catch (Exception ex)
         {
             logger.LogError(ex, "Error seeding development admin user");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Seeds the default organization if it doesn't exist (by Code).
+    /// Idempotent: will not create duplicates.
+    /// </summary>
+    /// <param name="context">The database context</param>
+    /// <param name="logger">Logger instance</param>
+    /// <returns>The default organization (existing or newly created)</returns>
+    public static async System.Threading.Tasks.Task<Organization> SeedDefaultOrganizationAsync(
+        AppDbContext context,
+        ILogger logger)
+    {
+        try
+        {
+            const string defaultOrgCode = "default";
+            const string defaultOrgName = "Default Organization";
+
+            // Check if default organization already exists by Code
+            var existingOrg = await context.Organizations
+                .FirstOrDefaultAsync(o => o.Code == defaultOrgCode);
+
+            if (existingOrg != null)
+            {
+                logger.LogInformation("Default organization already exists with Code '{Code}' and ID {OrganizationId}",
+                    defaultOrgCode, existingOrg.Id);
+                return existingOrg;
+            }
+
+            logger.LogInformation("Creating default organization with Code '{Code}'...", defaultOrgCode);
+
+            var defaultOrganization = new Organization
+            {
+                Name = defaultOrgName,
+                Code = defaultOrgCode,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            context.Organizations.Add(defaultOrganization);
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("Default organization created successfully with ID {OrganizationId}",
+                defaultOrganization.Id);
+
+            return defaultOrganization;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error seeding default organization");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Seeds a SuperAdmin user from configuration if none exists.
+    /// Idempotent: will not create duplicates or overwrite existing SuperAdmin users.
+    /// </summary>
+    /// <param name="context">The database context</param>
+    /// <param name="passwordHasher">Password hasher service</param>
+    /// <param name="logger">Logger instance</param>
+    /// <param name="configuration">Configuration instance</param>
+    public static async System.Threading.Tasks.Task SeedSuperAdminUserAsync(
+        AppDbContext context,
+        PasswordHasher passwordHasher,
+        ILogger logger,
+        Microsoft.Extensions.Configuration.IConfiguration configuration)
+    {
+        try
+        {
+            // Check if SuperAdmin user already exists
+            var superAdminExists = await context.Users
+                .AnyAsync(u => u.GlobalRole == GlobalRole.SuperAdmin);
+
+            if (superAdminExists)
+            {
+                logger.LogInformation("SuperAdmin user seed skipped - SuperAdmin user already exists");
+                return;
+            }
+
+            // Get SuperAdmin configuration
+            var superAdminEmail = configuration["SuperAdmin:Email"];
+            var superAdminPassword = configuration["SuperAdmin:Password"];
+            var superAdminUsername = configuration["SuperAdmin:Username"] ?? "superadmin";
+            var superAdminFirstName = configuration["SuperAdmin:FirstName"] ?? "Super";
+            var superAdminLastName = configuration["SuperAdmin:LastName"] ?? "Admin";
+
+            // Validate required configuration
+            if (string.IsNullOrWhiteSpace(superAdminEmail))
+            {
+                logger.LogWarning("SuperAdmin:Email not configured. Skipping SuperAdmin user seeding.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(superAdminPassword))
+            {
+                logger.LogWarning("SuperAdmin:Password not configured. Skipping SuperAdmin user seeding.");
+                return;
+            }
+
+            logger.LogInformation("Seeding SuperAdmin user with email {Email}...", superAdminEmail);
+
+            // Ensure default organization exists
+            var defaultOrganization = await SeedDefaultOrganizationAsync(context, logger);
+
+            // Hash password
+            var (passwordHash, passwordSalt) = passwordHasher.HashPassword(superAdminPassword);
+
+            // Create SuperAdmin user
+            var superAdminUser = new User
+            {
+                Username = superAdminUsername,
+                Email = superAdminEmail,
+                PasswordHash = passwordHash,
+                PasswordSalt = passwordSalt,
+                FirstName = superAdminFirstName,
+                LastName = superAdminLastName,
+                GlobalRole = GlobalRole.SuperAdmin,
+                IsActive = true,
+                OrganizationId = defaultOrganization.Id,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            context.Users.Add(superAdminUser);
+            await context.SaveChangesAsync();
+
+            logger.LogInformation(
+                "SuperAdmin user seeded successfully with ID {UserId}, Email {Email}, Username {Username}",
+                superAdminUser.Id, superAdminUser.Email, superAdminUser.Username);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error seeding SuperAdmin user");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Ensures OrganizationAIQuota exists for all organizations with sensible defaults.
+    /// Idempotent: will not create duplicates.
+    /// </summary>
+    public static async System.Threading.Tasks.Task SeedOrganizationAIQuotasAsync(
+        AppDbContext context,
+        ILogger logger)
+    {
+        try
+        {
+            // Get all organizations that don't have a quota yet
+            var organizationsWithoutQuota = await context.Organizations
+                .Where(o => !context.OrganizationAIQuotas.Any(q => q.OrganizationId == o.Id))
+                .ToListAsync();
+
+            if (organizationsWithoutQuota.Count == 0)
+            {
+                logger.LogInformation("All organizations already have AI quota configurations");
+                return;
+            }
+
+            logger.LogInformation("Seeding OrganizationAIQuota for {Count} organizations", organizationsWithoutQuota.Count);
+
+            // Use Free tier defaults from AIQuotaConstants
+            var defaultTokenLimit = Domain.Constants.AIQuotaConstants.DefaultLimits[Domain.Constants.AIQuotaConstants.Tiers.Free].MaxTokensPerPeriod;
+            var defaultRequestLimit = Domain.Constants.AIQuotaConstants.DefaultLimits[Domain.Constants.AIQuotaConstants.Tiers.Free].MaxRequestsPerPeriod;
+
+            foreach (var org in organizationsWithoutQuota)
+            {
+                var quota = new Domain.Entities.OrganizationAIQuota
+                {
+                    OrganizationId = org.Id,
+                    MonthlyTokenLimit = defaultTokenLimit,
+                    MonthlyRequestLimit = defaultRequestLimit,
+                    ResetDayOfMonth = null, // Reset on first day of month
+                    IsAIEnabled = true,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+
+                context.OrganizationAIQuotas.Add(quota);
+            }
+
+            await context.SaveChangesAsync();
+
+            logger.LogInformation(
+                "OrganizationAIQuota seeded successfully for {Count} organizations",
+                organizationsWithoutQuota.Count);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error seeding OrganizationAIQuota");
             throw;
         }
     }

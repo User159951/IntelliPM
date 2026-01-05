@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Domain.Enums;
 using IntelliPM.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ public class CurrentUserService : ICurrentUserService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly AppDbContext _context;
     private int? _cachedOrganizationId;
+    private GlobalRole? _cachedGlobalRole;
 
     public CurrentUserService(IHttpContextAccessor httpContextAccessor, AppDbContext context)
     {
@@ -65,6 +67,38 @@ public class CurrentUserService : ICurrentUserService
         return user.OrganizationId;
     }
 
+    public GlobalRole GetGlobalRole()
+    {
+        // Cache the global role for the lifetime of the service (scoped)
+        if (_cachedGlobalRole.HasValue)
+        {
+            return _cachedGlobalRole.Value;
+        }
+
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null)
+        {
+            _cachedGlobalRole = GlobalRole.User;
+            return GlobalRole.User;
+        }
+
+        // Check roles from JWT claims
+        if (user.IsInRole("SuperAdmin"))
+        {
+            _cachedGlobalRole = GlobalRole.SuperAdmin;
+            return GlobalRole.SuperAdmin;
+        }
+
+        if (user.IsInRole("Admin"))
+        {
+            _cachedGlobalRole = GlobalRole.Admin;
+            return GlobalRole.Admin;
+        }
+
+        _cachedGlobalRole = GlobalRole.User;
+        return GlobalRole.User;
+    }
+
     public bool IsAdmin()
     {
         var user = _httpContextAccessor.HttpContext?.User;
@@ -73,7 +107,23 @@ public class CurrentUserService : ICurrentUserService
             return false;
         }
 
-        return user.IsInRole("Admin");
+        // Admin and SuperAdmin both have admin privileges
+        return user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
+    }
+
+    /// <summary>
+    /// Checks if the current user is a SuperAdmin
+    /// </summary>
+    /// <returns>True if user has "SuperAdmin" role, false otherwise</returns>
+    public bool IsSuperAdmin()
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        if (user == null)
+        {
+            return false;
+        }
+
+        return user.IsInRole("SuperAdmin");
     }
 }
 

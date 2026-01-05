@@ -1,6 +1,7 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Models;
+using IntelliPM.Application.Common.Services;
 using IntelliPM.Application.Identity.DTOs;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
@@ -16,22 +17,23 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PagedResponse
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
+    private readonly OrganizationScopingService _scopingService;
     private readonly ILogger<GetUsersQueryHandler> _logger;
 
     public GetUsersQueryHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
+        OrganizationScopingService scopingService,
         ILogger<GetUsersQueryHandler> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _scopingService = scopingService ?? throw new ArgumentNullException(nameof(scopingService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<PagedResponse<UserListDto>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
-        var organizationId = _currentUserService.GetOrganizationId();
-
         _logger.LogInformation(
             "Retrieving users - Page: {Page}, PageSize: {PageSize}, Role: {Role}, IsActive: {IsActive}, SortField: {SortField}, SortDescending: {SortDescending}, SearchTerm: {SearchTerm}",
             request.Page,
@@ -44,11 +46,15 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PagedResponse
 
         var userRepo = _unitOfWork.Repository<User>();
 
-        // Build base query with organization filter (multi-tenancy)
+        // Build base query with organization scoping (SuperAdmin sees all, Admin sees only their org)
         var query = userRepo.Query()
-            .AsNoTracking()
-            .Include(u => u.Organization)
-            .Where(u => u.OrganizationId == organizationId);
+            .AsNoTracking();
+        
+        // Apply organization scoping first
+        query = _scopingService.ApplyOrganizationScope(query);
+        
+        // Then include navigation properties
+        query = query.Include(u => u.Organization);
 
         // Apply role filter
         if (request.Role.HasValue)

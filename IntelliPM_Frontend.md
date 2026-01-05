@@ -1,7 +1,7 @@
 # IntelliPM Frontend Documentation
 
-**Version:** 2.12.0  
-**Last Updated:** January 2, 2025  
+**Version:** 2.14.1  
+**Last Updated:** January 4, 2025  
 **Technology Stack:** React 18, TypeScript (Strict Mode), Vite, Tailwind CSS, shadcn/ui, TanStack Query
 
 ---
@@ -136,7 +136,7 @@ frontend/
 │   ├── favicon.ico
 │   └── placeholder.svg
 ├── src/
-│   ├── api/                   # API client modules (30 files)
+│   ├── api/                   # API client modules (31 files)
 │   │   ├── client.ts          # Base API client with token refresh
 │   │   ├── auth.ts            # Authentication API
 │   │   ├── projects.ts        # Projects API
@@ -200,14 +200,24 @@ frontend/
 │   │   │   ├── ForgotPassword.tsx
 │   │   │   ├── ResetPassword.tsx
 │   │   │   └── AcceptInvite.tsx
-│   │   ├── admin/             # Admin pages (7 pages)
+│   │   ├── admin/             # Admin pages (13 pages)
 │   │   │   ├── AdminDashboard.tsx
 │   │   │   ├── AdminUsers.tsx
 │   │   │   ├── AdminPermissions.tsx
 │   │   │   ├── AdminSettings.tsx
 │   │   │   ├── AdminSystemHealth.tsx
 │   │   │   ├── AdminAuditLogs.tsx
-│   │   │   └── AIGovernance.tsx
+│   │   │   ├── AIGovernance.tsx
+│   │   │   ├── AdminAIQuota.tsx
+│   │   │   ├── AdminOrganizations.tsx
+│   │   │   ├── AdminOrganizationDetail.tsx
+│   │   │   ├── AdminMyOrganization.tsx
+│   │   │   ├── AdminOrganizationMembers.tsx
+│   │   │   ├── AdminMemberAIQuotas.tsx
+│   │   │   └── AdminMemberPermissions.tsx
+│   │   ├── superadmin/        # SuperAdmin pages (2 pages)
+│   │   │   ├── SuperAdminOrganizationAIQuota.tsx
+│   │   │   └── SuperAdminOrganizationPermissions.tsx
 │   │   ├── ReleaseDetailPage.tsx # Release detail page
 │   │   ├── ReleaseHealthDashboard.tsx # Release health dashboard
 │   ├── dev/                   # Development tools (excluded from production builds)
@@ -287,6 +297,12 @@ API client modules organized by feature:
 - `releases.ts`: Release management (get, create, update, delete, deploy, quality gates, release notes)
 - `dependencies.ts`: Task dependency management (get, add, remove, graph)
 - `featureFlags.ts`: Feature flags API (if separate from settings)
+- `organizationPermissionPolicy.ts`: Organization permission policy API (SuperAdmin only)
+  - getOrganizationPermissionPolicy: Get permission policy for an organization
+  - upsertOrganizationPermissionPolicy: Create or update permission policy
+- `memberPermissions.ts`: Member permissions management API (Admin only)
+  - getMemberPermissions: Get paginated list of members with permissions
+  - updateMemberPermission: Update member role and/or permissions
 
 #### 3.2.2 `/src/components/`
 
@@ -382,7 +398,8 @@ Component library organized by feature:
 Page components (route-level components):
 
 - **`auth/`**: Login, Register, AcceptInvite, ForgotPassword, ResetPassword
-- **`admin/`**: AdminDashboard, AdminUsers, AdminPermissions, AdminSettings, AdminAuditLogs, AdminSystemHealth
+- **`admin/`**: AdminDashboard, AdminUsers, AdminPermissions, AdminSettings, AdminAuditLogs, AdminSystemHealth, AdminMemberPermissions
+- **`superadmin/`**: SuperAdminOrganizationAIQuota, SuperAdminOrganizationPermissions
 - **Feature Pages**: Dashboard, Projects, Tasks, Sprints, Teams, Metrics, Insights, Agents, Backlog, Defects, Profile, Users, Milestones, Releases, ReleaseDetailPage, ReleaseHealthDashboard
 
 #### 3.2.4 `/src/contexts/`
@@ -619,19 +636,24 @@ For component-specific state, use React hooks:
 
   {/* Protected routes */}
   <Route element={<MainLayout />}>
+    <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route path="/dashboard" element={<Dashboard />} />
     <Route path="/projects" element={<Projects />} />
+    <Route path="/projects/:projectId/releases/:releaseId" element={<ReleaseDetailPage />} />
+    <Route path="/projects/:projectId/releases/health" element={<ReleaseHealthDashboard />} />
     <Route path="/projects/:id" element={<ProjectDetail />} />
     <Route path="/projects/:id/members" element={<ProjectMembers />} />
     <Route path="/tasks" element={<Tasks />} />
     <Route path="/sprints" element={<Sprints />} />
     <Route path="/backlog" element={<Backlog />} />
     <Route path="/defects" element={<Defects />} />
+    <Route path="/profile" element={<Profile />} />
     <Route path="/teams" element={<Teams />} />
+    <Route path="/users" element={<Users />} />
     <Route path="/metrics" element={<Metrics />} />
     <Route path="/insights" element={<Insights />} />
     <Route path="/agents" element={<Agents />} />
-    <Route path="/profile" element={<Profile />} />
+    <Route path="/settings/ai-quota" element={<QuotaDetails />} />
   </Route>
 
   {/* Admin routes */}
@@ -643,6 +665,11 @@ For component-specific state, use React hooks:
     <Route path="settings" element={<AdminSettings />} />
     <Route path="audit-logs" element={<AdminAuditLogs />} />
     <Route path="system-health" element={<AdminSystemHealth />} />
+    <Route path="ai-governance" element={<AIGovernance />} />
+    {/* SuperAdmin only routes */}
+    <Route path="organizations/:orgId/permissions" element={<RequireSuperAdminGuard><SuperAdminOrganizationPermissions /></RequireSuperAdminGuard>} />
+    {/* Admin own-org routes */}
+    <Route path="permissions/members" element={<AdminMemberPermissions />} />
   </Route>
 
   {/* 404 */}
@@ -1021,10 +1048,11 @@ Base components from shadcn/ui library:
 - **QuotaAlertBanner**: Prominent alert banner for quota thresholds
   - Displays when isAlertThreshold=true or isDisabled=true
   - Messages for 80%, 100%, and Disabled states
-  - CTA buttons for upgrade and details
+  - Directs users to contact administrators for quota increases
+  - CTA button to view details
 - **QuotaExceededAlert**: Alert component for quota exceeded state
   - Uses global quota error state from API client
-  - Displays quota details and upgrade link
+  - Displays quota details and directs users to contact administrators
 - **AIDisabledAlert**: Alert component for AI disabled state
   - Uses global AI disabled error state from API client
   - Displays reason and support contact
@@ -1235,15 +1263,31 @@ const inputRef = useRef<HTMLInputElement>(null);
 - Recent activity
 - Quick actions
 - Member list
+- Sprints, tasks, and releases tabs
 
-#### 9.2.4 Project Members (`/projects/:id/members`)
+#### 9.2.4 Release Detail (`/projects/:projectId/releases/:releaseId`)
+
+- Release information and status
+- Sprint management
+- Quality gates
+- Release notes and changelog
+- Deployment controls
+
+#### 9.2.5 Release Health Dashboard (`/projects/:projectId/releases/health`)
+
+- Release health metrics
+- Quality trends
+- Deployment frequency
+- Blocked releases
+
+#### 9.2.6 Project Members (`/projects/:id/members`)
 
 - Member list
 - Role management
 - Invite members
 - Remove members
 
-#### 9.2.5 Tasks (`/tasks`)
+#### 9.2.7 Tasks (`/tasks`)
 
 - Task list view
 - Task timeline view
@@ -1251,34 +1295,34 @@ const inputRef = useRef<HTMLInputElement>(null);
 - Create task button
 - Task detail sheet
 
-#### 9.2.6 Sprints (`/sprints`)
+#### 9.2.8 Sprints (`/sprints`)
 
 - Sprint list
 - Active sprint display
 - Sprint planning
 - Sprint completion
 
-#### 9.2.7 Backlog (`/backlog`)
+#### 9.2.9 Backlog (`/backlog`)
 
 - Epic/Feature/Story hierarchy
 - Create backlog items
 - Story point estimation
 - Backlog refinement
 
-#### 9.2.8 Defects (`/defects`)
+#### 9.2.10 Defects (`/defects`)
 
 - Defect list
 - Severity and status filters
 - Create defect
 - Defect detail view
 
-#### 9.2.9 Teams (`/teams`)
+#### 9.2.11 Teams (`/teams`)
 
 - Team list
 - Team capacity management
 - Team member management
 
-#### 9.2.10 Metrics (`/metrics`)
+#### 9.2.12 Metrics (`/metrics`)
 
 - Velocity charts
 - Burndown charts
@@ -1286,14 +1330,14 @@ const inputRef = useRef<HTMLInputElement>(null);
 - Task distribution
 - Team performance
 
-#### 9.2.11 Insights (`/insights`)
+#### 9.2.13 Insights (`/insights`)
 
 - AI-generated insights
 - Risk detection results
 - Recommendations
 - Project health indicators
 
-#### 9.2.12 Agents (`/agents`)
+#### 9.2.14 Agents (`/agents`)
 
 - AI agent interface with structured result displays
 - Five AI agents: Product, QA, Business, Manager, Delivery
@@ -1302,7 +1346,7 @@ const inputRef = useRef<HTMLInputElement>(null);
 - Automatic quota notifications (80% warning, 100% error)
 - Project-scoped agent execution
 
-#### 9.2.13 Users (`/users`)
+#### 9.2.15 Users (`/users`)
 
 - Read-only user list for non-admin users
 - Grid layout with user cards
@@ -1311,22 +1355,21 @@ const inputRef = useRef<HTMLInputElement>(null);
 - Pagination support
 - Displays user avatars, roles, status, project count, join date, and last login
 
-#### 9.2.14 Profile (`/profile`)
+#### 9.2.16 Profile (`/profile`)
 
 - User profile information
 - Account settings
 - Password change
 - Notification preferences
 
-#### 9.2.15 AI Quota Details (`/settings/ai-quota`)
+#### 9.2.17 AI Quota Details (`/settings/ai-quota`)
 
 - Detailed AI quota usage view
 - Historical usage graphs (30 days)
 - Breakdown by agent type
-- Tier comparison table
-- Upgrade CTA buttons
+- Current quota status with usage percentages
 - ✅ Route configured in App.tsx
-- ⚠️ Note: Currently uses mock data; backend endpoint integration pending
+- ⚠️ Note: Currently uses mock data for usage history and breakdown; backend endpoint integration pending
 
 ### 9.3 Admin Pages
 
@@ -1365,6 +1408,19 @@ const inputRef = useRef<HTMLInputElement>(null);
 - Permission matrix
 - Role-permission mapping
 - Update permissions
+
+#### 9.3.8 Admin Member Permissions (`/admin/permissions/members`)
+
+- **Member Permissions Management**: Admin-only page for managing member roles and permissions within their organization
+- **Member List**: Paginated table showing all organization members with their current roles and permissions
+- **Search Functionality**: Search members by name or email
+- **Edit Modal**: Dialog for updating member roles and permissions
+  - Role selection (User/Admin only - SuperAdmin role cannot be assigned by Admin)
+  - Permission selection filtered by organization policy
+  - Only permissions allowed by organization policy are available
+  - Permissions derived from role when role is changed
+- **Policy Enforcement**: UI automatically filters available permissions based on organization permission policy
+- **Tenant Isolation**: Admin can only manage members within their own organization
 
 #### 9.3.4 Admin Settings (`/admin/settings`)
 
@@ -1433,6 +1489,24 @@ Complete settings management with four tabs:
   - Update quota limits and tiers
   - Enable/disable AI for organizations (kill switch)
   - Export decisions to CSV
+
+### 9.4 SuperAdmin Pages
+
+#### 9.4.1 SuperAdmin Organization Permissions (`/admin/organizations/:orgId/permissions`)
+
+- **Permission Policy Management**: SuperAdmin-only page for managing allowed permissions per organization
+- **Organization Selection**: Accessible from organization detail page
+- **Permission Checklist**: Complete checklist/matrix of all system permissions
+  - Permissions grouped by category
+  - Search functionality to filter permissions
+  - Select All / Deselect All buttons
+  - Visual count of selected permissions
+- **Policy Activation**: Toggle switch to activate/deactivate policy
+  - When inactive: all permissions allowed (default behavior)
+  - When active: only selected permissions are allowed
+- **Policy Information**: Display of policy creation and update timestamps
+- **Save Policy**: Upsert operation (create if not exists, update if exists)
+- **Default Behavior**: If no policy exists, all permissions are allowed
 
 ---
 
@@ -3526,7 +3600,7 @@ Based on comprehensive audit (December 2024), the following frontend features ar
 
 ### 28.3 Frontend API Coverage
 
-**Total API Clients:** 27 files
+**Total API Clients:** 31 files
 
 | API Client | Endpoints | Status | Issues |
 |------------|-----------|--------|--------|
@@ -3683,6 +3757,23 @@ All components located in `src/components/ui/`:
 - `GET /api/admin/feature-flags` - Get all feature flags (Admin only)
 - `POST /api/admin/feature-flags` - Create feature flag (Admin only)
 - `PUT /api/admin/feature-flags/{id}` - Update feature flag (Admin only)
+- `GET /api/admin/permissions/members` - Get paginated list of organization members with permissions (Admin only)
+  - Query Parameters: `page`, `pageSize`, `searchTerm`
+  - Response: `PagedResponse<MemberPermissionDto>`
+- `PUT /api/admin/permissions/members/{userId}` - Update member role and/or permissions (Admin only)
+  - Request: `{ globalRole?: string, permissionIds?: number[] }`
+  - Response: `MemberPermissionDto`
+  - Enforces organization permission policy (assigned permissions must be subset of org allowed permissions)
+
+### B.2.1 SuperAdmin Endpoints
+
+**Note:** SuperAdmin endpoints use `/api/superadmin/...` route pattern without versioning in the URL.
+
+- `GET /api/superadmin/organizations/{orgId}/permission-policy` - Get organization permission policy (SuperAdmin only)
+  - Response: `OrganizationPermissionPolicyDto`
+- `PUT /api/superadmin/organizations/{orgId}/permission-policy` - Upsert organization permission policy (SuperAdmin only)
+  - Request: `{ allowedPermissions: string[], isActive?: boolean }`
+  - Response: `OrganizationPermissionPolicyDto`
 
 ### B.3 Projects
 
@@ -3869,6 +3960,83 @@ Automatically set by Vite:
 
 ## Changelog
 
+### Version 2.14.1 (January 4, 2025)
+- ✅ **TypeScript Compilation Fixes**: Resolved all 28 TypeScript compilation errors
+  - Fixed `PagedResponse` import in `adminAiQuota.ts` (import from `./projects` instead of `./client`)
+  - Fixed `GlobalRole` import in `AuthContext.tsx`
+  - Fixed `InviteUserDialog` role type to exclude `SuperAdmin` (Admin can only assign User or Admin roles)
+  - Fixed dialog ref readonly issue in `dialog.tsx` using `React.MutableRefObject` cast
+  - Removed unused imports and variables across multiple files (Separator, Shield, Users, Building2, editingOrg, setEditingOrg, showToast)
+  - Fixed `totalPages` possibly undefined issues with null coalescing operators (`??`) in pagination components
+  - Fixed `RoleMap` to include `SuperAdmin` role in `AdminPermissions.tsx` (prevents TypeScript errors)
+  - Fixed possibly undefined properties in `AdminMemberAIQuotas.tsx` and `SuperAdminOrganizationAIQuota.tsx`
+  - All TypeScript compilation errors resolved - `npm run type-check` passes successfully
+- ✅ **API Client Fixes**: Fixed critical API integration bugs
+  - Fixed `memberPermissionsApi.getMemberPermissions()` to use `URLSearchParams` for query parameters (was passing object incorrectly)
+  - Fixed API endpoint paths to include `/api` prefix in `memberPermissions.ts` and `organizationPermissionPolicy.ts`
+  - Endpoints now correctly route to `/api/admin/permissions/members` and `/api/superadmin/organizations/{orgId}/permission-policy`
+- ✅ **Documentation Update**: Comprehensive codebase scan and documentation refresh
+  - Updated API client count: 27 → 31 files (added organizationPermissionPolicy, memberPermissions, adminAiQuota, adminAIQuotas, superAdminAIQuota, organizations)
+  - Updated admin pages count: 8 → 13 pages (added AdminAIQuota, AdminOrganizations, AdminOrganizationDetail, AdminMyOrganization, AdminOrganizationMembers, AdminMemberAIQuotas, AdminMemberPermissions)
+  - Updated "Last Updated" date to January 4, 2025
+  - Verified all routes, pages, and API clients are accurately documented
+
+### Version 2.14.0 (January 2, 2025)
+- ✅ **Organization Permission Policy Management**: Complete permission policy system with two-level UI
+  - **SuperAdmin Level**: Manage allowed permissions per organization via `/admin/organizations/:orgId/permissions`
+    - Checklist/matrix of all system permissions grouped by category
+    - Search functionality to filter permissions
+    - Select All / Deselect All buttons
+    - Policy activation toggle (active = restrict to selected, inactive = allow all)
+    - Policy information display (created/updated timestamps)
+    - Upsert operation (create if not exists, update if exists)
+  - **Admin Level**: Manage member roles/permissions within own organization via `/admin/permissions/members`
+    - Paginated member list with search functionality
+    - Edit modal for updating member roles and permissions
+    - Automatic filtering: only permissions allowed by organization policy are available
+    - Role-based permission derivation with policy enforcement
+    - Tenant isolation: Admin can only manage members in their own organization
+  - **New API Clients**: 
+    - `organizationPermissionPolicy.ts`: Organization permission policy API (SuperAdmin only)
+    - `memberPermissions.ts`: Member permissions management API (Admin only)
+  - **New Pages**:
+    - `SuperAdminOrganizationPermissions.tsx`: SuperAdmin permission policy management page
+    - `AdminMemberPermissions.tsx`: Admin member permissions management page
+  - **Routes Added**:
+    - `/admin/organizations/:orgId/permissions` (SuperAdmin only, protected by RequireSuperAdminGuard)
+    - `/admin/permissions/members` (Admin only)
+  - **Navigation Updates**:
+    - Added "Member Permissions" link to AdminSidebar for Admin users
+    - Added "Permissions" button to AdminOrganizationDetail page for SuperAdmin users
+  - **UI Features**:
+    - Permission filtering based on organization policy
+    - Visual indicators for allowed/disallowed permissions
+    - Policy-aware permission selection
+    - Role change automatically updates permissions (filtered by policy)
+  - **Security**:
+    - SuperAdmin can manage policies for any organization
+    - Admin can only manage members in their own organization
+    - Policy enforcement prevents assigning disallowed permissions
+    - Default behavior: if no policy exists, all permissions are allowed
+
+### Version 2.13.0 (January 2, 2025)
+- ✅ **Billing System Removal**: Removed all billing/subscription/plan features from frontend
+  - Removed all `/settings/billing` route references and navigation
+  - Removed "Upgrade Plan" buttons from QuotaStatusWidget, QuotaAlertBanner, and QuotaDetails pages
+  - Removed "Plan Comparison" section from QuotaDetails page
+  - Removed `upgradeUrl` from QuotaErrorDetails interface
+  - Updated QuotaExceededAlert to navigate to `/settings/ai-quota` instead of billing
+  - Updated error messages to direct users to contact administrators instead of upgrade prompts
+  - Updated placeholder text in AIQuotasList from "billing issues" to "quota exceeded"
+  - No regressions: AI quota functionality remains fully intact
+- ✅ **Dialog Component Fix**: Fixed dialog component to prevent body scroll lock issues
+  - Updated dialog.tsx to properly handle scroll lock on open/close
+  - Prevents body scroll when dialog is open
+  - Restores scroll when dialog is closed
+- ✅ **AdminSettings Fix**: Fixed dialog usage in AdminSettings page
+  - Updated to use proper dialog component pattern
+  - Improved error handling and user feedback
+
 ### Version 2.12.0 (January 2, 2025)
 - ✅ **Development Tools Organization**: Moved test code to `/dev` folder
   - Moved `ReleaseApiTest.tsx` from `pages/test/` to `src/dev/` folder
@@ -3929,9 +4097,8 @@ Automatically set by Vite:
   - Created QuotaDetails.tsx page component
   - Historical usage graphs (LineChart for 30 days)
   - Breakdown by agent type (BarChart)
-  - Tier comparison table
-  - Upgrade CTA buttons
-  - Note: Route `/settings/ai-quota` not yet configured in App.tsx
+  - Current quota status with detailed metrics
+  - Note: Route `/settings/ai-quota` configured in App.tsx
 - ✅ **AI Task Improver Dialog**: Dialog for improving tasks with AI
   - Created AITaskImproverDialog.tsx component
   - Uses `/api/v1/Agent/improve-task` endpoint
@@ -4254,7 +4421,7 @@ Automatically set by Vite:
 
 ---
 
-**Document Version:** 2.11.0  
-**Last Updated:** January 1, 2025  
+**Document Version:** 2.14.0  
+**Last Updated:** January 2, 2025  
 **Maintained By:** Development Team
 

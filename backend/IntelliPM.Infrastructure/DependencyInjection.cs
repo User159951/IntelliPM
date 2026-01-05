@@ -29,6 +29,12 @@ public static class DependencyInjection
         
         // Register PermissionService
         services.AddScoped<IPermissionService, PermissionService>();
+
+        // Register OrganizationScopingService
+        services.AddScoped<IntelliPM.Application.Common.Services.OrganizationScopingService>();
+        
+        // Register OrganizationPermissionPolicyService
+        services.AddScoped<IntelliPM.Application.Common.Services.OrganizationPermissionPolicyService>();
         
         // Register DbContext with service provider injection for CurrentUserService
         services.AddDbContext<AppDbContext>((serviceProvider, opts) =>

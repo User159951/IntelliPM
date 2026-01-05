@@ -46,6 +46,16 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminSystemHealth from "./pages/admin/AdminSystemHealth";
 import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
 import AIGovernance from "./pages/admin/AIGovernance";
+import AdminAIQuota from "./pages/admin/AdminAIQuota";
+import AdminOrganizations from "./pages/admin/AdminOrganizations";
+import AdminOrganizationDetail from "./pages/admin/AdminOrganizationDetail";
+import AdminMyOrganization from "./pages/admin/AdminMyOrganization";
+import AdminOrganizationMembers from "./pages/admin/AdminOrganizationMembers";
+import AdminMemberAIQuotas from "./pages/admin/AdminMemberAIQuotas";
+import AdminMemberPermissions from "./pages/admin/AdminMemberPermissions";
+import SuperAdminOrganizationAIQuota from "./pages/superadmin/SuperAdminOrganizationAIQuota";
+import SuperAdminOrganizationPermissions from "./pages/superadmin/SuperAdminOrganizationPermissions";
+import { RequireSuperAdminGuard } from "./components/guards/RequireSuperAdminGuard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,6 +133,45 @@ const App = () => (
                   <Route path="audit-logs" element={<AdminAuditLogs />} />
                   <Route path="system-health" element={<AdminSystemHealth />} />
                   <Route path="ai-governance" element={<AIGovernance />} />
+                  <Route path="ai-quota" element={<AdminAIQuota />} />
+                  {/* SuperAdmin only routes */}
+                  <Route
+                    path="organizations"
+                    element={
+                      <RequireSuperAdminGuard>
+                        <AdminOrganizations />
+                      </RequireSuperAdminGuard>
+                    }
+                  />
+                  <Route
+                    path="organizations/:orgId"
+                    element={
+                      <RequireSuperAdminGuard>
+                        <AdminOrganizationDetail />
+                      </RequireSuperAdminGuard>
+                    }
+                  />
+                  <Route
+                    path="organizations/:orgId/ai-quota"
+                    element={
+                      <RequireSuperAdminGuard>
+                        <SuperAdminOrganizationAIQuota />
+                      </RequireSuperAdminGuard>
+                    }
+                  />
+                  <Route
+                    path="organizations/:orgId/permissions"
+                    element={
+                      <RequireSuperAdminGuard>
+                        <SuperAdminOrganizationPermissions />
+                      </RequireSuperAdminGuard>
+                    }
+                  />
+                  {/* Admin own-org routes */}
+                  <Route path="organization" element={<AdminMyOrganization />} />
+                  <Route path="organization/members" element={<AdminOrganizationMembers />} />
+                  <Route path="ai-quotas" element={<AdminMemberAIQuotas />} />
+                  <Route path="permissions/members" element={<AdminMemberPermissions />} />
                 </Route>
 
                 {/* 404 */}
