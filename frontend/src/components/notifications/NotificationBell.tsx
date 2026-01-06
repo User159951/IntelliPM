@@ -90,9 +90,10 @@ export default function NotificationBell() {
     enabled: isAuthenticated && !isAuthLoading, // Only fetch when authenticated
     staleTime: 1000 * 30, // 30 seconds
     refetchInterval: isAuthenticated ? 1000 * 60 : false, // Poll every minute only when authenticated
+    refetchOnWindowFocus: isAuthenticated && !isAuthLoading, // Only refetch on window focus if authenticated
     retry: (failureCount, error) => {
       // Don't retry on 401 (Unauthorized) errors
-      if (error instanceof Error && error.message.includes('Unauthorized')) {
+      if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
         return false;
       }
       return failureCount < 3;
@@ -107,13 +108,21 @@ export default function NotificationBell() {
     queryFn: () => notificationsApi.getUnreadCount(),
     enabled: isAuthenticated && !isAuthLoading,
     refetchInterval: isAuthenticated ? 1000 * 30 : false, // Refresh every 30 seconds
+    refetchOnWindowFocus: isAuthenticated && !isAuthLoading, // Only refetch on window focus if authenticated
     staleTime: 1000 * 10, // Cache valid for 10 seconds
     retry: (failureCount, error) => {
-      // Don't retry on 401 (Unauthorized) errors
-      if (error instanceof Error && error.message.includes('Unauthorized')) {
+      // Don't retry on 401 (Unauthorized) errors - token refresh will be handled by API client
+      if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
         return false;
       }
       return failureCount < 3;
+    },
+    // Disable query if we get a 401 error (token expired)
+    onError: (error: Error) => {
+      if (error.message.includes('Unauthorized') || error.message.includes('401')) {
+        // Query will be disabled automatically when isAuthenticated becomes false
+        // The API client will handle token refresh or redirect to login
+      }
     },
   });
 

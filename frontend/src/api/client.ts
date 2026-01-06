@@ -63,15 +63,18 @@ class ApiClient {
 
     // Ensure endpoint starts with /api/v1 if it doesn't already
     // BUT: Admin routes use /api/admin/... without versioning
+    // SuperAdmin routes use /api/v1/superadmin/... with versioning
     // Ensure endpoint starts with / for proper URL construction
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const versionedEndpoint = normalizedEndpoint.startsWith('/api/v') 
       ? normalizedEndpoint 
       : normalizedEndpoint.startsWith('/api/admin/')
         ? normalizedEndpoint // Admin routes don't use versioning
-        : normalizedEndpoint.startsWith('/api/') 
-          ? normalizedEndpoint.replace('/api/', `${API_VERSION}/`)
-          : `${API_VERSION}${normalizedEndpoint}`;
+        : normalizedEndpoint.startsWith('/api/superadmin/')
+          ? normalizedEndpoint.replace('/api/superadmin/', `${API_VERSION}/superadmin/`) // SuperAdmin routes use versioning
+          : normalizedEndpoint.startsWith('/api/') 
+            ? normalizedEndpoint.replace('/api/', `${API_VERSION}/`)
+            : `${API_VERSION}${normalizedEndpoint}`;
     
     const response = await fetch(`${API_BASE_URL}${versionedEndpoint}`, {
       ...options,

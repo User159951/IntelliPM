@@ -73,7 +73,16 @@ export default function AdminOrganizations() {
       showSuccess('Organization deleted successfully');
     },
     onError: (error: Error) => {
-      showError('Failed to delete organization', error.message);
+      // Check if error is about users in organization
+      const errorMessage = error.message.toLowerCase();
+      if (errorMessage.includes('user') || errorMessage.includes('member')) {
+        showError(
+          'Cannot delete organization',
+          error.message || 'This organization has members. Please remove or reassign all members before deleting.'
+        );
+      } else {
+        showError('Failed to delete organization', error.message);
+      }
     },
   });
 
@@ -174,7 +183,6 @@ export default function AdminOrganizations() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeletingOrg(org)}
-                        disabled={org.userCount > 0}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -253,20 +261,21 @@ export default function AdminOrganizations() {
             <DialogDescription>
               Are you sure you want to delete "{deletingOrg?.name}"? This action cannot be undone.
               {deletingOrg && deletingOrg.userCount > 0 && (
-                <span className="block mt-2 text-destructive">
-                  This organization has {deletingOrg.userCount} member(s). Please remove or reassign all members first.
+                <span className="block mt-2 text-destructive font-semibold">
+                  ⚠️ Warning: This organization has {deletingOrg.userCount} member(s). 
+                  You must remove or reassign all members before deleting the organization.
                 </span>
               )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingOrg(null)}>
+            <Button variant="outline" onClick={() => setDeletingOrg(null)} disabled={deleteMutation.isPending}>
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleDelete}
-              disabled={deleteMutation.isPending || (deletingOrg?.userCount ?? 0) > 0}
+              disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete

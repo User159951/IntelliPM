@@ -100,16 +100,9 @@ public static class DependencyInjection
         // Email Template Service
         services.AddScoped<EmailTemplateService>();
 
-        // Email Service - Use SMTP if configured, otherwise use stub EmailService
-        var emailProvider = config["Email:Provider"];
-        if (emailProvider == "SMTP" && !string.IsNullOrEmpty(config["Email:SmtpUsername"]))
-        {
-            services.AddScoped<IEmailService, SmtpEmailService>();
-        }
-        else
-        {
+        // Email Service - Uses System.Net.Mail.SmtpClient with graceful degradation
+        // If SMTP is not configured, it will log warnings instead of sending emails
         services.AddScoped<IEmailService, EmailService>();
-        }
 
         // MediatR handlers that live in Infrastructure (Semantic Kernel agents)
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));

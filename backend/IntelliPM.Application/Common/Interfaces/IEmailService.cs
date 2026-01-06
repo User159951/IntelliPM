@@ -60,5 +60,17 @@ public interface IEmailService
         string reason,
         bool isPermanent,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Sends email notification when a user is mentioned in a comment.
+    /// </summary>
+    Task SendMentionNotificationEmailAsync(
+        string email,
+        string mentionedBy,
+        string entityType,
+        string entityTitle,
+        string commentPreview,
+        string entityUrl,
+        CancellationToken ct = default);
 }
 

@@ -19,6 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -342,11 +343,11 @@ export default function AdminAIQuota() {
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Edit AI Quota for {editingMember.fullName}</DialogTitle>
+              <DialogDescription>
+                Leave fields empty to use organization default. Set to 0 to remove override for that field.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="text-sm text-muted-foreground">
-                Leave fields empty to use organization default. Set to 0 to remove override for that field.
-              </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="maxTokensPerPeriod" className="text-right">

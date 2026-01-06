@@ -64,6 +64,29 @@ export interface InviteOrganizationUserResponse {
   invitationLink: string;
 }
 
+/**
+ * Maps frontend sortField values to backend expected values.
+ * Backend accepts: Username, Email, CreatedAt, LastLoginAt, Role, IsActive
+ */
+function mapSortFieldToBackend(frontendSortField: string): string | undefined {
+  const mapping: Record<string, string> = {
+    'name': 'CreatedAt', // Backend doesn't have a "name" field, use CreatedAt as default
+    'email': 'Email',
+    'role': 'Role',
+    'createdAt': 'CreatedAt',
+    'status': 'IsActive',
+    // Also accept backend values directly
+    'Username': 'Username',
+    'Email': 'Email',
+    'CreatedAt': 'CreatedAt',
+    'LastLoginAt': 'LastLoginAt',
+    'Role': 'Role',
+    'IsActive': 'IsActive',
+  };
+  
+  return mapping[frontendSortField];
+}
+
 export const usersApi = {
   getAll: async (excludeCurrent = false): Promise<GetAllUsersResponse> => {
     // Use paginated endpoint with max pageSize (100) to get all users
@@ -92,7 +115,7 @@ export const usersApi = {
     pageSize = 20,
     role?: string,
     isActive?: boolean,
-    sortBy?: string,
+    sortField?: string,
     sortDescending = false,
     searchTerm?: string
   ): Promise<PagedResponse<UserListDto>> => {
@@ -103,7 +126,16 @@ export const usersApi = {
     });
     if (role) params.append('role', role);
     if (isActive !== undefined) params.append('isActive', isActive.toString());
-    if (sortBy) params.append('sortBy', sortBy);
+    
+    // Map frontend sortField values to backend expected values
+    // Backend accepts: Username, Email, CreatedAt, LastLoginAt, Role, IsActive
+    if (sortField) {
+      const backendSortField = mapSortFieldToBackend(sortField);
+      if (backendSortField) {
+        params.append('sortField', backendSortField);
+      }
+    }
+    
     if (searchTerm) params.append('searchTerm', searchTerm);
     return apiClient.get<PagedResponse<UserListDto>>(`/api/v1/Users?${params.toString()}`);
   },
@@ -120,6 +152,10 @@ export const usersApi = {
 
   delete: async (id: number): Promise<{ success: boolean }> => {
     return apiClient.delete<{ success: boolean }>(`/api/v1/Users/${id}`);
+  },
+
+  deactivate: async (id: number): Promise<{ userId: number; isActive: boolean; username: string; email: string }> => {
+    return apiClient.post<{ userId: number; isActive: boolean; username: string; email: string }>(`/api/admin/users/${id}/deactivate`);
   },
 
   invite: async (data: InviteOrganizationUserRequest): Promise<InviteOrganizationUserResponse> => {

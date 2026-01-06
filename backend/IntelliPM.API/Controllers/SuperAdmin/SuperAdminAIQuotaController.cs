@@ -18,7 +18,7 @@ namespace IntelliPM.API.Controllers.SuperAdmin;
 /// Provides endpoints for viewing and updating AI quota settings per organization.
 /// </summary>
 [ApiController]
-[Route("api/superadmin/organizations")]
+[Route("api/v{version:apiVersion}/superadmin/organizations")]
 [ApiVersion("1.0")]
 [RequireSuperAdmin]
 public class SuperAdminAIQuotaController : BaseApiController

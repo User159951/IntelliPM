@@ -1,7 +1,7 @@
 # IntelliPM Backend Documentation
 
-**Version:** 2.14.1  
-**Last Updated:** January 4, 2025  
+**Version:** 2.14.4  
+**Last Updated:** January 6, 2025  
 **Technology Stack:** .NET 8.0, ASP.NET Core, Entity Framework Core, SQL Server, PostgreSQL, Semantic Kernel
 
 ---
@@ -350,7 +350,7 @@ IntelliPM.Infrastructure/
 
 ```
 IntelliPM.API/
-├── Controllers/                   # API controllers (41 controllers total: 26 standard + 14 admin + 1 superadmin + 1 DEBUG-only TestController)
+├── Controllers/                   # API controllers (42 controllers total: 26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
 │   ├── BaseApiController.cs      # Base controller
 │   ├── ProjectsController.cs
 │   ├── TasksController.cs
@@ -389,10 +389,10 @@ IntelliPM.API/
 │   │   ├── AdminMemberPermissionsController.cs
 │   │   ├── AdminAIQuotaController.cs
 │   │   ├── OrganizationsController.cs
-│   │   ├── OrganizationController.cs
-│   │   └── SuperAdminAIQuotaController.cs (Admin access to SuperAdmin features)
-│   └── SuperAdmin/                # SuperAdmin controllers (1 controller)
-│       └── SuperAdminPermissionPolicyController.cs
+│   │   └── OrganizationController.cs
+│   └── SuperAdmin/                # SuperAdmin controllers (2 controllers)
+│       ├── SuperAdminPermissionPolicyController.cs
+│       └── SuperAdminAIQuotaController.cs
 │   └── ...
 ├── Authorization/                 # Authorization attributes
 │   └── RequirePermissionAttribute.cs
@@ -2312,8 +2312,8 @@ public abstract class BaseApiController : ControllerBase
 | `Admin/AdminAIQuotaController` | AI Quota Management (Admin) | Manage AI quotas for organization members |
 | `Admin/OrganizationsController` | Organizations (Admin) | Manage organizations (SuperAdmin access) |
 | `Admin/OrganizationController` | Organization (Admin) | Manage own organization details |
-| `Admin/SuperAdminAIQuotaController` | SuperAdmin AI Quota (Admin) | Manage organization AI quotas (SuperAdmin access) |
-| `SuperAdmin/SuperAdminPermissionPolicyController` | Permission Policies (SuperAdmin) | Manage organization permission policies |
+| `SuperAdmin/SuperAdminAIQuotaController` | SuperAdmin AI Quota | Manage organization AI quotas (SuperAdmin only, uses versioned routes) |
+| `SuperAdmin/SuperAdminPermissionPolicyController` | Permission Policies (SuperAdmin) | Manage organization permission policies (uses versioned routes) |
 | `AIGovernanceController` | AI Governance (User) | View AI decisions, quota status, usage statistics |
 | `ReadModelsController` | Read Models (User) | Get read model data for current organization |
 | `TestController` | Testing | Test endpoints (DEBUG-only, #if DEBUG) |
@@ -2440,6 +2440,7 @@ Configured in `Program.cs`:
 - **Version Readers**: URL segment, Header (`X-Api-Version`), Media type
 - **Format**: `api/v{version}/[controller]` for standard controllers
 - **Admin Routes**: Admin controllers use `/api/admin/...` without versioning in URL (e.g., `/api/admin/users`, `/api/admin/feature-flags`)
+- **SuperAdmin Routes**: SuperAdmin controllers use `/api/v1/superadmin/...` with versioning (e.g., `/api/v1/superadmin/organizations/{orgId}/ai-quota`)
 - **Special Routes**: Some controllers use explicit routes (e.g., `/api/v1/feature-flags` uses explicit route for kebab-case compatibility)
 
 ---
@@ -4239,11 +4240,13 @@ Update a member's role and/or permissions (Admin only - own organization).
 
 ### 14.12.2 SuperAdmin Permission Policy Endpoints
 
-#### GET /api/superadmin/organizations/{orgId}/permission-policy
+#### GET /api/v1/superadmin/organizations/{orgId}/permission-policy
 
 Get organization permission policy by organization ID (SuperAdmin only).
 
 **Authorization:** `[RequireSuperAdmin]`
+
+**Note:** SuperAdmin routes use API versioning: `/api/v1/superadmin/organizations/...`
 
 **Response:**
 ```json
@@ -4261,11 +4264,13 @@ Get organization permission policy by organization ID (SuperAdmin only).
 
 **Note:** If no policy exists, returns default policy with `id: 0` and empty `allowedPermissions` array (indicating all permissions allowed).
 
-#### PUT /api/superadmin/organizations/{orgId}/permission-policy
+#### PUT /api/v1/superadmin/organizations/{orgId}/permission-policy
 
 Upsert (create or update) organization permission policy (SuperAdmin only).
 
 **Authorization:** `[RequireSuperAdmin]`
+
+**Note:** SuperAdmin routes use API versioning: `/api/v1/superadmin/organizations/...`
 
 **Request:**
 ```json
@@ -4298,6 +4303,87 @@ Upsert (create or update) organization permission policy (SuperAdmin only).
 - `400 Bad Request`: Invalid permissions specified
 - `403 Forbidden`: User is not SuperAdmin
 - `404 Not Found`: Organization not found
+
+### 14.12.3 SuperAdmin AI Quota Endpoints
+
+#### GET /api/v1/superadmin/organizations/{orgId}/ai-quota
+
+Get organization AI quota by organization ID (SuperAdmin only).
+
+**Authorization:** `[RequireSuperAdmin]`
+
+**Response:**
+```json
+{
+  "id": 1,
+  "organizationId": 1,
+  "organizationName": "Acme Corp",
+  "organizationCode": "acme-corp",
+  "monthlyTokenLimit": 1000000,
+  "monthlyRequestLimit": 1000,
+  "resetDayOfMonth": 1,
+  "isAIEnabled": true,
+  "createdAt": "2025-01-02T10:00:00Z",
+  "updatedAt": "2025-01-02T11:00:00Z"
+}
+```
+
+**Note:** SuperAdmin routes use API versioning: `/api/v1/superadmin/organizations/...`
+
+#### PUT /api/v1/superadmin/organizations/{orgId}/ai-quota
+
+Upsert (create or update) organization AI quota (SuperAdmin only).
+
+**Authorization:** `[RequireSuperAdmin]`
+
+**Request:**
+```json
+{
+  "monthlyTokenLimit": 2000000,
+  "monthlyRequestLimit": 2000,
+  "resetDayOfMonth": 1,
+  "isAIEnabled": true
+}
+```
+
+**Response:** `200 OK` with updated organization AI quota
+
+**Note:** SuperAdmin routes use API versioning: `/api/v1/superadmin/organizations/...`
+
+#### GET /api/v1/superadmin/organizations/ai-quotas
+
+Get a paginated list of all organization AI quotas (SuperAdmin only).
+
+**Authorization:** `[RequireSuperAdmin]`
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `pageSize` (optional): Page size (default: 20, max: 100)
+- `searchTerm` (optional): Search by organization name or code
+- `isAIEnabled` (optional): Filter by AI enabled status
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "organizationId": 1,
+      "organizationName": "Acme Corp",
+      "organizationCode": "acme-corp",
+      "monthlyTokenLimit": 1000000,
+      "monthlyRequestLimit": 1000,
+      "isAIEnabled": true
+    }
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "totalCount": 10,
+  "totalPages": 1
+}
+```
+
+**Note:** SuperAdmin routes use API versioning: `/api/v1/superadmin/organizations/...`
 
 ### 14.13 Agent Endpoints
 
@@ -5302,7 +5388,7 @@ This section documents the actual API endpoints available in the backend compare
 
 #### 21.1.1 Controllers Summary
 
-**Total Controllers:** 41 controllers (26 standard + 14 admin + 1 superadmin + 1 DEBUG-only TestController)
+**Total Controllers:** 42 controllers (26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
 
 | Controller | Route Pattern | Endpoints | Status | Notes |
 |------------|---------------|-----------|--------|
@@ -5340,7 +5426,8 @@ This section documents the actual API endpoints available in the backend compare
 | `Admin/ReadModelsController` | `/api/admin/read-models` | 2 | ✅ Documented |
 | `Admin/AIGovernanceController` | `/api/admin/ai` | 5 | ✅ Documented |
 | `Admin/AdminMemberPermissionsController` | `/api/admin/permissions` | 2 | ✅ Documented |
-| `SuperAdmin/SuperAdminPermissionPolicyController` | `/api/superadmin/organizations` | 2 | ✅ Documented |
+| `SuperAdmin/SuperAdminAIQuotaController` | `/api/v1/superadmin/organizations` | 3 | ✅ Documented |
+| `SuperAdmin/SuperAdminPermissionPolicyController` | `/api/v1/superadmin/organizations` | 2 | ✅ Documented |
 | `MilestonesController` | `/api/v1/Milestones` | 9 | ✅ Documented | Includes CRUD, complete, statistics, overdue |
 | `ReleasesController` | `/api/v1/Releases` | 17 | ✅ Documented |
 | `TestController` | `/api/v1/Test` | 1 | ⚠️ DEBUG-only (#if DEBUG) |
@@ -5439,6 +5526,49 @@ This section documents the actual API endpoints available in the backend compare
 ---
 
 ## Changelog
+
+### Version 2.14.4 (January 6, 2025)
+- ✅ **Admin Organization Members Tenant Isolation Fix**: Fixed tenant isolation for Admin organization members page
+  - Updated `AdminOrganizationMembers.tsx` to use `/api/v1/Users` endpoint instead of `/api/admin/organization/members`
+  - `/api/v1/Users` uses `OrganizationScopingService` which properly handles tenant isolation:
+    - **Admin**: Automatically filters to show only members of their organization
+    - **SuperAdmin**: Shows all members from all organizations
+  - Fixed `usersApi.getAllPaginated()` to map frontend sortField values to backend expected values
+    - Added `mapSortFieldToBackend()` function to convert frontend values (`name`, `email`, `role`, `createdAt`, `status`) to backend values (`CreatedAt`, `Email`, `Role`, `IsActive`)
+    - Fixed 400 Bad Request errors when sorting by `name` (now maps to `CreatedAt`)
+  - Updated `AdminOrganizationMembers.tsx` to use `UserListDto` type from `@/api/users` instead of local interface
+  - Changed `user.role` to `user.globalRole` to match API response structure
+  - Admin users now correctly see only their organization's members
+  - SuperAdmin users correctly see all members from all organizations
+
+### Version 2.14.3 (January 5, 2025)
+- ✅ **401 Error Handling Improvements**: Enhanced error handling for expired tokens
+  - Updated `NotificationBell` component to conditionally disable `refetchOnWindowFocus` based on authentication status
+  - Improved retry logic to properly detect 401 errors (checks for both "Unauthorized" and "401" in error messages)
+  - Added `refetchOnWindowFocus: isAuthenticated && !isAuthLoading` to prevent refetch attempts when user is not authenticated
+  - Fixed 401 errors on `/api/v1/Notifications` and `/api/v1/Notifications/unread-count` endpoints during window focus refetch
+- ✅ **Feature Flags Service**: Improved 401 error handling
+  - Updated `featureFlagService` to re-throw 401 errors instead of catching them silently
+  - Allows API client to handle token refresh automatically
+  - Updated `FeatureFlagsContext` to not set error state for 401 errors (API client handles authentication)
+- ✅ **Dialog Accessibility Fix**: Fixed missing DialogDescription warning
+  - Added `DialogDescription` component to `AdminAIQuota` dialog
+  - Resolves Radix UI accessibility warning for missing description
+  - All dialogs now properly include descriptions for screen readers
+
+### Version 2.14.2 (January 5, 2025)
+- ✅ **SuperAdmin Route Fix**: Fixed SuperAdmin API routes to use proper versioning
+  - Updated `SuperAdminAIQuotaController` route: `api/superadmin/organizations` → `api/v{version:apiVersion}/superadmin/organizations`
+  - Updated `SuperAdminPermissionPolicyController` route: `api/superadmin/organizations` → `api/v{version:apiVersion}/superadmin/organizations`
+  - Updated frontend API client to properly transform `/api/superadmin/...` to `/api/v1/superadmin/...`
+  - All SuperAdmin endpoints now correctly use versioned routes: `/api/v1/superadmin/organizations/...`
+  - Fixed 404 errors on SuperAdmin endpoints (`/api/v1/superadmin/organizations/{orgId}/ai-quota`, `/api/v1/superadmin/organizations/{orgId}/permission-policy`)
+- ✅ **Documentation Update**: Added SuperAdmin AI Quota endpoints documentation
+  - Documented `GET /api/v1/superadmin/organizations/{orgId}/ai-quota`
+  - Documented `PUT /api/v1/superadmin/organizations/{orgId}/ai-quota`
+  - Documented `GET /api/v1/superadmin/organizations/ai-quotas`
+  - Updated controller count: 41 → 42 controllers (26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
+  - Updated SuperAdmin controller section to include both controllers
 
 ### Version 2.14.1 (January 4, 2025)
 - ✅ **Documentation Update**: Comprehensive codebase scan and documentation refresh

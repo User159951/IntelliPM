@@ -214,17 +214,6 @@ export default function AdminUsers() {
     showToast(`Exported ${data.items.length} user(s) to CSV.`, 'success');
   };
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => usersApi.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      setDeletingUser(null);
-      showSuccess("User deleted", "The user has been successfully deleted.");
-    },
-    onError: () => {
-      showError('Failed to delete user');
-    },
-  });
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) {
@@ -476,14 +465,10 @@ export default function AdminUsers() {
                           variant="ghost"
                           size="icon"
                           onClick={() => setDeletingUser(user)}
-                          disabled={!user.isActive || deleteMutation.isPending}
-                          title="Delete user"
+                          disabled={!user.isActive}
+                          title="Désactiver l'utilisateur"
                         >
-                          {deleteMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          )}
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     </TableCell>

@@ -917,6 +917,21 @@ public class DataSeeder
 
         var rolePermissions = new List<RolePermission>();
 
+        // SuperAdmin Role: ALL permissions (same as Admin)
+        foreach (var permission in allPermissions)
+        {
+            // Only add if it doesn't already exist
+            if (!existingRolePermissions.Any(erp => erp.Role == GlobalRole.SuperAdmin && erp.PermissionId == permission.Id))
+            {
+                rolePermissions.Add(new RolePermission
+                {
+                    Role = GlobalRole.SuperAdmin,
+                    PermissionId = permission.Id,
+                    CreatedAt = DateTimeOffset.UtcNow
+                });
+            }
+        }
+
         // Admin Role: ALL permissions
         foreach (var permission in allPermissions)
         {
@@ -995,7 +1010,10 @@ public class DataSeeder
         {
             _context.RolePermissions.AddRange(rolePermissions);
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"Seeded {rolePermissions.Count} new role permissions (Admin: {allPermissions.Count}, User: {userPermissions.Length})");
+            var superAdminCount = rolePermissions.Count(rp => rp.Role == GlobalRole.SuperAdmin);
+            var adminCount = rolePermissions.Count(rp => rp.Role == GlobalRole.Admin);
+            var userCount = rolePermissions.Count(rp => rp.Role == GlobalRole.User);
+            _logger.LogInformation($"Seeded {rolePermissions.Count} new role permissions (SuperAdmin: {superAdminCount}, Admin: {adminCount}, User: {userCount})");
         }
         else
         {

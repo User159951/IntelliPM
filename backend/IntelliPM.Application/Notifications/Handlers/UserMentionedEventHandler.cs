@@ -5,6 +5,7 @@ using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Events;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace IntelliPM.Application.Notifications.Handlers;
@@ -19,17 +20,20 @@ public class UserMentionedEventHandler : INotificationHandler<UserMentionedEvent
     private readonly INotificationPreferenceService _preferenceService;
     private readonly IEmailService _emailService;
     private readonly ILogger<UserMentionedEventHandler> _logger;
+    private readonly IConfiguration _configuration;
 
     public UserMentionedEventHandler(
         IUnitOfWork unitOfWork,
         INotificationPreferenceService preferenceService,
         IEmailService emailService,
-        ILogger<UserMentionedEventHandler> logger)
+        ILogger<UserMentionedEventHandler> logger,
+        IConfiguration configuration)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _preferenceService = preferenceService ?? throw new ArgumentNullException(nameof(preferenceService));
         _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     public async System.Threading.Tasks.Task Handle(UserMentionedEvent notification, CancellationToken ct)
@@ -76,21 +80,18 @@ public class UserMentionedEventHandler : INotificationHandler<UserMentionedEvent
 
                 if (user != null && !string.IsNullOrEmpty(user.Email))
                 {
-                    // TODO: Implement SendMentionNotificationEmailAsync in IEmailService
-                    // For now, we'll just log that email should be sent
-                    _logger.LogInformation(
-                        "Email notification should be sent to {Email} for mention in comment {CommentId}",
-                        user.Email,
-                        notification.CommentId);
+                    // Construct entity URL based on entity type
+                    var frontendBaseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:3001";
+                    var entityUrl = ConstructEntityUrl(frontendBaseUrl, notification.EntityType, notification.EntityId);
                     
-                    // Uncomment when IEmailService.SendMentionNotificationEmailAsync is implemented:
-                    // await _emailService.SendMentionNotificationEmailAsync(
-                    //     user.Email,
-                    //     notification.CommentAuthorName,
-                    //     notification.EntityType,
-                    //     notification.EntityTitle,
-                    //     notification.CommentContent,
-                    //     ct);
+                    await _emailService.SendMentionNotificationEmailAsync(
+                        user.Email,
+                        notification.CommentAuthorName,
+                        notification.EntityType,
+                        notification.EntityTitle,
+                        notification.CommentContent,
+                        entityUrl,
+                        ct);
                 }
             }
 
@@ -116,6 +117,23 @@ public class UserMentionedEventHandler : INotificationHandler<UserMentionedEvent
             // Don't throw - eventual consistency
             // The OutboxProcessor will retry if needed
         }
+    }
+
+    /// <summary>
+    /// Constructs the frontend URL for an entity based on its type and ID.
+    /// </summary>
+    private static string ConstructEntityUrl(string frontendBaseUrl, string entityType, int entityId)
+    {
+        var baseUrl = frontendBaseUrl.TrimEnd('/');
+        
+        return entityType.ToLower() switch
+        {
+            "task" => $"{baseUrl}/tasks/{entityId}",
+            "project" => $"{baseUrl}/projects/{entityId}",
+            "sprint" => $"{baseUrl}/sprints/{entityId}",
+            "milestone" => $"{baseUrl}/milestones/{entityId}",
+            _ => $"{baseUrl}/{entityType.ToLower()}s/{entityId}"
+        };
     }
 }
 

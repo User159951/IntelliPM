@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { showToast, showError } from '@/lib/sweetalert';
+import { showSuccess, showError } from '@/lib/sweetalert';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface DeleteUserDialogProps {
@@ -25,23 +25,23 @@ interface DeleteUserDialogProps {
 export function DeleteUserDialog({ open, onOpenChange, user }: DeleteUserDialogProps) {
   const queryClient = useQueryClient();
   const [confirmText, setConfirmText] = useState('');
-  const isConfirmed = confirmText === 'DELETE';
+  const isConfirmed = confirmText === 'DESACTIVER';
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => usersApi.delete(id),
+  const deactivateMutation = useMutation({
+    mutationFn: (id: number) => usersApi.deactivate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       onOpenChange(false);
       setConfirmText('');
-      showToast(`"${user.firstName} ${user.lastName}" has been successfully deleted.`, 'success');
+      showSuccess('Utilisateur désactivé', `L'utilisateur "${user.firstName} ${user.lastName}" a été désactivé avec succès.`);
     },
     onError: (error: unknown) => {
       const apiError = error as { response?: { data?: { error?: string } }; message?: string };
       const errorMessage =
         apiError?.response?.data?.error ||
         apiError?.message ||
-        'Please try again';
-      showError('Failed to delete user', errorMessage);
+        'Veuillez réessayer';
+      showError('Échec de la désactivation de l\'utilisateur', errorMessage);
     },
   });
 
@@ -50,9 +50,9 @@ export function DeleteUserDialog({ open, onOpenChange, user }: DeleteUserDialogP
     onOpenChange(false);
   };
 
-  const handleDelete = () => {
+  const handleDeactivate = () => {
     if (!isConfirmed) return;
-    deleteMutation.mutate(user.id);
+    deactivateMutation.mutate(user.id);
   };
 
   return (
@@ -64,9 +64,9 @@ export function DeleteUserDialog({ open, onOpenChange, user }: DeleteUserDialogP
               <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
             <div>
-              <AlertDialogTitle className="text-xl">Delete user?</AlertDialogTitle>
+              <AlertDialogTitle className="text-xl">Désactiver l'utilisateur ?</AlertDialogTitle>
               <AlertDialogDescription className="mt-2">
-                This will deactivate the user account. This action can be undone by an admin.
+                Cette action désactivera le compte utilisateur. L'utilisateur ne pourra plus se connecter, mais cette action peut être annulée par un administrateur.
               </AlertDialogDescription>
             </div>
           </div>
@@ -74,40 +74,42 @@ export function DeleteUserDialog({ open, onOpenChange, user }: DeleteUserDialogP
         <div className="py-4">
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 mb-4">
             <p className="text-sm font-medium text-destructive mb-2">
-              ⚠️ This will deactivate the user account
+              ⚠️ Désactivation du compte utilisateur
             </p>
             <p className="text-sm text-muted-foreground">
-              The user <strong>"{user.firstName} {user.lastName}"</strong> ({user.email}) will be
-              deactivated and will not be able to log in.
+              L'utilisateur <strong>"{user.firstName} {user.lastName}"</strong> ({user.email}) sera désactivé et ne pourra plus se connecter à son compte.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Cette action est réversible : un administrateur pourra réactiver le compte ultérieurement.
             </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm-delete" className="text-sm font-medium">
-              Type <span className="font-mono font-bold">DELETE</span> to confirm:
+              Tapez <span className="font-mono font-bold">DESACTIVER</span> pour confirmer :
             </Label>
             <Input
               id="confirm-delete"
               type="text"
-              placeholder="Type DELETE to confirm"
+              placeholder="Tapez DESACTIVER pour confirmer"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               className="font-mono"
               autoFocus
-              disabled={deleteMutation.isPending}
+              disabled={deactivateMutation.isPending}
             />
           </div>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleCancel} disabled={deleteMutation.isPending}>
-            Cancel
+          <AlertDialogCancel onClick={handleCancel} disabled={deactivateMutation.isPending}>
+            Annuler
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleDelete}
-            disabled={!isConfirmed || deleteMutation.isPending}
+            onClick={handleDeactivate}
+            disabled={!isConfirmed || deactivateMutation.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive"
           >
-            {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Delete User
+            {deactivateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Désactiver
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

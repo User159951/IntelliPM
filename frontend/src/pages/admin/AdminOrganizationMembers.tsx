@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { organizationsApi } from '@/api/organizations';
+import { usersApi, type UserListDto } from '@/api/users';
+import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,22 +41,9 @@ import {
 } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 
-interface UserListDto {
-  id: number;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: 'User' | 'Admin' | 'SuperAdmin';
-  isActive: boolean;
-  organizationId: number;
-  organizationName: string;
-  createdAt: string;
-  lastLoginAt?: string | null;
-}
-
 export default function AdminOrganizationMembers() {
   const queryClient = useQueryClient();
+  const { isSuperAdmin } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleChangeDialog, setRoleChangeDialog] = useState<{
@@ -68,9 +57,20 @@ export default function AdminOrganizationMembers() {
   });
   const pageSize = 20;
 
+  // Use /api/v1/Users which has proper tenant isolation:
+  // - Admin sees only members of their organization
+  // - SuperAdmin sees all members from all organizations
   const { data, isLoading } = useQuery({
     queryKey: ['admin-organization-members', currentPage, pageSize, searchQuery],
-    queryFn: () => organizationsApi.getMembers(currentPage, pageSize, searchQuery || undefined),
+    queryFn: () => usersApi.getAllPaginated(
+      currentPage,
+      pageSize,
+      undefined, // role filter
+      undefined, // isActive filter
+      undefined, // sortField
+      false, // sortDescending
+      searchQuery || undefined
+    ),
   });
 
   const updateRoleMutation = useMutation({
@@ -90,7 +90,7 @@ export default function AdminOrganizationMembers() {
     setRoleChangeDialog({
       open: true,
       user,
-      newRole: user.role === 'Admin' ? 'User' : 'Admin',
+      newRole: user.globalRole === 'Admin' ? 'User' : 'Admin',
     });
   };
 
@@ -190,8 +190,8 @@ export default function AdminOrganizationMembers() {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role}
+                    <Badge variant={getRoleBadgeVariant(user.globalRole)}>
+                      {user.globalRole}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -203,7 +203,7 @@ export default function AdminOrganizationMembers() {
                     {format(new Date(user.createdAt), 'MMM dd, yyyy')}
                   </TableCell>
                   <TableCell className="text-right">
-                    {user.role !== 'SuperAdmin' && (
+                    {user.globalRole !== 'SuperAdmin' && (
                       <Button
                         variant="ghost"
                         size="sm"

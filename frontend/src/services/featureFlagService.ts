@@ -210,6 +210,13 @@ class FeatureFlagService {
       const flags = await apiClient.get<FeatureFlag[]>(endpoint);
       return Array.isArray(flags) ? flags : [];
     } catch (error) {
+      // Don't catch 401 errors - let the API client handle token refresh
+      if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
+        // Re-throw 401 errors so the API client can handle token refresh
+        throw error;
+      }
+      
+      // For other errors, log and return empty array (fail-safe)
       if (import.meta.env.DEV) {
         console.error('[FeatureFlagService] Error fetching all flags:', error);
       }
@@ -376,6 +383,13 @@ class FeatureFlagService {
 
         return flags;
       } catch (error) {
+        // Don't catch 401 errors - let the API client handle token refresh
+        if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
+          // Re-throw 401 errors so the API client can handle token refresh
+          throw error;
+        }
+        
+        // For other errors, log and return empty array (fail-safe)
         if (import.meta.env.DEV) {
           console.error('[FeatureFlagService] Error fetching all flags:', error);
         }

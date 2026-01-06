@@ -94,6 +94,16 @@ export const FeatureFlagsProvider: React.FC<FeatureFlagsProviderProps> = ({
     } catch (err) {
       if (isMountedRef.current) {
         const error = err instanceof Error ? err : new Error('Failed to fetch feature flags');
+        
+        // Don't set error state for 401 errors - API client will handle token refresh or redirect
+        // If token refresh fails, auth context will be updated and isAuthenticated will become false
+        if (error.message.includes('Unauthorized') || error.message.includes('401')) {
+          setIsLoading(false);
+          // Don't set error - let the API client handle authentication
+          // The query will be disabled automatically when isAuthenticated becomes false
+          return;
+        }
+        
         setError(error);
         setIsLoading(false);
 

@@ -425,5 +425,55 @@ public class SmtpEmailService : IEmailService
         }
     }
 
+    public async Task SendMentionNotificationEmailAsync(
+        string email,
+        string mentionedBy,
+        string entityType,
+        string entityTitle,
+        string commentPreview,
+        string entityUrl,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            // Truncate comment preview if too long
+            var preview = commentPreview.Length > 200 
+                ? commentPreview.Substring(0, 200) + "..." 
+                : commentPreview;
+
+            var subject = $"{mentionedBy} mentioned you in {entityType}: {entityTitle}";
+            var htmlBody = $@"
+                <html>
+                    <body style='font-family: Arial, sans-serif; padding: 20px;'>
+                        <h2 style='color: #f59e0b;'>You were mentioned</h2>
+                        <p><strong>{mentionedBy}</strong> mentioned you in a comment on <strong>{entityType}: {entityTitle}</strong>.</p>
+                        <div style='background-color: #f9fafb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;'>
+                            <p style='margin: 0 0 10px 0; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase;'>Comment Preview:</p>
+                            <p style='margin: 0; color: #374151; font-size: 14px; line-height: 1.6; font-style: italic;'>""{preview}""</p>
+                        </div>
+                        <div style='text-align: center; margin: 40px 0;'>
+                            <a href='{entityUrl}' style='display: inline-block; padding: 14px 32px; background-color: #f59e0b; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;'>View {entityType}</a>
+                        </div>
+                        <p style='color: #6b7280; font-size: 14px;'>Click the button above to view the {entityType.ToLower()} and respond to the comment.</p>
+                        <hr style='margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;' />
+                        <p style='color: #6b7280; font-size: 12px;'>
+                            This is an automated notification from IntelliPM. You can manage your notification preferences in your account settings.
+                        </p>
+                    </body>
+                </html>";
+
+            await SendEmailAsync(email, subject, htmlBody, ct);
+            
+            _logger.LogInformation(
+                "Mention notification email sent successfully to {Email} for mention by {MentionedBy} in {EntityType} {EntityTitle}",
+                email, mentionedBy, entityType, entityTitle);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send mention notification email to {Email}", email);
+            throw;
+        }
+    }
+
 }
 

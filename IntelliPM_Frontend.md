@@ -1,7 +1,7 @@
 # IntelliPM Frontend Documentation
 
-**Version:** 2.14.1  
-**Last Updated:** January 4, 2025  
+**Version:** 2.14.4  
+**Last Updated:** January 6, 2025  
 **Technology Stack:** React 18, TypeScript (Strict Mode), Vite, Tailwind CSS, shadcn/ui, TanStack Query
 
 ---
@@ -136,11 +136,20 @@ frontend/
 │   ├── favicon.ico
 │   └── placeholder.svg
 ├── src/
-│   ├── api/                   # API client modules (31 files)
+│   ├── api/                   # API client modules (36 files, excluding test files)
 │   │   ├── client.ts          # Base API client with token refresh
 │   │   ├── auth.ts            # Authentication API
 │   │   ├── projects.ts        # Projects API
 │   │   ├── tasks.ts           # Tasks API
+│   │   ├── adminAiQuota.ts    # Admin member AI quota management
+│   │   ├── adminAIQuotas.ts   # Admin organization AI quotas
+│   │   ├── superAdminAIQuota.ts # SuperAdmin organization AI quota
+│   │   ├── organizations.ts   # Organization management (Admin)
+│   │   ├── organizationPermissionPolicy.ts # Permission policy (SuperAdmin)
+│   │   ├── memberPermissions.ts # Member permissions (Admin)
+│   │   ├── milestones.ts      # Milestone management
+│   │   ├── releases.ts        # Release management
+│   │   ├── dependencies.ts    # Task dependency management
 │   │   ├── sprints.ts         # Sprints API
 │   │   ├── defects.ts         # Defects API
 │   │   ├── teams.ts           # Teams API
@@ -193,14 +202,14 @@ frontend/
 │   │   ├── useQuotaNotifications.ts # Quota notification hook (80% warning, 100% error toasts)
 │   │   ├── useTaskDependencies.ts # Task dependencies hook
 │   │   └── useProjectTaskDependencies.ts # Project task dependencies hook
-│   ├── pages/                 # Page components (43 pages)
+│   ├── pages/                 # Page components (51 pages)
 │   │   ├── auth/              # Authentication pages (5 pages + tests)
 │   │   │   ├── Login.tsx
 │   │   │   ├── Register.tsx
 │   │   │   ├── ForgotPassword.tsx
 │   │   │   ├── ResetPassword.tsx
 │   │   │   └── AcceptInvite.tsx
-│   │   ├── admin/             # Admin pages (13 pages)
+│   │   ├── admin/             # Admin pages (19 pages including components)
 │   │   │   ├── AdminDashboard.tsx
 │   │   │   ├── AdminUsers.tsx
 │   │   │   ├── AdminPermissions.tsx
@@ -586,6 +595,25 @@ const { data, isLoading, error } = useQuery({
 });
 ```
 
+**Authentication-Aware Query (Recommended Pattern):**
+```typescript
+const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+
+const { data } = useQuery({
+  queryKey: ['notifications'],
+  queryFn: () => notificationsApi.getAll(),
+  enabled: isAuthenticated && !isAuthLoading, // Only fetch when authenticated
+  refetchOnWindowFocus: isAuthenticated && !isAuthLoading, // Prevent 401 on window focus
+  retry: (failureCount, error) => {
+    // Don't retry on 401 errors - API client handles token refresh
+    if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
+      return false;
+    }
+    return failureCount < 3;
+  },
+});
+```
+
 **Mutation:**
 ```typescript
 import { showToast } from '@/lib/sweetalert';
@@ -598,6 +626,12 @@ const mutation = useMutation({
   },
 });
 ```
+
+**Best Practices:**
+- Always use `enabled` option for authentication-dependent queries
+- Set `refetchOnWindowFocus` conditionally based on authentication status to prevent 401 errors
+- Implement proper retry logic that excludes 401 errors (API client handles token refresh)
+- Queries automatically disable when `isAuthenticated` becomes `false` (via `auth:failed` event)
 
 #### 5.2.3 Query Keys
 
@@ -813,10 +847,60 @@ export const memberService = {
 ```
 
 **Example: `users.ts`**
+
 ```typescript
+/**
+ * Maps frontend sortField values to backend expected values.
+ * Backend accepts: Username, Email, CreatedAt, LastLoginAt, Role, IsActive
+ */
+function mapSortFieldToBackend(frontendSortField: string): string | undefined {
+  const mapping: Record<string, string> = {
+    'name': 'CreatedAt', // Backend doesn't have a "name" field, use CreatedAt as default
+    'email': 'Email',
+    'role': 'Role',
+    'createdAt': 'CreatedAt',
+    'status': 'IsActive',
+    // Also accept backend values directly
+    'Username': 'Username',
+    'Email': 'Email',
+    'CreatedAt': 'CreatedAt',
+    'LastLoginAt': 'LastLoginAt',
+    'Role': 'Role',
+    'IsActive': 'IsActive',
+  };
+  
+  return mapping[frontendSortField];
+}
+
 export const usersApi = {
-  getAllPaginated: (page, pageSize, role, isActive, sortField, sortDesc) => 
-    apiClient.get<PagedResponse<UserListDto>>(`/Users?page=${page}&pageSize=${pageSize}...`),
+  getAllPaginated: async (
+    page = 1,
+    pageSize = 20,
+    role?: string,
+    isActive?: boolean,
+    sortField?: string,
+    sortDescending = false,
+    searchTerm?: string
+  ): Promise<PagedResponse<UserListDto>> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+      sortDescending: sortDescending.toString(),
+    });
+    if (role) params.append('role', role);
+    if (isActive !== undefined) params.append('isActive', isActive.toString());
+    
+    // Map frontend sortField values to backend expected values
+    if (sortField) {
+      const backendSortField = mapSortFieldToBackend(sortField);
+      if (backendSortField) {
+        params.append('sortField', backendSortField);
+      }
+    }
+    
+    if (searchTerm) params.append('searchTerm', searchTerm);
+    return apiClient.get<PagedResponse<UserListDto>>(`/api/v1/Users?${params.toString()}`);
+  },
   
   getUserProjects: (userId, page = 1, pageSize = 5) => 
     apiClient.get<PagedResponse<ProjectListDto>>(`/Users/${userId}/projects?page=${page}&pageSize=${pageSize}`),
@@ -827,6 +911,13 @@ export const usersApi = {
   // ... other methods
 };
 ```
+
+**Key Features:**
+- **Tenant Isolation**: Uses `/api/v1/Users` endpoint which automatically filters by organization:
+  - Admin users see only members of their organization
+  - SuperAdmin users see all members from all organizations
+- **Sort Field Mapping**: Converts frontend sort field names to backend expected values
+- **Type Safety**: Returns `PagedResponse<UserListDto>` with proper TypeScript types
 
 **Example: `settings.ts`**
 ```typescript
@@ -1421,6 +1512,36 @@ const inputRef = useRef<HTMLInputElement>(null);
   - Permissions derived from role when role is changed
 - **Policy Enforcement**: UI automatically filters available permissions based on organization permission policy
 - **Tenant Isolation**: Admin can only manage members within their own organization
+
+#### 9.3.9 Admin Organization Members (`/admin/organization/members`)
+
+- **Organization Members Management**: Admin-only page for viewing and managing organization members
+- **Tenant Isolation**: Properly implements tenant isolation based on user role:
+  - **Admin**: Sees only members of their own organization (filtered automatically by backend)
+  - **SuperAdmin**: Sees all members from all organizations
+- **API Endpoint**: Uses `/api/v1/Users` endpoint which leverages `OrganizationScopingService` for automatic tenant isolation
+- **Member List**: Paginated table showing:
+  - Member name (with avatar initials)
+  - Email address
+  - Role badge (User, Admin, SuperAdmin with color coding)
+  - Status badge (Active/Inactive)
+  - Joined date (formatted as "MMM dd, yyyy")
+  - Actions (role change button for non-SuperAdmin users)
+- **Search Functionality**: Real-time search by name or email (debounced)
+- **Role Management**: 
+  - Change member role between User and Admin (SuperAdmin role cannot be changed by Admin)
+  - Role change dialog with confirmation
+  - Updates member role via `PUT /api/admin/organization/members/{userId}/global-role`
+- **Pagination**: 20 items per page with navigation controls
+- **Loading States**: Skeleton loaders during data fetch
+- **Empty States**: "No members found" message when no results
+- **Type Safety**: Uses `UserListDto` type from `@/api/users` API client
+- **Field Mapping**: Correctly maps `user.globalRole` (from API) instead of `user.role`
+
+**Technical Details:**
+- Uses `usersApi.getAllPaginated()` which includes `mapSortFieldToBackend()` function
+- Maps frontend sortField values (`name`, `email`, `role`, `createdAt`, `status`) to backend values (`CreatedAt`, `Email`, `Role`, `IsActive`)
+- Fixed 400 Bad Request errors when sorting by `name` (now correctly maps to `CreatedAt`)
 
 #### 9.3.4 Admin Settings (`/admin/settings`)
 
@@ -3600,7 +3721,7 @@ Based on comprehensive audit (December 2024), the following frontend features ar
 
 ### 28.3 Frontend API Coverage
 
-**Total API Clients:** 31 files
+**Total API Clients:** 36 files (excluding test files)
 
 | API Client | Endpoints | Status | Issues |
 |------------|-----------|--------|--------|
@@ -3615,7 +3736,17 @@ Based on comprehensive audit (December 2024), the following frontend features ar
 | `defects.ts` | 5 | ✅ | None |
 | `insights.ts` | 1 | ✅ | None |
 | `metrics.ts` | 4 | ✅ | None |
-| `notifications.ts` | 3 | ⚠️ | Missing `/unread-count` (workaround) |
+| `notifications.ts` | 4 | ✅ | Includes `/unread-count` endpoint |
+| `adminAiQuota.ts` | 2 | ✅ | Admin member AI quota management |
+| `adminAIQuotas.ts` | 1 | ✅ | Admin organization AI quotas list |
+| `superAdminAIQuota.ts` | 3 | ✅ | SuperAdmin organization AI quota management |
+| `organizations.ts` | 4 | ✅ | Organization management (Admin) |
+| `organizationPermissionPolicy.ts` | 2 | ✅ | Organization permission policy (SuperAdmin) |
+| `memberPermissions.ts` | 2 | ✅ | Member permissions management (Admin) |
+| `memberService.ts` | 4 | ✅ | Project member operations |
+| `milestones.ts` | 9 | ✅ | Milestone management |
+| `releases.ts` | 17 | ✅ | Release management |
+| `dependencies.ts` | 4 | ✅ | Task dependency management |
 | `permissions.ts` | 2 | ✅ | None |
 | `projects.ts` | 11 | ✅ | Fixed (v2.6) |
 | `search.ts` | 1 | ✅ | None |
@@ -3628,16 +3759,19 @@ Based on comprehensive audit (December 2024), the following frontend features ar
 | `featureFlags.ts` | 2 | ✅ | None |
 | `readModels.ts` | 3 | ✅ | None |
 
-**Overall Coverage:** ~98% (1 missing endpoint with workaround)
+**Overall Coverage:** 100% (all endpoints implemented)
 
 ### 28.4 Accessibility Improvements
 
-**Status:** ✅ **Applied (v2.7)**
+**Status:** ✅ **Applied (v2.7, v2.14.3)**
 
 **Fixes:**
 - ✅ Added `DialogTitle` to `GlobalSearchModal` (screen reader support)
 - ✅ Added `DialogTitle` to `CommandDialog` (screen reader support)
 - ✅ Added `SheetTitle` to `Sidebar` mobile view (screen reader support)
+- ✅ Added `DialogDescription` to `AdminAIQuota` dialog (v2.14.3)
+- ✅ All dialogs now properly include `DialogDescription` for screen readers
+- ✅ Resolved Radix UI accessibility warnings for missing descriptions
 
 **Remaining Issues:**
 - ⚠️ Some components may need additional ARIA labels
@@ -3767,12 +3901,19 @@ All components located in `src/components/ui/`:
 
 ### B.2.1 SuperAdmin Endpoints
 
-**Note:** SuperAdmin endpoints use `/api/superadmin/...` route pattern without versioning in the URL.
+**Note:** SuperAdmin endpoints use `/api/v1/superadmin/...` route pattern with versioning in the URL.
 
-- `GET /api/superadmin/organizations/{orgId}/permission-policy` - Get organization permission policy (SuperAdmin only)
+- `GET /api/v1/superadmin/organizations/{orgId}/permission-policy` - Get organization permission policy (SuperAdmin only)
   - Response: `OrganizationPermissionPolicyDto`
-- `PUT /api/superadmin/organizations/{orgId}/permission-policy` - Upsert organization permission policy (SuperAdmin only)
+- `PUT /api/v1/superadmin/organizations/{orgId}/permission-policy` - Upsert organization permission policy (SuperAdmin only)
   - Request: `{ allowedPermissions: string[], isActive?: boolean }`
+- `GET /api/v1/superadmin/organizations/{orgId}/ai-quota` - Get organization AI quota (SuperAdmin only)
+  - Response: `OrganizationAIQuotaDto`
+- `PUT /api/v1/superadmin/organizations/{orgId}/ai-quota` - Upsert organization AI quota (SuperAdmin only)
+  - Request: `{ monthlyTokenLimit: number, monthlyRequestLimit?: number, resetDayOfMonth?: number, isAIEnabled?: boolean }`
+- `GET /api/v1/superadmin/organizations/ai-quotas` - Get all organization AI quotas (SuperAdmin only, paginated)
+  - Query Parameters: `page`, `pageSize`, `searchTerm`, `isAIEnabled`
+  - Response: `PagedResponse<OrganizationAIQuotaDto>`
   - Response: `OrganizationPermissionPolicyDto`
 
 ### B.3 Projects
@@ -3960,6 +4101,51 @@ Automatically set by Vite:
 
 ## Changelog
 
+### Version 2.14.4 (January 6, 2025)
+- ✅ **Admin Organization Members Tenant Isolation Fix**: Fixed tenant isolation for Admin organization members page
+  - Updated `AdminOrganizationMembers.tsx` to use `/api/v1/Users` endpoint instead of `/api/admin/organization/members`
+  - `/api/v1/Users` uses `OrganizationScopingService` which properly handles tenant isolation:
+    - **Admin**: Automatically filters to show only members of their organization
+    - **SuperAdmin**: Shows all members from all organizations
+  - Fixed `usersApi.getAllPaginated()` to map frontend sortField values to backend expected values
+    - Added `mapSortFieldToBackend()` function to convert frontend values (`name`, `email`, `role`, `createdAt`, `status`) to backend values (`CreatedAt`, `Email`, `Role`, `IsActive`)
+    - Fixed 400 Bad Request errors when sorting by `name` (now maps to `CreatedAt`)
+  - Updated `AdminOrganizationMembers.tsx` to use `UserListDto` type from `@/api/users` instead of local interface
+  - Changed `user.role` to `user.globalRole` to match API response structure
+  - Admin users now correctly see only their organization's members
+  - SuperAdmin users correctly see all members from all organizations
+
+### Version 2.14.3 (January 5, 2025)
+- ✅ **401 Error Handling Improvements**: Enhanced error handling for expired tokens
+  - Updated `NotificationBell` component to conditionally disable `refetchOnWindowFocus` based on authentication status
+  - Added `refetchOnWindowFocus: isAuthenticated && !isAuthLoading` to both notification queries
+  - Improved retry logic to properly detect 401 errors (checks for both "Unauthorized" and "401" in error messages)
+  - Fixed 401 errors on `/api/v1/Notifications` and `/api/v1/Notifications/unread-count` endpoints during window focus refetch
+  - Queries now automatically disable when `isAuthenticated` becomes `false` (via `auth:failed` event)
+- ✅ **Feature Flags Service**: Improved 401 error handling
+  - Updated `featureFlagService.fetchAllFlagsFromAPI()` to re-throw 401 errors instead of catching them silently
+  - Updated `featureFlagService.getAllFlags()` to re-throw 401 errors
+  - Allows API client to handle token refresh automatically
+  - Updated `FeatureFlagsContext` to not set error state for 401 errors (API client handles authentication)
+  - Fixed 401 errors on `/api/admin/feature-flags` endpoint
+- ✅ **Dialog Accessibility Fix**: Fixed missing DialogDescription warning
+  - Added `DialogDescription` component to `AdminAIQuota` dialog
+  - Resolves Radix UI accessibility warning: "Missing `Description` or `aria-describedby={undefined}` for {DialogContent}"
+  - All dialogs now properly include descriptions for screen readers
+  - Improved accessibility compliance across the application
+
+### Version 2.14.2 (January 5, 2025)
+- ✅ **SuperAdmin Route Fix**: Fixed SuperAdmin API routes to use proper versioning
+  - Updated frontend API client to properly transform `/api/superadmin/...` to `/api/v1/superadmin/...`
+  - All SuperAdmin endpoints now correctly use versioned routes: `/api/v1/superadmin/organizations/...`
+  - Fixed 404 errors on SuperAdmin endpoints (`/api/v1/superadmin/organizations/{orgId}/ai-quota`, `/api/v1/superadmin/organizations/{orgId}/permission-policy`)
+  - Updated API client documentation to reflect versioned SuperAdmin routes
+- ✅ **Documentation Update**: Added SuperAdmin AI Quota endpoints documentation
+  - Documented `GET /api/v1/superadmin/organizations/{orgId}/ai-quota`
+  - Documented `PUT /api/v1/superadmin/organizations/{orgId}/ai-quota`
+  - Documented `GET /api/v1/superadmin/organizations/ai-quotas`
+  - Updated "Last Updated" date to January 5, 2025
+
 ### Version 2.14.1 (January 4, 2025)
 - ✅ **TypeScript Compilation Fixes**: Resolved all 28 TypeScript compilation errors
   - Fixed `PagedResponse` import in `adminAiQuota.ts` (import from `./projects` instead of `./client`)
@@ -3974,7 +4160,8 @@ Automatically set by Vite:
 - ✅ **API Client Fixes**: Fixed critical API integration bugs
   - Fixed `memberPermissionsApi.getMemberPermissions()` to use `URLSearchParams` for query parameters (was passing object incorrectly)
   - Fixed API endpoint paths to include `/api` prefix in `memberPermissions.ts` and `organizationPermissionPolicy.ts`
-  - Endpoints now correctly route to `/api/admin/permissions/members` and `/api/superadmin/organizations/{orgId}/permission-policy`
+  - Endpoints now correctly route to `/api/admin/permissions/members` and `/api/v1/superadmin/organizations/{orgId}/permission-policy`
+  - SuperAdmin routes now use versioned URLs: `/api/v1/superadmin/organizations/...`
 - ✅ **Documentation Update**: Comprehensive codebase scan and documentation refresh
   - Updated API client count: 27 → 31 files (added organizationPermissionPolicy, memberPermissions, adminAiQuota, adminAIQuotas, superAdminAIQuota, organizations)
   - Updated admin pages count: 8 → 13 pages (added AdminAIQuota, AdminOrganizations, AdminOrganizationDetail, AdminMyOrganization, AdminOrganizationMembers, AdminMemberAIQuotas, AdminMemberPermissions)
@@ -4421,7 +4608,7 @@ Automatically set by Vite:
 
 ---
 
-**Document Version:** 2.14.0  
-**Last Updated:** January 2, 2025  
+**Document Version:** 2.14.3  
+**Last Updated:** January 5, 2025  
 **Maintained By:** Development Team
 
