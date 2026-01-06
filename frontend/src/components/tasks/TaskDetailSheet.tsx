@@ -216,7 +216,6 @@ export function TaskDetailSheet({
       title: localTask.title,
       description: localTask.description,
       priority: localTask.priority,
-      status: localTask.status,
       assigneeId: localTask.assigneeId,
       sprintId: localTask.sprintId,
       dueDate: localTask.dueDate,

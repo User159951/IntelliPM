@@ -117,13 +117,6 @@ export default function NotificationBell() {
       }
       return failureCount < 3;
     },
-    // Disable query if we get a 401 error (token expired)
-    onError: (error: Error) => {
-      if (error.message.includes('Unauthorized') || error.message.includes('401')) {
-        // Query will be disabled automatically when isAuthenticated becomes false
-        // The API client will handle token refresh or redirect to login
-      }
-    },
   });
 
   const unreadCount = unreadData?.unreadCount ?? 0;

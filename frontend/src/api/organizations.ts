@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type { PagedResponse } from './projects';
+import type { UserListDto } from './users';
 
 export interface OrganizationDto {
   id: number;
@@ -86,13 +87,13 @@ export const organizationsApi = {
     return apiClient.get<OrganizationDto>('/api/admin/organization/me');
   },
 
-  getMembers: async (page = 1, pageSize = 20, searchTerm?: string): Promise<PagedResponse<any>> => {
+  getMembers: async (page = 1, pageSize = 20, searchTerm?: string): Promise<PagedResponse<UserListDto>> => {
     const params = new URLSearchParams({
       page: page.toString(),
       pageSize: pageSize.toString(),
     });
     if (searchTerm) params.append('searchTerm', searchTerm);
-    return apiClient.get<PagedResponse<any>>(`/api/admin/organization/members?${params.toString()}`);
+    return apiClient.get<PagedResponse<UserListDto>>(`/api/admin/organization/members?${params.toString()}`);
   },
 
   updateMemberRole: async (userId: number, globalRole: 'User' | 'Admin'): Promise<UpdateUserGlobalRoleResponse> => {

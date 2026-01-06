@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { showToast, showSuccess, showError } from "@/lib/sweetalert";
+import { showToast, showError } from "@/lib/sweetalert";
 import {
   Search,
   Pencil,

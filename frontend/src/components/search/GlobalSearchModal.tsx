@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
-import { searchApi, type SearchResult } from '@/api/search';
+import { searchApi } from '@/api/search';
 import {
   Dialog,
   DialogContent,
@@ -186,7 +186,7 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
                             'w-full text-left px-4 py-3 hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md transition-colors',
                             globalIdx === selectedIndex && 'bg-accent'
                           )}
-                          aria-label={`Navigate to ${result.title || result.name || 'result'}`}
+                          aria-label={`Navigate to ${result.title || 'result'}`}
                         >
                           <div className="flex items-center gap-3">
                             <Icon className="h-4 w-4 text-muted-foreground" />
@@ -240,7 +240,7 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
                             'w-full text-left px-4 py-3 hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md transition-colors',
                             globalIdx === selectedIndex && 'bg-accent'
                           )}
-                          aria-label={`Navigate to ${result.title || result.name || 'result'}`}
+                          aria-label={`Navigate to ${result.title || 'result'}`}
                         >
                           <div className="flex items-center gap-3">
                             <Icon className="h-4 w-4 text-muted-foreground" />
@@ -294,7 +294,7 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
                             'w-full text-left px-4 py-3 hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md transition-colors',
                             globalIdx === selectedIndex && 'bg-accent'
                           )}
-                          aria-label={`Navigate to ${result.title || result.name || 'result'}`}
+                          aria-label={`Navigate to ${result.title || 'result'}`}
                         >
                           <div className="flex items-center gap-3">
                             <Icon className="h-4 w-4 text-muted-foreground" />

@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { organizationsApi } from '@/api/organizations';
 import { usersApi, type UserListDto } from '@/api/users';
-import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,7 +42,6 @@ import { Pagination } from '@/components/ui/pagination';
 
 export default function AdminOrganizationMembers() {
   const queryClient = useQueryClient();
-  const { isSuperAdmin } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleChangeDialog, setRoleChangeDialog] = useState<{

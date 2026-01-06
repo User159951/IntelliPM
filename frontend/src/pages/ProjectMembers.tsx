@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showToast, showSuccess, showError } from "@/lib/sweetalert";
-import { Plus, Loader2, MoreVertical, UserX, ArrowLeft, UserPlus, Trash2 } from 'lucide-react';
+import { Plus, Loader2, MoreVertical, ArrowLeft, UserPlus, Trash2 } from 'lucide-react';
 import { InviteMemberModal } from '@/components/projects/InviteMemberModal';
 import type { ProjectMember, ProjectRole } from '@/types';
 

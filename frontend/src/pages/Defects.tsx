@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Bug, ArrowUpDown, Search, X } from 'lucide-react';
+import { Bug, ArrowUpDown, Search, X } from 'lucide-react';
 import type { Defect, DefectSeverity, DefectStatus, Project } from '@/types';
 import { CreateDefectDialog } from '@/components/defects/CreateDefectDialog';
 import { DefectDetailSheet } from '@/components/defects/DefectDetailSheet';
