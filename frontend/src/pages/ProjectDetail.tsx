@@ -8,6 +8,7 @@ import { sprintsApi } from '@/api/sprints';
 import { tasksApi } from '@/api/tasks';
 import { milestonesApi } from '@/api/milestones';
 import { Button } from '@/components/ui/button';
+import { PermissionButton } from '@/components/ui/permission-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Link } from 'react-router-dom';
 import { showSuccess, showError } from "@/lib/sweetalert";
-import { ArrowLeft, Settings, Play, CheckCircle2, Plus, Pencil, Trash2, Package, Sparkles, GitBranch } from 'lucide-react';
+import { ArrowLeft, Settings, Play, CheckCircle2, Plus, Pencil, Trash2, Package, Sparkles, GitBranch, Archive } from 'lucide-react';
 import { ProjectInsightPanel } from '@/components/agents/ProjectInsightPanel';
 import { RiskDetectionPanel } from '@/components/agents/RiskDetectionPanel';
 import { SprintPlanningAssistant } from '@/components/agents/SprintPlanningAssistant';
@@ -189,9 +190,17 @@ export default function ProjectDetail() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {permissions.canEditProject && (
-                <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit project
+                <DropdownMenuItem asChild>
+                  <PermissionButton
+                    variant="ghost"
+                    hasPermission={permissions.canEditProject}
+                    permissionName="projects.edit"
+                    className="w-full justify-start"
+                    onClick={() => setIsEditDialogOpen(true)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit Project
+                  </PermissionButton>
                 </DropdownMenuItem>
               )}
               {permissions.canEditProject && permissions.canDeleteProject && (
@@ -208,14 +217,19 @@ export default function ProjectDetail() {
               )}
             <DropdownMenuSeparator />
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  Archive project
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
+              <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                <AlertDialogTrigger asChild>
+                  <PermissionButton
+                    hasPermission={permissions.canDeleteProject}
+                    permissionName="projects.delete"
+                    variant="destructive"
+                    className="w-full justify-start text-destructive"
+                  >
+                    <Archive className="mr-2 h-4 w-4" />
+                    Archive Project
+                  </PermissionButton>
+                </AlertDialogTrigger>
+              </DropdownMenuItem>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Archive this project?</AlertDialogTitle>
@@ -405,6 +419,14 @@ export default function ProjectDetail() {
                   List
                 </Button>
               </div>
+              <PermissionButton
+                hasPermission={permissions.canCreateMilestone}
+                permissionName="milestones.create"
+                onClick={() => setIsCreateMilestoneDialogOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Milestone
+              </PermissionButton>
             </div>
             {milestoneView === 'timeline' ? (
               <MilestoneTimeline

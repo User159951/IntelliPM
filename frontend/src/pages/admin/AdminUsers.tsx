@@ -36,6 +36,7 @@ import {
   ArrowDown,
   Eye,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditUserDialog } from '@/components/admin/EditUserDialog';
 import { DeleteUserDialog } from '@/components/admin/DeleteUserDialog';
 import { InviteUserDialog } from '@/components/admin/InviteUserDialog';
@@ -287,24 +288,50 @@ export default function AdminUsers() {
             <span className="text-sm font-medium">
               {selectedUsers.size} user(s) selected
             </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleBulkActivate}
-              disabled={bulkStatusMutation.isPending}
-            >
-              {bulkStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Activate
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleBulkDeactivate}
-              disabled={bulkStatusMutation.isPending}
-            >
-              {bulkStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Deactivate
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkActivate}
+                      disabled={selectedUsers.size === 0 || bulkStatusMutation.isPending}
+                    >
+                      {bulkStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {bulkStatusMutation.isPending ? 'Processing...' : 'Activate'}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {selectedUsers.size === 0 && (
+                  <TooltipContent>
+                    <p>Select at least one user to activate</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkDeactivate}
+                      disabled={selectedUsers.size === 0 || bulkStatusMutation.isPending}
+                    >
+                      {bulkStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {bulkStatusMutation.isPending ? 'Processing...' : 'Deactivate'}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {selectedUsers.size === 0 && (
+                  <TooltipContent>
+                    <p>Select at least one user to deactivate</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
             <Button
               size="sm"
               variant="ghost"
@@ -452,24 +479,44 @@ export default function AdminUsers() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingUser(user)}
-                          disabled={!user.isActive}
-                          title="Edit user"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingUser(user)}
-                          disabled={!user.isActive}
-                          title="Désactiver l'utilisateur"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEditingUser(user)}
+                                disabled={!user.isActive}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {!user.isActive && (
+                            <TooltipContent>
+                              <p>Cannot edit inactive user. Activate user first.</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeletingUser(user)}
+                                disabled={!user.isActive}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {!user.isActive && (
+                            <TooltipContent>
+                              <p>Cannot delete inactive user</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>

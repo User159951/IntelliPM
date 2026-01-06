@@ -13,7 +13,6 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
 } from '@/components/ui/command';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -100,13 +99,6 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, results, selectedIndex, navigate, onOpenChange]);
 
-  const handleResultClick = (result: SearchResult) => {
-    if (result.url) {
-      navigate(result.url);
-      onOpenChange(false);
-    }
-  };
-
   const highlightText = (text: string, query: string): React.ReactNode => {
     if (!query) return text;
     // Escape special regex characters
@@ -172,32 +164,49 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
                       const globalIdx = results.indexOf(result);
                       const Icon = getResultIcon(result.type);
                       return (
-                        <CommandItem
+                        <button
                           key={`project-${result.id}`}
-                          value={`${result.title} ${result.description || ''}`}
-                          onSelect={() => handleResultClick(result)}
+                          type="button"
+                          onClick={() => {
+                            if (result.url) {
+                              navigate(result.url);
+                              onOpenChange(false);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              if (result.url) {
+                                navigate(result.url);
+                                onOpenChange(false);
+                              }
+                            }
+                          }}
                           className={cn(
-                            'flex items-center gap-3 cursor-pointer',
+                            'w-full text-left px-4 py-3 hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md transition-colors',
                             globalIdx === selectedIndex && 'bg-accent'
                           )}
+                          aria-label={`Navigate to ${result.title || result.name || 'result'}`}
                         >
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          <div className="flex-1">
-                            <div className="font-medium">
-                              {highlightText(result.title, debouncedQuery)}
+                          <div className="flex items-center gap-3">
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex-1">
+                              <div className="font-medium">
+                                {highlightText(result.title, debouncedQuery)}
+                              </div>
+                              {result.description && (
+                                <div className="text-xs text-muted-foreground line-clamp-1">
+                                  {highlightText(result.description, debouncedQuery)}
+                                </div>
+                              )}
+                              {result.subtitle && (
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {result.subtitle}
+                                </div>
+                              )}
                             </div>
-                            {result.description && (
-                              <div className="text-xs text-muted-foreground line-clamp-1">
-                                {highlightText(result.description, debouncedQuery)}
-                              </div>
-                            )}
-                            {result.subtitle && (
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {result.subtitle}
-                              </div>
-                            )}
                           </div>
-                        </CommandItem>
+                        </button>
                       );
                     })}
                   </CommandGroup>
@@ -209,32 +218,49 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
                       const globalIdx = results.indexOf(result);
                       const Icon = getResultIcon(result.type);
                       return (
-                        <CommandItem
+                        <button
                           key={`task-${result.id}`}
-                          value={`${result.title} ${result.description || ''}`}
-                          onSelect={() => handleResultClick(result)}
+                          type="button"
+                          onClick={() => {
+                            if (result.url) {
+                              navigate(result.url);
+                              onOpenChange(false);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              if (result.url) {
+                                navigate(result.url);
+                                onOpenChange(false);
+                              }
+                            }
+                          }}
                           className={cn(
-                            'flex items-center gap-3 cursor-pointer',
+                            'w-full text-left px-4 py-3 hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md transition-colors',
                             globalIdx === selectedIndex && 'bg-accent'
                           )}
+                          aria-label={`Navigate to ${result.title || result.name || 'result'}`}
                         >
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          <div className="flex-1">
-                            <div className="font-medium">
-                              {highlightText(result.title, debouncedQuery)}
+                          <div className="flex items-center gap-3">
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex-1">
+                              <div className="font-medium">
+                                {highlightText(result.title, debouncedQuery)}
+                              </div>
+                              {result.description && (
+                                <div className="text-xs text-muted-foreground line-clamp-1">
+                                  {highlightText(result.description, debouncedQuery)}
+                                </div>
+                              )}
+                              {result.subtitle && (
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {result.subtitle}
+                                </div>
+                              )}
                             </div>
-                            {result.description && (
-                              <div className="text-xs text-muted-foreground line-clamp-1">
-                                {highlightText(result.description, debouncedQuery)}
-                              </div>
-                            )}
-                            {result.subtitle && (
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {result.subtitle}
-                              </div>
-                            )}
                           </div>
-                        </CommandItem>
+                        </button>
                       );
                     })}
                   </CommandGroup>
@@ -246,32 +272,49 @@ export function GlobalSearchModal({ open, onOpenChange }: GlobalSearchModalProps
                       const globalIdx = results.indexOf(result);
                       const Icon = getResultIcon(result.type);
                       return (
-                        <CommandItem
+                        <button
                           key={`user-${result.id}`}
-                          value={`${result.title} ${result.description || ''}`}
-                          onSelect={() => handleResultClick(result)}
+                          type="button"
+                          onClick={() => {
+                            if (result.url) {
+                              navigate(result.url);
+                              onOpenChange(false);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              if (result.url) {
+                                navigate(result.url);
+                                onOpenChange(false);
+                              }
+                            }
+                          }}
                           className={cn(
-                            'flex items-center gap-3 cursor-pointer',
+                            'w-full text-left px-4 py-3 hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md transition-colors',
                             globalIdx === selectedIndex && 'bg-accent'
                           )}
+                          aria-label={`Navigate to ${result.title || result.name || 'result'}`}
                         >
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          <div className="flex-1">
-                            <div className="font-medium">
-                              {highlightText(result.title, debouncedQuery)}
+                          <div className="flex items-center gap-3">
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex-1">
+                              <div className="font-medium">
+                                {highlightText(result.title, debouncedQuery)}
+                              </div>
+                              {result.description && (
+                                <div className="text-xs text-muted-foreground">
+                                  {result.description}
+                                </div>
+                              )}
+                              {result.subtitle && (
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {result.subtitle}
+                                </div>
+                              )}
                             </div>
-                            {result.description && (
-                              <div className="text-xs text-muted-foreground">
-                                {result.description}
-                              </div>
-                            )}
-                            {result.subtitle && (
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {result.subtitle}
-                              </div>
-                            )}
                           </div>
-                        </CommandItem>
+                        </button>
                       );
                     })}
                   </CommandGroup>

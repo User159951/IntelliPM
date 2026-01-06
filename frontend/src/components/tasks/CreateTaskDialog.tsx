@@ -55,6 +55,7 @@ import {
 import type { CreateTaskRequest, TaskPriority } from '@/types';
 import { cn } from '@/lib/utils';
 import { AITaskImproverDialog, type ImprovedTask } from './AITaskImproverDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -355,17 +356,29 @@ export function CreateTaskDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="description">Description</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAiImproverOpen(true)}
-                  className="h-8 text-xs"
-                  disabled={!formData.title.trim() && !formData.description.trim()}
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  Améliorer avec IA
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAiImproverOpen(true)}
+                          disabled={!formData.title?.trim() || !formData.description?.trim()}
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Improve with AI
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {(!formData.title?.trim() || !formData.description?.trim()) && (
+                      <TooltipContent>
+                        <p>Add a title and description to use AI improvements</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <Textarea
                 id="description"

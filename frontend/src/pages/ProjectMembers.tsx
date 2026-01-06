@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { projectsApi } from '@/api/projects';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { PermissionButton } from '@/components/ui/permission-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showToast, showSuccess, showError } from "@/lib/sweetalert";
-import { Plus, Loader2, MoreVertical, UserX, ArrowLeft } from 'lucide-react';
+import { Plus, Loader2, MoreVertical, UserX, ArrowLeft, UserPlus, Trash2 } from 'lucide-react';
 import { InviteMemberModal } from '@/components/projects/InviteMemberModal';
 import type { ProjectMember, ProjectRole } from '@/types';
 
@@ -197,12 +198,14 @@ export default function ProjectMembers() {
             </p>
           </div>
         </div>
-        {canInviteMembers && (
-          <Button onClick={() => setIsInviteModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Invite Member
-          </Button>
-        )}
+        <PermissionButton
+          hasPermission={canInviteMembers}
+          permissionName="members.invite"
+          onClick={() => setIsInviteModalOpen(true)}
+        >
+          <UserPlus className="mr-2 h-4 w-4" />
+          Invite Member
+        </PermissionButton>
       </div>
 
       {isLoading ? (
@@ -324,15 +327,18 @@ export default function ProjectMembers() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  setMemberToRemove(member);
-                                }}
-                              >
-                                <UserX className="mr-2 h-4 w-4" />
-                                Remove
+                              <DropdownMenuItem asChild>
+                                <PermissionButton
+                                  variant="ghost"
+                                  hasPermission={canRemoveMembers && member.role !== 'ProductOwner'}
+                                  permissionName="members.remove"
+                                  disabledReason={member.role === 'ProductOwner' ? 'Cannot remove Product Owner' : undefined}
+                                  className="w-full justify-start text-destructive"
+                                  onClick={() => setMemberToRemove(member)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Remove Member
+                                </PermissionButton>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

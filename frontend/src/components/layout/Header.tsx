@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from '@/components/notifications/NotificationBell';
@@ -39,24 +38,16 @@ export function Header({ onSearchClick }: HeaderProps) {
       <SidebarTrigger />
       
       <div className="flex flex-1 items-center gap-4">
-        <div className="relative hidden w-full max-w-sm md:flex">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="global-search"
-            name="global-search"
-            type="search"
-            autoComplete="off"
-            placeholder="Search projects, tasks..."
-            className="pl-9 bg-background cursor-pointer"
-            readOnly
+        <div className="hidden w-full max-w-sm md:flex">
+          <button
+            type="button"
             onClick={onSearchClick}
-            onFocus={(e) => {
-              e.target.blur();
-              onSearchClick?.();
-            }}
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground">
-            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+            className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
+            aria-label="Open global search"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="flex-1 text-left">Search projects, tasks...</span>
+            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
               {navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? (
                 <>
                   <span className="text-xs">⌘</span>K
@@ -67,7 +58,7 @@ export function Header({ onSearchClick }: HeaderProps) {
                 </>
               )}
             </kbd>
-          </div>
+          </button>
         </div>
       </div>
 

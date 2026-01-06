@@ -16,6 +16,7 @@ import { CreateDefectDialog } from '@/components/defects/CreateDefectDialog';
 import { DefectDetailSheet } from '@/components/defects/DefectDetailSheet';
 import { useDebounce } from '@/hooks/use-debounce';
 import { format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const severityColors: Record<DefectSeverity, string> = {
   Low: 'bg-green-500/10 text-green-500 border-green-500/20',
@@ -149,10 +150,23 @@ export default function Defects() {
               ))}
             </SelectContent>
           </Select>
-          <Button disabled={!projectId} onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Report Defect
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button disabled={!projectId} onClick={() => setIsCreateDialogOpen(true)}>
+                    <Bug className="mr-2 h-4 w-4" />
+                    Report Defect
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!projectId && (
+                <TooltipContent>
+                  <p>Select a project first to report a defect</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 

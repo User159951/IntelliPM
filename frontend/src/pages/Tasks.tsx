@@ -4,6 +4,7 @@ import { tasksApi } from '@/api/tasks';
 import { projectsApi } from '@/api/projects';
 import { sprintsApi } from '@/api/sprints';
 import { Button } from '@/components/ui/button';
+import { PermissionButton } from '@/components/ui/permission-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -368,12 +369,16 @@ export default function Tasks() {
               ))}
             </SelectContent>
           </Select>
-          {permissions.canCreateTasks && (
-            <Button disabled={!projectId} onClick={() => setIsDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Task
-            </Button>
-          )}
+          <PermissionButton
+            hasPermission={permissions.canCreateTasks}
+            permissionName="tasks.create"
+            disabled={!projectId}
+            disabledReason={!projectId ? 'Select a project first' : undefined}
+            onClick={() => setIsDialogOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Task
+          </PermissionButton>
           {projectId && (
             <CreateTaskDialog
               open={isDialogOpen}

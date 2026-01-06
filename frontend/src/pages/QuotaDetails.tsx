@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, RefreshCw } from 'lucide-react';
 import { aiGovernanceApi } from '@/api/aiGovernance';
 import { cn } from '@/lib/utils';
 
@@ -32,12 +33,26 @@ function getTierBadgeClass(tierName: string): string {
 
 export default function QuotaDetails() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: quotaStatus, isLoading, error } = useQuery({
     queryKey: ['ai-quota-status'],
     queryFn: () => aiGovernanceApi.getQuotaStatus(),
     refetchInterval: 60000, // Rafraîchir toutes les minutes
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['ai-quota'] });
+      await queryClient.invalidateQueries({ queryKey: ['quota-status'] });
+      await queryClient.invalidateQueries({ queryKey: ['user-quota'] });
+      await queryClient.invalidateQueries({ queryKey: ['ai-quota-status'] });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -61,10 +76,14 @@ export default function QuotaDetails() {
                 Impossible de charger les détails du quota AI.
               </p>
               <Button 
-                onClick={() => window.location.reload()} 
+                variant="ghost"
+                size="icon"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                aria-label="Refresh quota data"
                 className="mt-4"
               >
-                Réessayer
+                <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
               </Button>
             </div>
           </CardContent>

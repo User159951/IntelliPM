@@ -129,13 +129,6 @@ export default function ProjectCard({
     navigate(`/projects/${normalizedProject.id}`);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleCardClick();
-    }
-  };
-
   const handleActionClick = (e: React.MouseEvent, action: 'edit' | 'delete' | 'view') => {
     e.stopPropagation();
     if (action === 'edit' && onEdit) {
@@ -184,46 +177,54 @@ export default function ProjectCard({
     return (
       <Card
         className={cn(
-          'cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]',
+          'transition-all hover:shadow-md hover:scale-[1.02]',
           className
         )}
-        onClick={handleCardClick}
-        onKeyDown={handleKeyDown}
-        role="button"
-        tabIndex={0}
-        aria-label={`View project ${normalizedProject.name}`}
       >
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-base truncate" title={normalizedProject.name}>
-                {normalizedProject.name}
-              </CardTitle>
+        <button
+          type="button"
+          onClick={handleCardClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCardClick();
+            }
+          }}
+          className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg transition-all hover:shadow-md"
+          aria-label={`View project ${normalizedProject.name}`}
+        >
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-base truncate" title={normalizedProject.name}>
+                  {normalizedProject.name}
+                </CardTitle>
+              </div>
+              <Badge
+                variant="outline"
+                className={cn('text-xs flex-shrink-0', statusColors[normalizedProject.status])}
+              >
+                {normalizedProject.status}
+              </Badge>
             </div>
-            <Badge
-              variant="outline"
-              className={cn('text-xs flex-shrink-0', statusColors[normalizedProject.status])}
-            >
-              {normalizedProject.status}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            {normalizedProject.memberCount !== undefined && (
-              <div className="flex items-center gap-1.5">
-                <Users className="h-4 w-4" />
-                <span>{normalizedProject.memberCount}</span>
-              </div>
-            )}
-            {normalizedProject.taskCount !== undefined && (
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>{normalizedProject.completedTaskCount || 0}/{normalizedProject.taskCount}</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              {normalizedProject.memberCount !== undefined && (
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4" />
+                  <span>{normalizedProject.memberCount}</span>
+                </div>
+              )}
+              {normalizedProject.taskCount !== undefined && (
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>{normalizedProject.completedTaskCount || 0}/{normalizedProject.taskCount}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </button>
       </Card>
     );
   }
@@ -232,102 +233,110 @@ export default function ProjectCard({
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02]',
+        'transition-all duration-200 hover:shadow-lg hover:scale-[1.02]',
         className
       )}
-      onClick={handleCardClick}
-      onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
-      aria-label={`View project ${normalizedProject.name}`}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="rounded-lg bg-primary/10 p-1.5">
-                <TypeIcon className="h-4 w-4 text-primary" />
+      <button
+        type="button"
+        onClick={handleCardClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
+        className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg transition-all hover:shadow-md"
+        aria-label={`View project ${normalizedProject.name}`}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="rounded-lg bg-primary/10 p-1.5">
+                  <TypeIcon className="h-4 w-4 text-primary" />
+                </div>
+                <CardTitle className="text-lg truncate" title={normalizedProject.name}>
+                  {normalizedProject.name}
+                </CardTitle>
               </div>
-              <CardTitle className="text-lg truncate" title={normalizedProject.name}>
-                {normalizedProject.name}
-              </CardTitle>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className={cn('text-xs', statusColors[normalizedProject.status])}>
-                {normalizedProject.status}
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                {normalizedProject.type}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Description */}
-        {normalizedProject.description && (
-          <CardDescription className="line-clamp-2 text-sm">
-            {normalizedProject.description}
-          </CardDescription>
-        )}
-
-        {/* Metrics */}
-        <div className="space-y-3">
-          {/* Member count */}
-          {normalizedProject.memberCount !== undefined && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>{normalizedProject.memberCount} member{normalizedProject.memberCount !== 1 ? 's' : ''}</span>
-            </div>
-          )}
-
-          {/* Task progress */}
-          {normalizedProject.taskCount !== undefined && normalizedProject.taskCount > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Tasks</span>
-                <span className="font-medium">
-                  {normalizedProject.completedTaskCount || 0}/{normalizedProject.taskCount} ({progressPercentage}%)
-                </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={cn('text-xs', statusColors[normalizedProject.status])}>
+                  {normalizedProject.status}
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  {normalizedProject.type}
+                </Badge>
               </div>
-              <Progress value={progressPercentage} className="h-2" />
             </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Description */}
+          {normalizedProject.description && (
+            <CardDescription className="line-clamp-2 text-sm">
+              {normalizedProject.description}
+            </CardDescription>
           )}
 
-          {/* Current sprint */}
-          {normalizedProject.currentSprint && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span className="truncate">{normalizedProject.currentSprint.name}</span>
+          {/* Metrics */}
+          <div className="space-y-3">
+            {/* Member count */}
+            {normalizedProject.memberCount !== undefined && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="h-4 w-4" />
+                <span>{normalizedProject.memberCount} member{normalizedProject.memberCount !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+
+            {/* Task progress */}
+            {normalizedProject.taskCount !== undefined && normalizedProject.taskCount > 0 && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Tasks</span>
+                  <span className="font-medium">
+                    {normalizedProject.completedTaskCount || 0}/{normalizedProject.taskCount} ({progressPercentage}%)
+                  </span>
+                </div>
+                <Progress value={progressPercentage} className="h-2" />
+              </div>
+            )}
+
+            {/* Current sprint */}
+            {normalizedProject.currentSprint && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span className="truncate">{normalizedProject.currentSprint.name}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Owner info */}
+          <div className="flex items-center gap-2 pt-2 border-t">
+            <Avatar className="h-6 w-6">
+              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                {getOwnerInitials()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground truncate">
+                {normalizedProject.ownerName || 'Project Owner'}
+              </p>
+            </div>
+          </div>
+
+          {/* Last updated */}
+          {normalizedProject.updatedAt && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>
+                Updated {formatDistanceToNow(new Date(normalizedProject.updatedAt), { addSuffix: true })}
+              </span>
             </div>
           )}
-        </div>
-
-        {/* Owner info */}
-        <div className="flex items-center gap-2 pt-2 border-t">
-          <Avatar className="h-6 w-6">
-            <AvatarFallback className="text-xs bg-primary/10 text-primary">
-              {getOwnerInitials()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">
-              {normalizedProject.ownerName || 'Project Owner'}
-            </p>
-          </div>
-        </div>
-
-        {/* Last updated */}
-        {normalizedProject.updatedAt && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            <span>
-              Updated {formatDistanceToNow(new Date(normalizedProject.updatedAt), { addSuffix: true })}
-            </span>
-          </div>
-        )}
-      </CardContent>
+        </CardContent>
+      </button>
 
       {/* Footer with actions */}
       {showActions && (

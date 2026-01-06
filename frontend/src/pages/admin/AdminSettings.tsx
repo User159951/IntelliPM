@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { settingsApi } from '@/api/settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,6 +57,7 @@ type EmailFormState = {
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Category>(CATEGORIES.General);
   const [testEmailAddress, setTestEmailAddress] = useState<string>('');
@@ -901,11 +903,11 @@ export default function AdminSettings() {
               <div className="text-center py-8 text-muted-foreground">
                 <p>Use the Feature Flags page to manage feature flags.</p>
                 <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => window.location.href = '/admin/feature-flags'}
+                  variant="link"
+                  className="p-0 h-auto mt-4"
+                  onClick={() => navigate('/admin/feature-flags')}
                 >
-                  Go to Feature Flags
+                  Feature Flags
                 </Button>
               </div>
             </CardContent>

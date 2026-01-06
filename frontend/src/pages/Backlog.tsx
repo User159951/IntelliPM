@@ -559,40 +559,56 @@ export default function Backlog() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className={cn(
-                                'cursor-grab active:cursor-grabbing transition-all border-l-4',
+                                'bg-card rounded-lg border mb-2 shadow-sm transition-all border-l-4',
                                 priorityColors[task.priority] || priorityColors.Medium,
-                                snapshot.isDragging && 'shadow-lg rotate-1 opacity-90',
+                                snapshot.isDragging && 'shadow-lg rotate-2 opacity-90',
                                 draggingTaskId === task.id && 'ring-2 ring-primary'
                               )}
                             >
                               <CardContent className="p-4">
-                                <div className="flex items-start gap-3">
-                                  <div {...provided.dragHandleProps} className="mt-1">
-                                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h3 className="font-medium text-sm truncate">{task.title}</h3>
-                                    {task.description && (
-                                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                        {task.description}
-                                      </p>
-                                    )}
-                                    <div className="flex items-center gap-2 mt-2">
-                                      <Badge variant="outline" className="text-xs">
-                                        {task.priority}
-                                      </Badge>
-                                      {task.storyPoints && (
-                                        <Badge variant="secondary" className="text-xs">
-                                          {task.storyPoints} pts
-                                        </Badge>
+                                <div className="flex items-start gap-2">
+                                  {/* Explicit drag handle */}
+                                  <button
+                                    type="button"
+                                    {...provided.dragHandleProps}
+                                    className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded p-0.5 transition-colors"
+                                    aria-label="Drag to reorder task"
+                                    onClick={(e) => e.stopPropagation()}
+                                    tabIndex={0}
+                                  >
+                                    <GripVertical className="h-4 w-4" />
+                                  </button>
+                                  
+                                  {/* Clickable card content */}
+                                  <button
+                                    type="button"
+                                    className="flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                                    tabIndex={0}
+                                  >
+                                    <div className="min-w-0">
+                                      <h3 className="font-medium text-sm truncate">{task.title}</h3>
+                                      {task.description && (
+                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                          {task.description}
+                                        </p>
                                       )}
-                                      {task.assigneeName && (
+                                      <div className="flex items-center gap-2 mt-2">
                                         <Badge variant="outline" className="text-xs">
-                                          {task.assigneeName}
+                                          {task.priority}
                                         </Badge>
-                                      )}
+                                        {task.storyPoints && (
+                                          <Badge variant="secondary" className="text-xs">
+                                            {task.storyPoints} pts
+                                          </Badge>
+                                        )}
+                                        {task.assigneeName && (
+                                          <Badge variant="outline" className="text-xs">
+                                            {task.assigneeName}
+                                          </Badge>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
+                                  </button>
                                 </div>
                               </CardContent>
                             </Card>

@@ -278,7 +278,15 @@ export default function TaskBoard({
           </div>
         )}
 
-        <DragDropContext onDragEnd={handleDragEnd}>
+        <DragDropContext
+          onDragEnd={handleDragEnd}
+          onBeforeDragStart={() => {
+            if (window.innerWidth < 768) {
+              // Drag is already disabled via isDragDisabled prop, but this provides additional check
+              return;
+            }
+          }}
+        >
           <div
             className={cn(
               'flex flex-col md:flex-row gap-4 h-full min-h-[600px]',
@@ -497,101 +505,114 @@ function TaskCard({ task, index, onClick, isDragDisabled, blockingInfo }: TaskCa
           ref={provided.innerRef}
           {...provided.draggableProps}
           className={cn(
-            'cursor-pointer transition-all hover:shadow-md border-l-4',
+            'bg-card rounded-lg border mb-2 shadow-sm transition-all border-l-4',
             priorityColors[task.priority],
             isBlocked && 'border-l-red-500 border-l-4',
-            snapshot.isDragging && 'shadow-lg rotate-1 opacity-90'
+            snapshot.isDragging && 'shadow-lg rotate-2 opacity-90'
           )}
-          onClick={() => onClick?.(task.id)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onClick?.(task.id);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label={`Task: ${task.title}. Priority: ${task.priority}. ${assignee ? `Assigned to ${assignee.name}` : 'Unassigned'}. ${overdue ? 'Overdue' : ''}. ${isBlocked ? 'Blocked' : ''}`}
           data-task-id={task.id}
           data-task-status={task.status}
           data-task-priority={task.priority}
         >
-          <CardContent className="p-3 space-y-2">
-            {/* Drag handle */}
-            <div
-              {...provided.dragHandleProps}
-              className="flex items-start gap-2"
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0 cursor-grab active:cursor-grabbing" />
-              <div className="flex-1 min-w-0">
-                {/* Title with Blocked Badge */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="text-sm font-medium line-clamp-2 leading-tight flex-1 min-w-0">
-                    {task.title}
-                  </h4>
-                  {isBlocked && blockingInfo && (
-                    <BlockedBadge
-                      blockedByCount={blockingInfo.blockedByCount}
-                      blockingTasks={blockingInfo.blockingTasks}
-                      variant="sm"
-                    />
-                  )}
-                </div>
-
-                {/* Description */}
-                {task.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                    {task.description}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Footer: Assignee, Story Points, Due Date */}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="flex items-center gap-2">
-                {assignee ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                          {assignee.initials}
-                        </AvatarFallback>
-                      </Avatar>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{assignee.name}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <div className="h-6 w-6 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-                    <User className="h-3 w-3 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* Story Points */}
-                {task.storyPoints && (
-                  <Badge variant="outline" className="text-xs">
-                    {task.storyPoints} SP
-                  </Badge>
-                )}
-
-                {/* Due Date */}
-                {task.dueDate && (
-                  <div
-                    className={cn(
-                      'flex items-center gap-1 text-xs',
-                      overdue ? 'text-red-500' : 'text-muted-foreground'
+          <CardContent className="p-3">
+            <div className="flex items-start gap-2">
+              {/* Explicit drag handle */}
+              <button
+                type="button"
+                {...provided.dragHandleProps}
+                className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded p-0.5 transition-colors"
+                aria-label="Drag to reorder task"
+                onClick={(e) => e.stopPropagation()}
+                tabIndex={0}
+              >
+                <GripVertical className="h-4 w-4" />
+              </button>
+              
+              {/* Clickable card content */}
+              <button
+                type="button"
+                onClick={() => onClick?.(task.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick?.(task.id);
+                  }
+                }}
+                className="flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                role="button"
+                tabIndex={0}
+                aria-label={`Task: ${task.title}. Priority: ${task.priority}. ${assignee ? `Assigned to ${assignee.name}` : 'Unassigned'}. ${overdue ? 'Overdue' : ''}. ${isBlocked ? 'Blocked' : ''}`}
+              >
+                <div className="space-y-2">
+                  {/* Title with Blocked Badge */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-medium line-clamp-2 leading-tight flex-1 min-w-0">
+                      {task.title}
+                    </h4>
+                    {isBlocked && blockingInfo && (
+                      <BlockedBadge
+                        blockedByCount={blockingInfo.blockedByCount}
+                        blockingTasks={blockingInfo.blockingTasks}
+                        variant="sm"
+                      />
                     )}
-                    title={overdue ? 'Overdue' : `Due ${formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}`}
-                  >
-                    {overdue && <AlertCircle className="h-3 w-3" />}
-                    <Clock className="h-3 w-3" />
                   </div>
-                )}
-              </div>
+
+                  {/* Description */}
+                  {task.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                      {task.description}
+                    </p>
+                  )}
+
+                  {/* Footer: Assignee, Story Points, Due Date */}
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      {assignee ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                {assignee.initials}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{assignee.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <div className="h-6 w-6 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* Story Points */}
+                      {task.storyPoints && (
+                        <Badge variant="outline" className="text-xs">
+                          {task.storyPoints} SP
+                        </Badge>
+                      )}
+
+                      {/* Due Date */}
+                      {task.dueDate && (
+                        <div
+                          className={cn(
+                            'flex items-center gap-1 text-xs',
+                            overdue ? 'text-red-500' : 'text-muted-foreground'
+                          )}
+                          title={overdue ? 'Overdue' : `Due ${formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}`}
+                        >
+                          {overdue && <AlertCircle className="h-3 w-3" />}
+                          <Clock className="h-3 w-3" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </button>
             </div>
           </CardContent>
         </Card>

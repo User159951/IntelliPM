@@ -4,6 +4,7 @@ import { sprintsApi } from '@/api/sprints';
 import { projectsApi } from '@/api/projects';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
 import { Button } from '@/components/ui/button';
+import { PermissionButton } from '@/components/ui/permission-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -134,10 +135,14 @@ export default function Sprints() {
           {permissions.canManageSprints && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button disabled={!projectId}>
+                <PermissionButton
+                  hasPermission={permissions.canManageSprints && !!projectId}
+                  permissionName="sprints.manage"
+                  disabledReason={!projectId ? 'Select a project first' : undefined}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Create Sprint
-                </Button>
+                </PermissionButton>
               </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <form onSubmit={handleSubmit}>

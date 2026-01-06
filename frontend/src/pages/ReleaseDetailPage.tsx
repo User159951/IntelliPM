@@ -55,6 +55,7 @@ import { ReleaseNotesViewer } from '@/components/releases/ReleaseNotesViewer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SprintCardProps {
   sprint: ReleaseSprintDto;
@@ -212,6 +213,28 @@ export default function ReleaseDetailPage() {
     );
   }, [release]);
 
+  const missingRequirements = useMemo(() => {
+    if (!release || canDeploy) return [];
+    const missing: string[] = [];
+    if (release.status !== 'ReadyForDeployment') {
+      missing.push('Release must be in ReadyForDeployment status');
+    }
+    if (release.overallQualityStatus !== 'Passed') {
+      missing.push('All quality gates must pass');
+      if (release.qualityGates) {
+        const failedGates = release.qualityGates.filter(
+          (gate) => gate.isRequired && gate.status !== 'Passed'
+        );
+        failedGates.forEach((gate) => {
+          if (gate.message) {
+            missing.push(gate.message);
+          }
+        });
+      }
+    }
+    return missing;
+  }, [release, canDeploy]);
+
   const handleDelete = async () => {
     try {
       await releasesApi.deleteRelease(Number(releaseId));
@@ -344,12 +367,34 @@ export default function ReleaseDetailPage() {
                     Edit
                   </Button>
 
-                  {canDeploy && (
-                    <Button size="sm" onClick={() => setIsDeployOpen(true)}>
-                      <Rocket className="h-4 w-4 mr-2" />
-                      Deploy
-                    </Button>
-                  )}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button
+                            size="sm"
+                            disabled={!canDeploy}
+                            onClick={() => setIsDeployOpen(true)}
+                          >
+                            <Rocket className="h-4 w-4 mr-2" />
+                            Deploy Release
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {!canDeploy && (
+                        <TooltipContent>
+                          <p>Release cannot be deployed</p>
+                          {missingRequirements.length > 0 && (
+                            <ul className="mt-2 text-xs list-disc pl-4">
+                              {missingRequirements.map((req, i) => (
+                                <li key={i}>{req}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
 
                   <Button
                     variant="destructive"

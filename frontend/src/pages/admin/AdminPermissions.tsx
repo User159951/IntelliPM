@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { permissionsApi, type PermissionsMatrixDto, type PermissionDto } from '@/api/permissions';
 import { GlobalRole } from '@/types';
@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { showError, showSuccess } from "@/lib/sweetalert";
+import { showError, showSuccess, showWarning } from "@/lib/sweetalert";
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -77,14 +77,12 @@ export default function AdminPermissions() {
       if (context?.prev) {
         queryClient.setQueryData(['permissions-matrix'], context.prev);
       }
-      showError('Failed to save permissions');
+      // Don't close dialog on error - let confirmSave handle it
     },
     onSuccess: () => {
       showSuccess("Permissions updated", "Role permissions have been saved.");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions-matrix'] });
       setConfirmOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['permissions-matrix'] });
     },
   });
 
@@ -103,10 +101,26 @@ export default function AdminPermissions() {
     setConfirmOpen(true);
   };
 
-  const confirmSave = () => {
-    if (!pendingPayload) return;
-    mutation.mutate(pendingPayload);
-  };
+  const confirmSave = useCallback(async () => {
+    if (!pendingPayload) {
+      showWarning('No changes to save');
+      return;
+    }
+    
+    if (mutation.isPending) {
+      return; // Prevent double-click
+    }
+
+    try {
+      await mutation.mutateAsync(pendingPayload);
+      // Success handled in mutation.onSuccess
+    } catch (error) {
+      console.error('Failed to update permissions:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update permissions';
+      showError('Failed to update permissions', errorMessage);
+      // Don't close dialog on error - it stays open
+    }
+  }, [pendingPayload, mutation]);
 
   if (isLoading || !rolePermissions || !data) {
     return (
@@ -199,9 +213,9 @@ export default function AdminPermissions() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSave} disabled={mutation.isPending}>
+            <AlertDialogAction onClick={confirmSave} disabled={mutation.isPending || !pendingPayload}>
               {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save
+              {mutation.isPending ? 'Saving...' : 'Confirm Save'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

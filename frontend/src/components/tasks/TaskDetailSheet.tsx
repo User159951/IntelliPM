@@ -21,6 +21,7 @@ import { apiClient } from '@/api/client';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import BlockedBadge from './BlockedBadge';
 import { TaskImproverDialog } from './TaskImproverDialog';
+import { PermissionButton } from '@/components/ui/permission-button';
 import {
   Plus,
   Trash2,
@@ -32,6 +33,7 @@ import {
   Loader2,
   AlertCircle,
   Sparkles,
+  Pencil,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -66,6 +68,7 @@ export function TaskDetailSheet({
   const [newCriterion, setNewCriterion] = useState('');
   const [newComment, setNewComment] = useState('');
   const [isImproverDialogOpen, setIsImproverDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Load full task data when opened
   const { data: fullTask } = useQuery({
@@ -190,6 +193,38 @@ export function TaskDetailSheet({
     },
   });
 
+  const saveMutation = useMutation({
+    mutationFn: async (updates: UpdateTaskRequest) => {
+      if (!localTask) throw new Error('No task selected');
+      return tasksApi.update(localTask.id, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', localTask!.id] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      onTaskUpdated?.();
+      setIsEditing(false);
+      showSuccess("Changes saved");
+    },
+    onError: () => {
+      showError('Failed to save changes');
+    },
+  });
+
+  const handleSaveChanges = () => {
+    if (!localTask) return;
+    const updates: UpdateTaskRequest = {
+      title: localTask.title,
+      description: localTask.description,
+      priority: localTask.priority,
+      status: localTask.status,
+      assigneeId: localTask.assigneeId,
+      sprintId: localTask.sprintId,
+      dueDate: localTask.dueDate,
+      acceptanceCriteria,
+    };
+    saveMutation.mutate(updates);
+  };
+
   const handleAddCriterion = () => {
     if (!newCriterion.trim()) return;
     const updated = [...acceptanceCriteria, newCriterion.trim()];
@@ -256,13 +291,24 @@ export function TaskDetailSheet({
                   />
                 )}
               </div>
-              <Input
-                value={localTask.title}
-                onChange={(e) => handleFieldChange('title', e.target.value)}
-                className="text-xl font-bold border-none p-0 h-auto focus-visible:ring-0"
-                placeholder="Task title"
-                disabled={permissions.isViewer}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  value={localTask.title}
+                  onChange={(e) => handleFieldChange('title', e.target.value)}
+                  className="text-xl font-bold border-none p-0 h-auto focus-visible:ring-0"
+                  placeholder="Task title"
+                  disabled={permissions.isViewer}
+                />
+                <PermissionButton
+                  hasPermission={!permissions.isViewer}
+                  disabledReason="You have view-only access to this task"
+                  onClick={() => setIsEditing(true)}
+                  variant="outline"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </PermissionButton>
+              </div>
             </div>
           </div>
         </SheetHeader>
@@ -703,6 +749,19 @@ export function TaskDetailSheet({
             </div>
 
             <Separator />
+
+            {/* Save Button */}
+            {isEditing && (
+              <PermissionButton
+                hasPermission={!permissions.isViewer}
+                disabledReason="You have view-only access to this task"
+                onClick={handleSaveChanges}
+                disabled={saveMutation.isPending}
+                className="w-full"
+              >
+                {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </PermissionButton>
+            )}
 
             {/* Delete Button */}
             {permissions.canDeleteTasks && (
