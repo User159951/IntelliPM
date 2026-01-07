@@ -139,7 +139,7 @@ export default function Defects() {
         </div>
         <div className="flex items-center gap-4">
           <Select value={projectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[200px]" id="project-select" name="project">
               <SelectValue placeholder="Select project" />
             </SelectTrigger>
             <SelectContent>
@@ -189,6 +189,8 @@ export default function Defects() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                id="search-defects"
+                name="search"
                 placeholder="Search defects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -207,7 +209,7 @@ export default function Defects() {
             </div>
 
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as DefectStatus | 'all')}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[150px]" id="status-filter" name="status">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -220,7 +222,7 @@ export default function Defects() {
             </Select>
 
             <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as DefectSeverity | 'all')}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[150px]" id="severity-filter" name="severity">
                 <SelectValue placeholder="Severity" />
               </SelectTrigger>
               <SelectContent>
@@ -236,7 +238,7 @@ export default function Defects() {
               value={assigneeFilter === 'all' ? 'all' : assigneeFilter.toString()}
               onValueChange={(v) => setAssigneeFilter(v === 'all' ? 'all' : parseInt(v))}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[150px]" id="assignee-filter" name="assignee">
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
               <SelectContent>
@@ -250,7 +252,7 @@ export default function Defects() {
             </Select>
 
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px]" id="sort-by" name="sortBy">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>

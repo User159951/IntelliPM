@@ -132,8 +132,8 @@ export function CreateTaskDialog({
       // Upload files after task creation
       if (formData.files.length > 0) {
         const uploadPromises = formData.files.map((file) =>
-          tasksApi.uploadAttachment(task.id, file).catch((err) => {
-            console.error('Failed to upload file:', err);
+          tasksApi.uploadAttachment(task.id, file).catch(() => {
+            // File upload failed, continue with other files
             return null;
           })
         );

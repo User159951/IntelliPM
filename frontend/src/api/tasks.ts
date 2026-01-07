@@ -40,26 +40,6 @@ export const tasksApi = {
   assign: (taskId: number, assigneeId?: number): Promise<Task> =>
     apiClient.patch(`/api/Tasks/${taskId}/assign`, { assigneeId }),
 
-  /**
-   * Get all comments for a task
-   * @deprecated Use commentsApi.getAll('Task', taskId) directly
-   * This method is kept for backward compatibility but will be removed in a future version.
-   */
-  getComments: async (taskId: number): Promise<{ comments: TaskComment[] }> => {
-    const comments: Comment[] = await commentsApi.getAll('Task', taskId);
-    // Map Comment to TaskComment (they should be compatible)
-    return { comments: comments as unknown as TaskComment[] };
-  },
-
-  /**
-   * Add a comment to a task
-   * @deprecated Use commentsApi.add('Task', taskId, { content }) directly
-   * This method is kept for backward compatibility but will be removed in a future version.
-   */
-  addComment: async (taskId: number, content: string): Promise<TaskComment> => {
-    const result = await commentsApi.add('Task', taskId, { content });
-    return result as unknown as TaskComment;
-  },
 
   /**
    * Get all attachments for a task
@@ -103,12 +83,8 @@ export const tasksApi = {
    * @returns Empty activities array
    */
   getActivity: async (taskId: number): Promise<{ activities: TaskActivity[] }> => {
-    console.warn(
-      '[DEPRECATED] tasksApi.getActivity() is deprecated and will be removed in a future version.\n' +
-      'The Activity API does not support entity-specific filtering.\n' +
-      'Please use activityApi.getRecent(limit, projectId) and filter by entityId client-side.\n' +
-      `Called for taskId: ${taskId}`
-    );
+    // Note: This method is deprecated. Use activityApi.getRecent(limit, projectId) and filter by entityId client-side.
+    // The Activity API does not support entity-specific filtering.
     return { activities: [] };
   },
 };

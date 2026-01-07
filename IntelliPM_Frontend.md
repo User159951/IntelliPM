@@ -1,7 +1,7 @@
 # IntelliPM Frontend Documentation
 
-**Version:** 2.14.4  
-**Last Updated:** January 6, 2025  
+**Version:** 2.15.0  
+**Last Updated:** January 7, 2025 (Comprehensive Codebase Scan)  
 **Technology Stack:** React 18, TypeScript (Strict Mode), Vite, Tailwind CSS, shadcn/ui, TanStack Query
 
 ---
@@ -58,7 +58,7 @@ IntelliPM Frontend is a modern, responsive React application built with TypeScri
 - **Feature Flags**: Runtime feature toggling with context-based caching
 - **Permission System**: Comprehensive permission checking with usePermissions hook
 - **Global Search**: Quick navigation with keyboard shortcuts (Ctrl/Cmd+K)
-- **Error Handling**: Comprehensive error boundaries and user feedback
+- **Error Handling**: Comprehensive error boundaries, global error toasts, and user-friendly error messages
 - **Comment System**: Threaded comments with @username mentions
 - **File Attachments**: Drag-and-drop file uploads with validation
 - **Notification Bell**: Real-time notification badge and dropdown
@@ -136,7 +136,7 @@ frontend/
 │   ├── favicon.ico
 │   └── placeholder.svg
 ├── src/
-│   ├── api/                   # API client modules (36 files, excluding test files)
+│   ├── api/                   # API client modules (36 files, excluding test files: auth.test.ts, client.test.ts, projects.test.ts)
 │   │   ├── client.ts          # Base API client with token refresh
 │   │   ├── auth.ts            # Authentication API
 │   │   ├── projects.ts        # Projects API
@@ -170,7 +170,7 @@ frontend/
 │   │   ├── comments.ts        # Comments API
 │   │   ├── attachments.ts     # Attachments API
 │   │   └── aiGovernance.ts    # AI governance API
-│   ├── components/            # React components (167 components)
+│   ├── components/            # React components (170 components total)
 │   │   ├── ui/                # shadcn/ui components (51 components)
 │   │   ├── layout/            # Layout components
 │   │   ├── admin/             # Admin-specific components
@@ -190,7 +190,7 @@ frontend/
 │   │   ├── ThemeContext.tsx   # Theme context
 │   │   ├── ProjectContext.tsx # Project context
 │   │   └── FeatureFlagsContext.tsx # Feature flags context
-│   ├── hooks/                 # Custom hooks (12 hooks)
+│   ├── hooks/                 # Custom hooks (13 hooks)
 │   │   ├── use-debounce.ts    # Debounce hook
 │   │   ├── use-mobile.tsx     # Mobile detection hook
 │   │   ├── useProjectPermissions.ts # Project-level permission hook
@@ -202,7 +202,7 @@ frontend/
 │   │   ├── useQuotaNotifications.ts # Quota notification hook (80% warning, 100% error toasts)
 │   │   ├── useTaskDependencies.ts # Task dependencies hook
 │   │   └── useProjectTaskDependencies.ts # Project task dependencies hook
-│   ├── pages/                 # Page components (51 pages)
+│   ├── pages/                 # Page components (43 pages, 51 files including tests)
 │   │   ├── auth/              # Authentication pages (5 pages + tests)
 │   │   │   ├── Login.tsx
 │   │   │   ├── Register.tsx
@@ -780,6 +780,9 @@ class ApiClient {
 - Automatic redirect to login if refresh fails
 - Rate limit handling (429 errors with retry-after parsing)
 - Comprehensive error parsing (field-level validation errors)
+- User-friendly error messages based on HTTP status codes
+- Global error toast notifications (Sonner)
+- Sentry error logging for server errors (5xx)
 - CORS credentials support
 - ETag caching support for GET requests (304 Not Modified)
 - Request/response normalization (handles both PascalCase and camelCase)
@@ -956,29 +959,115 @@ export const settingsApi = {
 
 ### 7.3 Error Handling
 
-#### 7.3.1 API Errors
+#### 7.3.1 Global Error Handling
 
-The API client handles:
-- **401 Unauthorized**: 
-  - Attempts automatic token refresh
-  - If refresh succeeds, retries the original request
-  - If refresh fails, redirects to login page
-  - Prevents infinite loops with refresh flags
-- **429 Too Many Requests**: 
-  - Parses `Retry-After` header (seconds or HTTP-date)
-  - Also checks response body for `retryAfter` field
-  - Shows user-friendly retry message with wait time
-- **400 Bad Request**: 
-  - Extracts field-level validation errors from `errors` object
-  - Prioritizes specific field messages over generic errors
-  - Supports both array and object error formats
-- **500 Server Error**: Shows generic error message
-- **204 No Content**: Returns empty object for successful operations without response body
+The API client (`client.ts`) implements comprehensive error handling with user-friendly messages and automatic error logging:
+
+**User-Friendly Error Messages:**
+- `401`: "Session expired. Please log in again."
+- `403`: "You don't have permission for this action."
+- `429`: "Too many requests. Please try again later."
+- `500`: "Server error. Please contact support."
+- `502/503/504`: "Service temporarily unavailable. Please try again later."
+
+**Error Handling Flow:**
+1. Extract error message from response (prioritizes field-level validation errors)
+2. Map to user-friendly message based on HTTP status code
+3. Show toast notification (except for 401 which redirects to login)
+4. Log to Sentry for server errors (5xx) if configured
+5. Throw error for component-level handling
+
+**Toast Notifications:**
+- Global error toasts using Sonner toast system
+- Automatic toast display for client errors (4xx) and server errors (5xx)
+- 401 errors redirect to login without toast (prevents duplicate messages)
+- 403 and 429 errors show specific toast messages
+- Server errors (5xx) show toast and log to Sentry
+
+**Sentry Integration:**
+- Automatic error logging for server errors (5xx)
+- Dynamic import to avoid bundling Sentry if not configured
+- Context information included (endpoint, status, error data)
+- Only logs when `VITE_SENTRY_DSN` is configured
+
+**Example Error Handling:**
+```typescript
+// In component
+try {
+  await projectsApi.create(data);
+} catch (error) {
+  // Error already handled by API client:
+  // - Toast notification shown
+  // - Sentry logged (if 5xx)
+  // - User-friendly message displayed
+  // Component can handle specific cases if needed
+}
+```
+
+#### 7.3.2 Legacy Error Handling
+
+#### 7.3.1 Global Error Handling
+
+The API client (`client.ts`) implements comprehensive error handling with user-friendly messages and automatic error logging:
+
+**User-Friendly Error Messages:**
+- `401`: "Session expired. Please log in again."
+- `403`: "You don't have permission for this action."
+- `429`: "Too many requests. Please try again later."
+- `500`: "Server error. Please contact support."
+- `502/503/504`: "Service temporarily unavailable. Please try again later."
+
+**Error Handling Flow:**
+1. Extract error message from response (prioritizes field-level validation errors)
+2. Map to user-friendly message based on HTTP status code
+3. Show toast notification (except for 401 which redirects to login)
+4. Log to Sentry for server errors (5xx) if configured
+5. Throw error for component-level handling
+
+**Toast Notifications:**
+- Global error toasts using Sonner toast system
+- Automatic toast display for client errors (4xx) and server errors (5xx)
+- 401 errors redirect to login without toast (prevents duplicate messages)
+- 403 and 429 errors show specific toast messages
+- Server errors (5xx) show toast and log to Sentry
+
+**Sentry Integration:**
+- Automatic error logging for server errors (5xx)
+- Dynamic import to avoid bundling Sentry if not configured
+- Context information included (endpoint, status, error data)
+- Only logs when `VITE_SENTRY_DSN` is configured
+
+**401 Unauthorized Handling:**
+- Attempts automatic token refresh before redirecting
+- If refresh succeeds, retries the original request
+- If refresh fails, redirects to login page
+- Prevents infinite loops with refresh flags
+- No toast notification (prevents duplicate messages on auth pages)
+
+**429 Too Many Requests:**
+- Parses `Retry-After` header (seconds or HTTP-date)
+- Also checks response body for `retryAfter` field
+- Shows user-friendly retry message with wait time
+- Displays toast notification with retry information
+
+**400 Bad Request:**
+- Extracts field-level validation errors from `errors` object
+- Prioritizes specific field messages over generic errors
+- Supports both array and object error formats
+- Shows toast notification with validation message
+
+**500 Server Error:**
+- Shows user-friendly message: "Server error. Please contact support."
+- Logs error to Sentry with context information
+- Displays toast notification
+
+**204 No Content:**
+- Returns empty object for successful operations without response body
 
 #### 7.3.2 Error Display
 
+- **Toast Notifications**: Using Sonner for global error toasts (automatic)
 - **Alert Dialogs**: Using SweetAlert2 for user feedback (success, error, warning, info)
-- **Toast Notifications**: Using SweetAlert2 toast mode for non-intrusive notifications
 - **Form Errors**: Field-level validation errors
 - **Error Boundaries**: Sentry ErrorBoundary for unhandled errors
 
@@ -1947,13 +2036,23 @@ npm install
 
 #### 13.2.3 Environment Variables
 
-Create `.env` file:
+Create `.env` file in the frontend root (copy from `.env.example`):
 
 ```env
+# API Configuration
 VITE_API_BASE_URL=http://localhost:5001
-VITE_SENTRY_DSN=your-sentry-dsn
+
+# Sentry Error Tracking (Optional)
+VITE_SENTRY_DSN=
 VITE_SENTRY_ENVIRONMENT=development
 ```
+
+**Environment Variables:**
+- `VITE_API_BASE_URL` - Backend API base URL (without trailing slash, default: `http://localhost:5001`)
+- `VITE_SENTRY_DSN` - Sentry DSN for error tracking (optional, leave empty to disable)
+- `VITE_SENTRY_ENVIRONMENT` - Environment name for Sentry (default: `development`)
+
+**Note:** All environment variables must be prefixed with `VITE_` to be accessible in the frontend code.
 
 #### 13.2.4 Start Development Server
 
@@ -2135,20 +2234,49 @@ npm run build
 
 ### 14.4 Environment Variables
 
-#### 14.4.1 Build-Time Variables
+#### 14.4.1 Environment Variables Reference
 
-Variables prefixed with `VITE_` are available at build time:
+All environment variables must be prefixed with `VITE_` to be accessible in the frontend code.
+
+**Required Variables:**
+- `VITE_API_BASE_URL` - Backend API base URL (default: `http://localhost:5001`)
+
+**Optional Variables:**
+- `VITE_SENTRY_DSN` - Sentry DSN for error tracking (leave empty to disable)
+- `VITE_SENTRY_ENVIRONMENT` - Environment name for Sentry (default: `development`)
+
+**Example `.env` file:**
+```bash
+# API Configuration
+VITE_API_BASE_URL=http://localhost:5001
+
+# Sentry Error Tracking (Optional)
+VITE_SENTRY_DSN=
+VITE_SENTRY_ENVIRONMENT=development
+```
+
+**Example `.env.production` file:**
+```bash
+VITE_API_BASE_URL=https://api.intellipm.com
+VITE_SENTRY_DSN=https://your-dsn@sentry.io/project-id
+VITE_SENTRY_ENVIRONMENT=production
+```
+
+#### 14.4.2 Build-Time Variables
+
+Environment variables are embedded at build time. Changes require a rebuild.
 
 ```typescript
 const apiUrl = import.meta.env.VITE_API_BASE_URL;
 ```
 
-#### 14.4.2 Production Variables
+#### 14.4.3 Production Variables
 
-Set in hosting platform:
+Set environment variables in your hosting platform:
+
 - **Vercel**: Environment variables in dashboard
 - **Netlify**: Environment variables in dashboard
-- **Docker**: Pass via `-e` flag or `.env` file
+- **Docker**: Pass via `-e` flags or `.env` file
 
 ### 14.5 Deployment Checklist
 
@@ -2301,6 +2429,40 @@ For long lists, use virtualization:
 
 #### 15.5.2 API Error Handling
 
+The API client (`client.ts`) provides comprehensive automatic error handling:
+
+**Automatic Error Handling:**
+- User-friendly error messages based on HTTP status codes
+- Toast notifications for all errors (except 401 redirects)
+- Sentry logging for server errors (5xx)
+- Automatic token refresh on 401 errors
+- Rate limit handling with retry-after information
+
+**Error Message Mapping:**
+```typescript
+// Status code → User-friendly message
+401 → "Session expired. Please log in again."
+403 → "You don't have permission for this action."
+429 → "Too many requests. Please try again later."
+500 → "Server error. Please contact support."
+502/503/504 → "Service temporarily unavailable. Please try again later."
+```
+
+**Component-Level Error Handling:**
+```typescript
+try {
+  await projectsApi.create(data);
+  // Success - toast already shown by API client
+} catch (error) {
+  // Error already handled by API client:
+  // - Toast notification shown
+  // - Sentry logged (if 5xx)
+  // - User-friendly message displayed
+  // Component can handle specific cases if needed
+}
+```
+
+**Legacy Pattern (Still Supported):**
 ```typescript
 import { showToast, showError } from '@/lib/sweetalert';
 
@@ -4101,6 +4263,48 @@ Automatically set by Vite:
 
 ## Changelog
 
+### Version 2.15.0 (January 7, 2025) - Comprehensive Codebase Scan
+- ✅ **Documentation Update**: Comprehensive codebase scan and verification
+  - Verified all component counts: 170 components (including test files)
+  - Verified all page counts: 51 page files (43 pages + 8 test files)
+  - Verified all API client counts: 36 API client modules (excluding test files)
+  - Verified all hook counts: 13 hooks (including test files)
+  - Updated component count from 168 to 170 (accurate count)
+  - Updated hook count from 11 to 13 (accurate count)
+  - All counts verified against actual codebase files
+  - Updated "Last Updated" date to reflect comprehensive scan
+
+### Version 2.15.0 (January 7, 2025)
+- ✅ **Global API Error Handling**: Enhanced error handling with user-friendly messages
+  - Added user-friendly error messages mapped to HTTP status codes:
+    - `401`: "Session expired. Please log in again."
+    - `403`: "You don't have permission for this action."
+    - `429`: "Too many requests. Please try again later."
+    - `500`: "Server error. Please contact support."
+    - `502/503/504`: "Service temporarily unavailable. Please try again later."
+  - Global error toast notifications using Sonner toast system
+  - Automatic toast display for client errors (4xx) and server errors (5xx)
+  - Sentry error logging for server errors (5xx) if configured
+  - Dynamic Sentry import to avoid bundling if not configured
+  - Improved error message extraction (prioritizes field-level validation errors)
+  - Enhanced 401 handling with automatic token refresh before redirect
+  - Better 429 rate limit handling with retry-after information
+- ✅ **Configuration Documentation**: Created environment variables template
+  - Created `frontend/.env.example` file with all required variables
+  - Documented environment variable usage and requirements
+  - Added configuration documentation to development setup section
+
+### Version 2.14.5 (January 6, 2025)
+- ✅ **ESLint Fix**: Fixed `@typescript-eslint/no-explicit-any` errors in `organizations.ts`
+  - Replaced `PagedResponse<any>` with `PagedResponse<UserListDto>` in `getMembers()` function
+  - Added import for `UserListDto` type from `@/api/users`
+  - Fixed both return type annotation and `apiClient.get()` generic type parameter
+  - All ESLint errors resolved - `npm run lint` passes successfully
+- ✅ **Type Safety**: Improved type safety in organizations API client
+  - `getMembers()` now properly typed with `UserListDto` instead of `any`
+  - Consistent with other API clients using proper TypeScript types
+  - Better IDE autocomplete and type checking support
+
 ### Version 2.14.4 (January 6, 2025)
 - ✅ **Admin Organization Members Tenant Isolation Fix**: Fixed tenant isolation for Admin organization members page
   - Updated `AdminOrganizationMembers.tsx` to use `/api/v1/Users` endpoint instead of `/api/admin/organization/members`
@@ -4608,7 +4812,7 @@ Automatically set by Vite:
 
 ---
 
-**Document Version:** 2.14.3  
-**Last Updated:** January 5, 2025  
+**Document Version:** 2.14.5  
+**Last Updated:** January 6, 2025  
 **Maintained By:** Development Team
 

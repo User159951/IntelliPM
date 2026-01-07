@@ -164,4 +164,84 @@ export const aiGovernanceApi = {
       : '/api/v1/ai/quota';
     return apiClient.get<QuotaStatus>(endpoint);
   },
+
+  /**
+   * Get AI quota usage history
+   * @param params Query parameters for usage history
+   * @returns Paginated usage history data
+   */
+  getUsageHistory: (params?: {
+    startDate?: string;
+    endDate?: string;
+    organizationId?: number;
+    page?: number;
+    pageSize?: number;
+  }): Promise<PagedResponse<{
+    date: string;
+    requests: number;
+    tokens: number;
+    decisions: number;
+    cost: number;
+  }>> => {
+    const query = new URLSearchParams();
+    if (params?.startDate) query.append('startDate', params.startDate);
+    if (params?.endDate) query.append('endDate', params.endDate);
+    if (params?.organizationId) query.append('organizationId', params.organizationId.toString());
+    if (params?.page) query.append('page', params.page.toString());
+    if (params?.pageSize) query.append('pageSize', params.pageSize.toString());
+    
+    return apiClient.get<PagedResponse<{
+      date: string;
+      requests: number;
+      tokens: number;
+      decisions: number;
+      cost: number;
+    }>>(`/api/admin/ai-quota/usage-history?${query.toString()}`);
+  },
+
+  /**
+   * Get AI quota breakdown by agent type
+   * @param params Query parameters for breakdown
+   * @returns Breakdown data by agent type
+   */
+  getBreakdown: (params?: {
+    period?: string; // 'day' | 'week' | 'month'
+    organizationId?: number;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{
+    byAgent: Array<{
+      agentType: string;
+      requests: number;
+      tokens: number;
+      decisions: number;
+    }>;
+    byDecisionType?: Array<{
+      decisionType: string;
+      requests: number;
+      tokens: number;
+      decisions: number;
+    }>;
+  }> => {
+    const query = new URLSearchParams();
+    if (params?.period) query.append('period', params.period);
+    if (params?.organizationId) query.append('organizationId', params.organizationId.toString());
+    if (params?.startDate) query.append('startDate', params.startDate);
+    if (params?.endDate) query.append('endDate', params.endDate);
+    
+    return apiClient.get<{
+      byAgent: Array<{
+        agentType: string;
+        requests: number;
+        tokens: number;
+        decisions: number;
+      }>;
+      byDecisionType?: Array<{
+        decisionType: string;
+        requests: number;
+        tokens: number;
+        decisions: number;
+      }>;
+    }>(`/api/admin/ai-quota/breakdown?${query.toString()}`);
+  },
 };

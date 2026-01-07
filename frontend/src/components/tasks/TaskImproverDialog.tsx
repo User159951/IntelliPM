@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
 import { showToast, showError } from '@/lib/sweetalert';
+import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
 import type { AgentResponse } from '@/types';
 
 interface TaskImproverDialogProps {
@@ -28,14 +30,46 @@ export function TaskImproverDialog({
   onApply,
 }: TaskImproverDialogProps) {
   const [improvedDescription, setImprovedDescription] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | undefined>(undefined);
+
+  const { handleError, executeWithErrorHandling, isBlocked, getErrorMessage } = useAIErrorHandler({
+    showToast: false, // We'll handle toasts manually for better UX
+  });
+
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setImprovedDescription('');
+      setError(null);
+      setCanRetry(false);
+      setRetryAfter(undefined);
+    }
+  }, [isOpen]);
+
+  // Check if blocked when dialog opens
+  useEffect(() => {
+    if (isOpen && isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+    }
+  }, [isOpen, isBlocked, getErrorMessage]);
 
   const improveMutation = useMutation({
-    mutationFn: () =>
-      agentsApi.improveTask({
-        description: currentDescription,
-        title: currentTitle,
-        projectId,
-      }),
+    mutationFn: async () => {
+      return executeWithErrorHandling(
+        () =>
+          agentsApi.improveTask({
+            description: currentDescription,
+            title: currentTitle,
+            projectId,
+          }),
+        30000 // Estimated 30 seconds
+      );
+    },
     onSuccess: (data: AgentResponse) => {
       // Extract improved description from AgentResponse
       // The content might be JSON or plain text
@@ -46,12 +80,36 @@ export function TaskImproverDialog({
         // If not JSON, use content directly
         setImprovedDescription(data.content);
       }
+      setError(null);
+      setCanRetry(false);
       showToast('Description améliorée avec succès', 'success');
     },
     onError: (error: Error) => {
-      showError('Erreur lors de l\'amélioration', error.message);
+      const errorResult = handleError(error);
+      setError(error.message || 'Erreur lors de l\'amélioration');
+      setCanRetry(errorResult.canRetry);
+      setRetryAfter(errorResult.retryAfter);
+      
+      if (!errorResult.isQuotaExceeded && !errorResult.isAIDisabled) {
+        showError('Erreur lors de l\'amélioration', error.message);
+      }
     },
   });
+
+  const handleImprove = useCallback(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+      return;
+    }
+
+    setError(null);
+    setCanRetry(false);
+    setRetryAfter(undefined);
+    improveMutation.mutate();
+  }, [isBlocked, getErrorMessage, improveMutation]);
 
   const handleApply = () => {
     if (improvedDescription) {
@@ -77,22 +135,44 @@ export function TaskImproverDialog({
             <Textarea value={currentDescription} disabled className="mt-1" rows={4} />
           </div>
 
+          {/* Error State */}
+          {error && !improveMutation.isPending && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="space-y-2">
+                <p>{error}</p>
+                {canRetry && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleImprove}
+                    className="mt-2"
+                  >
+                    <RefreshCw className="mr-2 h-3 w-3" />
+                    Réessayer{retryAfter ? ` (dans ${retryAfter}s)` : ''}
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Bouton pour améliorer */}
           {!improvedDescription && (
             <Button
-              onClick={() => improveMutation.mutate()}
-              disabled={improveMutation.isPending}
+              onClick={handleImprove}
+              disabled={improveMutation.isPending || isBlocked()}
               className="w-full"
             >
               {improveMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Amélioration en cours...
+                  Amélioration en cours... (peut prendre jusqu&apos;à 30 secondes)
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Améliorer avec l'IA
+                  Améliorer avec l&apos;IA
                 </>
               )}
             </Button>
@@ -114,10 +194,10 @@ export function TaskImproverDialog({
           {/* Actions */}
           {improvedDescription && (
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onClose}>
+              <Button variant="outline" onClick={onClose} disabled={improveMutation.isPending}>
                 Annuler
               </Button>
-              <Button onClick={handleApply}>
+              <Button onClick={handleApply} disabled={improveMutation.isPending || isBlocked()}>
                 Appliquer
               </Button>
             </div>

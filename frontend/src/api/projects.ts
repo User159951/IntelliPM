@@ -181,4 +181,31 @@ export const projectsApi = {
     // This ensures consistent versioning across all endpoints
     return apiClient.post(`/Projects/${projectId}/assign-team`, data);
   },
+
+  /**
+   * Get all teams assigned to a project
+   * Endpoint: GET /api/v1/Projects/{projectId}/assigned-teams
+   * 
+   * @param projectId - Project ID
+   * @returns List of assigned teams
+   */
+  getAssignedTeams: async (projectId: number): Promise<Array<{
+    teamId: number;
+    teamName: string;
+    teamDescription?: string | null;
+    assignedAt: string;
+    assignedById?: number | null;
+    assignedByName?: string | null;
+    isActive: boolean;
+  }>> => {
+    return apiClient.get<Array<{
+      teamId: number;
+      teamName: string;
+      teamDescription?: string | null;
+      assignedAt: string;
+      assignedById?: number | null;
+      assignedByName?: string | null;
+      isActive: boolean;
+    }>>(`/Projects/${projectId}/assigned-teams`);
+  },
 };

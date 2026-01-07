@@ -145,6 +145,8 @@ export default function AdminMemberAIQuotas() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            id="search-member-ai-quotas"
+            name="search"
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => {
@@ -295,6 +297,7 @@ export default function AdminMemberAIQuotas() {
                 <Label htmlFor="tokenLimit">Monthly Token Limit Override</Label>
                 <Input
                   id="tokenLimit"
+                  name="monthlyTokenLimitOverride"
                   type="number"
                   min="1"
                   max={editingMember.organizationQuota.monthlyTokenLimit}
@@ -320,6 +323,7 @@ export default function AdminMemberAIQuotas() {
                   <Label htmlFor="requestLimit">Monthly Request Limit Override</Label>
                   <Input
                     id="requestLimit"
+                    name="monthlyRequestLimitOverride"
                     type="number"
                     min="1"
                     max={editingMember.organizationQuota.monthlyRequestLimit ?? undefined}
@@ -352,6 +356,7 @@ export default function AdminMemberAIQuotas() {
                 </div>
                 <Switch
                   id="aiEnabled"
+                  name="isAIEnabledOverride"
                   checked={formData.isAIEnabledOverride ?? editingMember.organizationQuota.isAIEnabled}
                   onCheckedChange={(checked) =>
                     setFormData({ ...formData, isAIEnabledOverride: checked })

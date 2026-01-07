@@ -8,6 +8,7 @@ using IntelliPM.Application.Agents.Commands;
 using IntelliPM.Application.DTOs.Agent;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Infrastructure.AI.Plugins;
+using IntelliPM.Infrastructure.AI.Helpers;
 using IntelliPM.Infrastructure.Persistence;
 
 namespace IntelliPM.Infrastructure.AI.Handlers;
@@ -21,17 +22,20 @@ public class DetectRisksHandler : IRequestHandler<DetectRisksCommand, AgentRespo
     private readonly ILogger<DetectRisksHandler> _logger;
     private readonly AppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICorrelationIdService _correlationIdService;
 
     public DetectRisksHandler(
         Kernel kernel,
         ILogger<DetectRisksHandler> logger,
         AppDbContext context,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ICorrelationIdService correlationIdService)
     {
         _kernel = kernel;
         _logger = logger;
         _context = context;
         _currentUserService = currentUserService;
+        _correlationIdService = correlationIdService;
     }
 
     public async Task<AgentResponse> Handle(DetectRisksCommand request, CancellationToken cancellationToken)
@@ -77,10 +81,16 @@ Structure your response as:
 
             stopwatch.Stop();
 
+            // Extract token usage from response
+            var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
+
             var userId = _currentUserService.GetUserId();
+            var organizationId = _currentUserService.GetOrganizationId();
+            var correlationId = _correlationIdService.GetCorrelationId();
             var log = new Domain.Entities.AgentExecutionLog
             {
                 Id = Guid.NewGuid(),
+                OrganizationId = organizationId > 0 ? organizationId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
                 AgentId = "risk-detector",
                 UserId = userId > 0 ? userId.ToString() : "system",
                 UserInput = $"Detect risks for project {request.ProjectId}",

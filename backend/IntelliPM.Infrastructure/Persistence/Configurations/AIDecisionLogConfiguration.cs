@@ -36,6 +36,9 @@ public class AIDecisionLogConfiguration : IEntityTypeConfiguration<AIDecisionLog
         builder.HasIndex(a => a.Status)
             .HasDatabaseName("IX_AIDecisionLogs_Status");
 
+        builder.HasIndex(a => a.ExecutionStatus)
+            .HasDatabaseName("IX_AIDecisionLogs_ExecutionStatus");
+
         // Index for entity decisions
         builder.HasIndex(a => new { a.EntityType, a.EntityId })
             .HasDatabaseName("IX_AIDecisionLogs_EntityType_EntityId");
@@ -48,6 +51,10 @@ public class AIDecisionLogConfiguration : IEntityTypeConfiguration<AIDecisionLog
         // Index for organization decisions with date
         builder.HasIndex(a => new { a.OrganizationId, a.CreatedAt })
             .HasDatabaseName("IX_AIDecisionLogs_Organization_CreatedAt");
+
+        // Index for correlation ID (for distributed tracing)
+        builder.HasIndex(a => a.CorrelationId)
+            .HasDatabaseName("IX_AIDecisionLogs_CorrelationId");
 
         // Required fields
         builder.Property(a => a.OrganizationId)
@@ -113,6 +120,17 @@ public class AIDecisionLogConfiguration : IEntityTypeConfiguration<AIDecisionLog
         // Decimal precision for confidence score (0.0000 to 1.0000)
         builder.Property(a => a.ConfidenceScore)
             .HasPrecision(5, 4);
+
+        // Cost tracking
+        builder.Property(a => a.CostAccumulated)
+            .HasPrecision(10, 6)
+            .HasDefaultValue(0m);
+
+        // Execution status tracking
+        builder.Property(a => a.ExecutionStatus)
+            .IsRequired()
+            .HasMaxLength(50)
+            .HasDefaultValue("Success");
 
         // Relationships
         builder.HasOne(a => a.RequestedByUser)

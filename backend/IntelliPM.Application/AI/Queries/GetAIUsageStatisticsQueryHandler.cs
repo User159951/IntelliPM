@@ -37,7 +37,7 @@ public class GetAIUsageStatisticsQueryHandler : IRequestHandler<GetAIUsageStatis
         var totalTokensUsed = decisions.Sum(d => d.TokensUsed);
         var totalRequests = decisions.Count;
         var totalDecisions = decisions.Count(d => d.WasApplied);
-        var totalCost = decisions.Sum(d => (decimal)d.TokensUsed * Domain.Constants.AIQuotaConstants.CostPerToken);
+        var totalCost = decisions.Sum(d => d.CostAccumulated);
 
         // Usage by agent
         var usageByAgent = decisions

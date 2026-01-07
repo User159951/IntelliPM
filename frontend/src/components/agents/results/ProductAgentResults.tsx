@@ -142,6 +142,8 @@ export function ProductAgentResults({ output }: ProductAgentResultsProps) {
                   </TableHead>
                 </TableRow>
               </TableHeader>
+            </Table>
+            <div className={cn("overflow-auto", sortedItems.length > 10 && "max-h-[400px]")}>
               <TableBody>
                 {sortedItems.map((item, index) => (
                   <TableRow key={item.taskId || index} className="transition-colors hover:bg-muted/50">
@@ -165,7 +167,7 @@ export function ProductAgentResults({ output }: ProductAgentResultsProps) {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

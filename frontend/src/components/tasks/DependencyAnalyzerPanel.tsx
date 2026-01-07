@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { GitBranch, AlertCircle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { GitBranch, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
 import { showToast, showError } from '@/lib/sweetalert';
-import { useState } from 'react';
+import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
+import { useState, useCallback, useEffect } from 'react';
 import type { AgentResponse } from '@/types';
 
 interface DependencyAnalyzerPanelProps {
@@ -33,28 +35,78 @@ interface DependencyAnalysis {
 
 export function DependencyAnalyzerPanel({ projectId }: DependencyAnalyzerPanelProps) {
   const [analysis, setAnalysis] = useState<DependencyAnalysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | undefined>(undefined);
+
+  const { handleError, executeWithErrorHandling, isBlocked, getErrorMessage } = useAIErrorHandler({
+    showToast: false, // We'll handle toasts manually for better UX
+  });
+
+  // Check if blocked on mount
+  useEffect(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+    }
+  }, [isBlocked, getErrorMessage]);
 
   const analyzeMutation = useMutation({
-    mutationFn: () => agentsApi.analyzeDependencies(projectId),
+    mutationFn: async () => {
+      return executeWithErrorHandling(
+        () => agentsApi.analyzeDependencies(projectId),
+        35000 // Estimated 35 seconds for dependency analysis
+      );
+    },
     onSuccess: (data: AgentResponse) => {
       try {
         const parsed = JSON.parse(data.content);
         setAnalysis(parsed as DependencyAnalysis);
+        setError(null);
+        setCanRetry(false);
         showToast('Analyse des dépendances terminée', 'success');
       } catch {
         const parsed = (data.metadata as unknown as DependencyAnalysis) || null;
         if (parsed) {
           setAnalysis(parsed);
+          setError(null);
+          setCanRetry(false);
           showToast('Analyse des dépendances terminée', 'success');
         } else {
+          setError('Impossible de parser l\'analyse des dépendances');
+          setCanRetry(true);
           showError('Erreur', 'Impossible de parser l\'analyse des dépendances');
         }
       }
     },
     onError: (error: Error) => {
-      showError('Erreur lors de l\'analyse', error.message);
+      const errorResult = handleError(error);
+      setError(error.message || 'Erreur lors de l\'analyse');
+      setCanRetry(errorResult.canRetry);
+      setRetryAfter(errorResult.retryAfter);
+      
+      if (!errorResult.isQuotaExceeded && !errorResult.isAIDisabled) {
+        showError('Erreur lors de l\'analyse', error.message);
+      }
     },
   });
+
+  const handleAnalyze = useCallback(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+      return;
+    }
+
+    setError(null);
+    setCanRetry(false);
+    setRetryAfter(undefined);
+    analyzeMutation.mutate();
+  }, [isBlocked, getErrorMessage, analyzeMutation]);
 
   return (
     <div className="space-y-4">
@@ -64,13 +116,13 @@ export function DependencyAnalyzerPanel({ projectId }: DependencyAnalyzerPanelPr
           Analyse des Dépendances
         </h2>
         <Button
-          onClick={() => analyzeMutation.mutate()}
-          disabled={analyzeMutation.isPending}
+          onClick={handleAnalyze}
+          disabled={analyzeMutation.isPending || isBlocked()}
         >
           {analyzeMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Analyse...
+              Analyse... (peut prendre jusqu&apos;à 35 secondes)
             </>
           ) : (
             <>
@@ -81,7 +133,37 @@ export function DependencyAnalyzerPanel({ projectId }: DependencyAnalyzerPanelPr
         </Button>
       </div>
 
-      {analyzeMutation.isPending && <Skeleton className="h-96" />}
+      {/* Error State */}
+      {error && !analyzeMutation.isPending && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="space-y-2">
+            <p>{error}</p>
+            {canRetry && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAnalyze}
+                className="mt-2"
+              >
+                <RefreshCw className="mr-2 h-3 w-3" />
+                Réessayer{retryAfter ? ` (dans ${retryAfter}s)` : ''}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {analyzeMutation.isPending && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Analyse des dépendances en cours... Cela peut prendre jusqu&apos;à 35 secondes.</span>
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      )}
 
       {analysis && (
         <>

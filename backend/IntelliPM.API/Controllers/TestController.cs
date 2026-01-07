@@ -6,8 +6,20 @@ using Asp.Versioning;
 namespace IntelliPM.API.Controllers;
 
 /// <summary>
-/// Test controller for development and debugging purposes
-/// This controller is only available in DEBUG mode and will be excluded from Release builds.
+/// ⚠️ WARNING: DEBUG-ONLY CONTROLLER ⚠️
+/// 
+/// This controller is ONLY available in DEBUG builds and will be COMPLETELY DISABLED in Release builds.
+/// 
+/// DO NOT use this controller in production. All endpoints in this controller are excluded from Release builds
+/// via #if DEBUG preprocessor directive. Any code referencing this controller will fail to compile in Release mode.
+/// 
+/// This controller is intended for development and debugging purposes only, such as:
+/// - Testing error tracking integrations (e.g., Sentry)
+/// - Development-only diagnostic endpoints
+/// - Temporary debugging utilities
+/// 
+/// Security Note: Even though this controller is disabled in Release builds, ensure that any test endpoints
+/// do not expose sensitive data or perform destructive operations.
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]

@@ -1,6 +1,7 @@
 using MediatR;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Helpers;
 using IntelliPM.Application.Interfaces;
 using IntelliPM.Application.Services;
 using IntelliPM.Domain.Constants;
@@ -42,47 +43,55 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
-        // Fetch recent defects
-        var defectRepo = _unitOfWork.Repository<Defect>();
-        var recentDefects = await defectRepo.Query()
-            .Where(d => d.ProjectId == request.ProjectId)
-            .OrderByDescending(d => d.ReportedAt)
-            .Take(20)
-            .Select(d => $"{d.Severity}: {d.Title}")
-            .ToListAsync(cancellationToken);
-
-        // Calculate defect statistics
-        var defectStats = new Dictionary<string, int>
-        {
-            { "Open", await defectRepo.Query().Where(d => d.ProjectId == request.ProjectId && d.Status == "Open").CountAsync(cancellationToken) },
-            { "Critical", await defectRepo.Query().Where(d => d.ProjectId == request.ProjectId && d.Severity == "Critical").CountAsync(cancellationToken) },
-            { "High", await defectRepo.Query().Where(d => d.ProjectId == request.ProjectId && d.Severity == "High").CountAsync(cancellationToken) }
-        };
-
-        var result = await _qaAgent.RunAsync(request.ProjectId, recentDefects, defectStats, cancellationToken);
-
-        stopwatch.Stop();
-
-        // Store agent run
-        var agentRun = new AIAgentRun
-        {
-            ProjectId = request.ProjectId,
-            AgentType = "QA",
-            InputData = JsonSerializer.Serialize(new { recentDefects, defectStats }),
-            OutputData = result.DefectAnalysis,
-            Confidence = result.Confidence,
-            ExecutedAt = DateTimeOffset.UtcNow
-        };
-        var runRepo = _unitOfWork.Repository<AIAgentRun>();
-        await runRepo.AddAsync(agentRun, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        // Log decision to AIDecisionLog
+        var executionStartTime = DateTime.UtcNow;
         var userId = _currentUserService.GetUserId();
         var orgId = organizationId;
-        
-        if (userId > 0 && orgId > 0)
+        int? linkedDecisionId = null;
+        int tokensUsed = 0;
+        QAAgentOutput? result = null;
+        string? errorMessage = null;
+        List<string>? recentDefects = null;
+        Dictionary<string, int>? defectStats = null;
+
+        try
+        {
+            // Fetch recent defects
+            var defectRepo = _unitOfWork.Repository<Defect>();
+            recentDefects = await defectRepo.Query()
+                .Where(d => d.ProjectId == request.ProjectId)
+                .OrderByDescending(d => d.ReportedAt)
+                .Take(20)
+                .Select(d => $"{d.Severity}: {d.Title}")
+                .ToListAsync(cancellationToken);
+
+            // Calculate defect statistics
+            defectStats = new Dictionary<string, int>
+            {
+                { "Open", await defectRepo.Query().Where(d => d.ProjectId == request.ProjectId && d.Status == "Open").CountAsync(cancellationToken) },
+                { "Critical", await defectRepo.Query().Where(d => d.ProjectId == request.ProjectId && d.Severity == "Critical").CountAsync(cancellationToken) },
+                { "High", await defectRepo.Query().Where(d => d.ProjectId == request.ProjectId && d.Severity == "High").CountAsync(cancellationToken) }
+            };
+
+            result = await _qaAgent.RunAsync(request.ProjectId, recentDefects, defectStats, cancellationToken);
+
+            stopwatch.Stop();
+
+            // Store agent run
+            var agentRun = new AIAgentRun
+            {
+                ProjectId = request.ProjectId,
+                AgentType = "QA",
+                InputData = JsonSerializer.Serialize(new { recentDefects, defectStats }),
+                OutputData = result.DefectAnalysis,
+                Confidence = result.Confidence,
+                ExecutedAt = DateTimeOffset.UtcNow
+            };
+            var runRepo = _unitOfWork.Repository<AIAgentRun>();
+            await runRepo.AddAsync(agentRun, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Log decision to AIDecisionLog
+            if (userId > 0 && orgId > 0)
         {
             var metadata = new Dictionary<string, object>
             {
@@ -106,7 +115,9 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
                 Recommendations = result.Recommendations
             });
 
-            await _decisionLogger.LogDecisionAsync(
+            var inputDataJson = JsonSerializer.Serialize(new { recentDefects, defectStats });
+            
+            linkedDecisionId = await _decisionLogger.LogDecisionAsync(
                 agentType: AIDecisionConstants.AgentTypes.QAAgent,
                 decisionType: AIDecisionConstants.DecisionTypes.QualityAnalysis,
                 reasoning: result.DefectAnalysis,
@@ -119,34 +130,115 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
                 entityId: request.ProjectId,
                 question: "Analyze quality metrics and suggest testing strategies",
                 decision: decisionJson,
-                inputData: JsonSerializer.Serialize(new { recentDefects, defectStats }),
+                inputData: inputDataJson,
                 outputData: decisionJson,
                 executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
                 cancellationToken: cancellationToken);
-        }
 
-        // Create insights from recommendations
-        var insightRepo = _unitOfWork.Repository<Insight>();
-        foreach (var recommendation in result.Recommendations.Take(3))
-        {
-            var insight = new Insight
+            // Record quota usage after successful execution
+            // Get cost from the decision log that was just created
+            if (linkedDecisionId.HasValue)
             {
-                ProjectId = request.ProjectId,
-                AgentRunId = agentRun.Id,
-                AgentType = "QA",
-                Category = "Opportunity",
-                Title = "Quality Improvement",
-                Description = recommendation,
-                Recommendation = recommendation,
-                Confidence = result.Confidence,
-                Priority = "Medium",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-            await insightRepo.AddAsync(insight, cancellationToken);
-        }
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var decisionLogRepo = _unitOfWork.Repository<AIDecisionLog>();
+                var decisionLog = await decisionLogRepo.GetByIdAsync(linkedDecisionId.Value, cancellationToken);
 
-        return result;
+                if (decisionLog != null)
+                {
+                    var quotaRepo = _unitOfWork.Repository<AIQuota>();
+                    var quota = await quotaRepo.Query()
+                        .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive && q.TierName != "Disabled", cancellationToken);
+
+                    if (quota != null)
+                    {
+                        tokensUsed = decisionLog.TokensUsed;
+                        quota.RecordUsage(
+                            tokens: decisionLog.TokensUsed,
+                            agentType: AIDecisionConstants.AgentTypes.QAAgent,
+                            decisionType: AIDecisionConstants.DecisionTypes.QualityAnalysis,
+                            cost: decisionLog.CostAccumulated);
+
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+            }
+        }
+
+            // Create AgentExecutionLog entry
+            var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();
+            var executionLog = new AgentExecutionLog
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId > 0 ? orgId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
+                AgentId = "qa-agent",
+                AgentType = AIDecisionConstants.AgentTypes.QAAgent,
+                UserId = userId > 0 ? userId.ToString() : "0",
+                UserInput = JsonSerializer.Serialize(new { recentDefects, defectStats }),
+                AgentResponse = result.DefectAnalysis,
+                Status = "Success",
+                Success = true,
+                ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                TokensUsed = tokensUsed,
+                ExecutionCostUsd = 0m,
+                CreatedAt = executionStartTime,
+                LinkedDecisionId = linkedDecisionId
+            };
+            await executionLogRepo.AddAsync(executionLog, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Create insights from recommendations
+            var insightRepo = _unitOfWork.Repository<Insight>();
+            foreach (var recommendation in result.Recommendations.Take(3))
+            {
+                var insight = new Insight
+                {
+                    ProjectId = request.ProjectId,
+                    AgentRunId = agentRun.Id,
+                    AgentType = "QA",
+                    Category = "Opportunity",
+                    Title = "Quality Improvement",
+                    Description = recommendation,
+                    Recommendation = recommendation,
+                    Confidence = result.Confidence,
+                    Priority = "Medium",
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+                await insightRepo.AddAsync(insight, cancellationToken);
+            }
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            errorMessage = ex.Message;
+            
+            // Create AgentExecutionLog entry for failed execution
+            var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();
+            var executionLog = new AgentExecutionLog
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId > 0 ? orgId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
+                AgentId = "qa-agent",
+                AgentType = AIDecisionConstants.AgentTypes.QAAgent,
+                UserId = userId > 0 ? userId.ToString() : "0",
+                UserInput = recentDefects != null && defectStats != null 
+                    ? JsonSerializer.Serialize(new { recentDefects, defectStats })
+                    : "N/A",
+                Status = "Error",
+                Success = false,
+                ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                TokensUsed = 0,
+                ExecutionCostUsd = 0m,
+                CreatedAt = executionStartTime,
+                ErrorMessage = errorMessage,
+                LinkedDecisionId = null
+            };
+            await executionLogRepo.AddAsync(executionLog, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            
+            throw;
+        }
     }
 }
 

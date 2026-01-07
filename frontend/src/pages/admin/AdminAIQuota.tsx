@@ -148,6 +148,8 @@ export default function AdminAIQuota() {
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            id="search-ai-quota"
+            name="search"
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => {
@@ -355,6 +357,7 @@ export default function AdminAIQuota() {
                 </Label>
                 <Input
                   id="maxTokensPerPeriod"
+                  name="maxTokensPerPeriod"
                   type="number"
                   value={editForm.maxTokensPerPeriod ?? ''}
                   onChange={(e) =>
@@ -374,6 +377,7 @@ export default function AdminAIQuota() {
                 </Label>
                 <Input
                   id="maxRequestsPerPeriod"
+                  name="maxRequestsPerPeriod"
                   type="number"
                   value={editForm.maxRequestsPerPeriod ?? ''}
                   onChange={(e) =>
@@ -393,6 +397,7 @@ export default function AdminAIQuota() {
                 </Label>
                 <Input
                   id="maxDecisionsPerPeriod"
+                  name="maxDecisionsPerPeriod"
                   type="number"
                   value={editForm.maxDecisionsPerPeriod ?? ''}
                   onChange={(e) =>
@@ -412,6 +417,7 @@ export default function AdminAIQuota() {
                 </Label>
                 <Input
                   id="maxCostPerPeriod"
+                  name="maxCostPerPeriod"
                   type="number"
                   step="0.01"
                   value={editForm.maxCostPerPeriod ?? ''}
@@ -432,6 +438,7 @@ export default function AdminAIQuota() {
                 </Label>
                 <Textarea
                   id="reason"
+                  name="reason"
                   value={editForm.reason ?? ''}
                   onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
                   className="col-span-3"

@@ -1,5 +1,6 @@
 using MediatR;
 using IntelliPM.Application.Common.Models;
+using IntelliPM.Application.Organizations.DTOs;
 
 namespace IntelliPM.Application.Organizations.Queries;
 
@@ -25,6 +26,11 @@ public record GetOrganizationByIdQuery : IRequest<OrganizationDto>
 /// Query to get the current user's organization (Admin only).
 /// </summary>
 public record GetMyOrganizationQuery : IRequest<OrganizationDto>;
+
+/// <summary>
+/// Query to get the current user's organization permission policy (Admin only).
+/// </summary>
+public record GetMyOrganizationPermissionPolicyQuery : IRequest<OrganizationPermissionPolicyDto>;
 
 /// <summary>
 /// DTO for organization information.

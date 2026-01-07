@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { showSuccess, showError, showToast } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
 import { tasksApi } from '@/api/tasks';
+import { commentsApi } from '@/api/comments';
 import { sprintsApi } from '@/api/sprints';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
 import { useTaskDependencies } from '@/hooks/useTaskDependencies';
@@ -86,7 +87,7 @@ export function TaskDetailSheet({
 
   const { data: commentsData } = useQuery({
     queryKey: ['task-comments', task?.id],
-    queryFn: () => tasksApi.getComments(task!.id),
+    queryFn: () => commentsApi.getAll('Task', task!.id).then(comments => ({ comments })),
     enabled: !!task?.id && open,
   });
 
@@ -168,7 +169,7 @@ export function TaskDetailSheet({
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: (content: string) => tasksApi.addComment(localTask!.id, content),
+    mutationFn: (content: string) => commentsApi.add('Task', localTask!.id, { content }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['task-comments', localTask!.id] });
       setNewComment('');

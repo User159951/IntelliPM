@@ -13,6 +13,7 @@ public record AIOverviewStatsDto
     public int ApprovedDecisions { get; init; }
     public int RejectedDecisions { get; init; }
     public double AverageConfidenceScore { get; init; }
+    public decimal TotalCostLast30Days { get; init; }
     public List<TopAgentUsageDto> TopAgents { get; init; } = new();
     public List<QuotaUsageByTierDto> QuotaByTier { get; init; } = new();
 }

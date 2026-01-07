@@ -183,13 +183,13 @@ class FeatureFlagService {
         params.append('organizationId', organizationId);
       }
 
-      const endpoint = `/api/admin/feature-flags/${encodeURIComponent(flagName)}${params.toString() ? `?${params.toString()}` : ''}`;
+      // Use public endpoint accessible to all authenticated users (not just admins)
+      // The admin endpoint is only for managing feature flags, not reading them
+      const endpoint = `/api/v1/feature-flags/${encodeURIComponent(flagName)}${params.toString() ? `?${params.toString()}` : ''}`;
       const flag = await apiClient.get<FeatureFlag>(endpoint);
       return flag;
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error(`[FeatureFlagService] Error fetching flag "${flagName}":`, error);
-      }
+      // Error fetching flag, return null (fail-safe)
       return null;
     }
   }
@@ -206,7 +206,9 @@ class FeatureFlagService {
         params.append('organizationId', organizationId);
       }
 
-      const endpoint = `/api/admin/feature-flags${params.toString() ? `?${params.toString()}` : ''}`;
+      // Use public endpoint accessible to all authenticated users (not just admins)
+      // The admin endpoint is only for managing feature flags, not reading them
+      const endpoint = `/api/v1/feature-flags${params.toString() ? `?${params.toString()}` : ''}`;
       const flags = await apiClient.get<FeatureFlag[]>(endpoint);
       return Array.isArray(flags) ? flags : [];
     } catch (error) {
@@ -216,10 +218,7 @@ class FeatureFlagService {
         throw error;
       }
       
-      // For other errors, log and return empty array (fail-safe)
-      if (import.meta.env.DEV) {
-        console.error('[FeatureFlagService] Error fetching all flags:', error);
-      }
+      // For other errors, return empty array (fail-safe)
       return [];
     }
   }
@@ -267,9 +266,6 @@ class FeatureFlagService {
 
         return isEnabled;
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error(`[FeatureFlagService] Error checking flag "${flagName}":`, error);
-        }
         // Fail-safe: return false on error
         return false;
       } finally {
@@ -328,9 +324,7 @@ class FeatureFlagService {
 
         return flag;
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error(`[FeatureFlagService] Error fetching flag "${flagName}":`, error);
-        }
+        // Error fetching flag, return null (fail-safe)
         return null;
       } finally {
         // Remove from pending fetches
@@ -357,7 +351,7 @@ class FeatureFlagService {
    * ```ts
    * const flags = await featureFlagService.getAllFlags('123');
    * flags.forEach(flag => {
-   *   console.log(`${flag.name}: ${flag.isEnabled}`);
+   *   // Process flag: flag.name, flag.isEnabled
    * });
    * ```
    */
@@ -391,7 +385,7 @@ class FeatureFlagService {
         
         // For other errors, log and return empty array (fail-safe)
         if (import.meta.env.DEV) {
-          console.error('[FeatureFlagService] Error fetching all flags:', error);
+          // Error fetching all flags (fail-safe)
         }
         return [];
       } finally {
@@ -444,10 +438,7 @@ class FeatureFlagService {
           this.cache.delete(key);
         }
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error(`[FeatureFlagService] Error refreshing flag "${flagName}":`, error);
-        }
-        // Keep existing cache entry on error
+        // Error refreshing flag, keep existing cache entry (fail-safe)
       }
     });
 

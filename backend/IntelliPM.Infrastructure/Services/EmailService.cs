@@ -1,4 +1,5 @@
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Exceptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -37,9 +38,53 @@ public class EmailService : IEmailService
         _fromName = emailSection["FromName"] ?? "IntelliPM";
         _enableSsl = emailSection.GetValue<bool>("EnableSsl", true);
 
+        // Validate SMTP configuration at startup
+        ValidateSmtpConfiguration();
+
         _logger.LogInformation(
             "EmailService initialized with SMTP host: {SmtpHost}, Port: {SmtpPort}, FromEmail: {FromEmail}",
             _smtpHost, _smtpPort, _fromEmail);
+    }
+
+    /// <summary>
+    /// Validates SMTP configuration at startup.
+    /// Logs warnings for missing configuration or throws exception if fail-fast is enabled.
+    /// </summary>
+    private void ValidateSmtpConfiguration()
+    {
+        var emailSection = _configuration.GetSection("Email");
+        var failFast = emailSection.GetValue<bool>("FailFastOnInvalidConfig", false);
+
+        var missingConfig = new List<string>();
+        
+        if (string.IsNullOrWhiteSpace(_smtpHost))
+            missingConfig.Add("Email:SmtpHost");
+        
+        if (string.IsNullOrWhiteSpace(_smtpUsername))
+            missingConfig.Add("Email:SmtpUsername");
+        
+        if (string.IsNullOrWhiteSpace(_smtpPassword))
+            missingConfig.Add("Email:SmtpPassword");
+
+        if (missingConfig.Any())
+        {
+            var message = $"SMTP configuration is incomplete. Missing: {string.Join(", ", missingConfig)}. " +
+                         "Emails will not be sent. Configure these settings in appsettings.json or environment variables.";
+
+            if (failFast)
+            {
+                _logger.LogError(message);
+                throw new InvalidOperationException(message);
+            }
+            else
+            {
+                _logger.LogWarning(message);
+            }
+        }
+        else
+        {
+            _logger.LogInformation("SMTP configuration validated successfully. Email service is ready.");
+        }
     }
 
     public async Task SendInvitationEmailAsync(
@@ -66,14 +111,25 @@ public class EmailService : IEmailService
 
             await SendEmailAsync(email, subject, htmlBody, ct);
             
-        _logger.LogInformation(
+            _logger.LogInformation(
                 "Invitation email sent successfully to {Email} for project {ProjectName}",
                 email, project);
         }
+        catch (EmailServiceException)
+        {
+            // Re-throw EmailServiceException to allow callers to handle gracefully
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send invitation email to {Email}", email);
-            // Graceful degradation - don't throw
+            _logger.LogError(ex, 
+                "Failed to send invitation email to {Email}. Host: {Host}, Port: {Port}, FromEmail: {FromEmail}. Error: {ErrorMessage}",
+                email, _smtpHost, _smtpPort, _fromEmail, ex.Message);
+            
+            // Wrap in EmailServiceException for consistent error handling
+            throw new EmailServiceException(
+                $"Failed to send invitation email to {email}. Please check SMTP configuration.",
+                ex);
         }
     }
 
@@ -268,18 +324,19 @@ public class EmailService : IEmailService
     }
 
     /// <summary>
-    /// Private method to send email via SMTP with graceful error handling
+    /// Private method to send email via SMTP with proper error handling.
+    /// Throws EmailServiceException if SMTP is not configured or if sending fails.
     /// </summary>
     private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, CancellationToken ct)
     {
         // Check if SMTP is configured
         if (string.IsNullOrEmpty(_smtpHost) || string.IsNullOrEmpty(_smtpUsername) || string.IsNullOrEmpty(_smtpPassword))
         {
-            _logger.LogWarning(
-                "SMTP not configured. Email would be sent to {ToEmail} with subject: {Subject}. " +
-                "Please configure Email:SmtpHost, Email:SmtpUsername, and Email:SmtpPassword in appsettings.json",
-                toEmail, subject);
-            return;
+            var errorMessage = $"SMTP not configured. Cannot send email to {toEmail} with subject: {subject}. " +
+                              "Please configure Email:SmtpHost, Email:SmtpUsername, and Email:SmtpPassword in appsettings.json";
+            
+            _logger.LogError(errorMessage);
+            throw new EmailServiceException(errorMessage);
         }
 
         try
@@ -305,12 +362,27 @@ public class EmailService : IEmailService
             
             _logger.LogDebug("Email sent successfully to {ToEmail} with subject: {Subject}", toEmail, subject);
         }
+        catch (SmtpException smtpEx)
+        {
+            var errorMessage = $"SMTP error sending email to {toEmail}. Host: {_smtpHost}, Port: {_smtpPort}, FromEmail: {_fromEmail}. " +
+                              $"SMTP Error: {smtpEx.Message}";
+            
+            _logger.LogError(smtpEx,
+                "SMTP error sending email to {ToEmail}. Host: {Host}, Port: {Port}, Username: {Username}, FromEmail: {FromEmail}. Error: {ErrorMessage}",
+                toEmail, _smtpHost, _smtpPort, _smtpUsername, _fromEmail, smtpEx.Message);
+            
+            throw new EmailServiceException(errorMessage, smtpEx);
+        }
         catch (Exception ex)
         {
+            var errorMessage = $"Failed to send email to {toEmail}. Host: {_smtpHost}, Port: {_smtpPort}, FromEmail: {_fromEmail}. " +
+                              $"Error: {ex.Message}";
+            
             _logger.LogError(ex,
                 "Failed to send email via SMTP to {ToEmail}. Host: {Host}, Port: {Port}, Username: {Username}, FromEmail: {FromEmail}. Error: {ErrorMessage}",
                 toEmail, _smtpHost, _smtpPort, _smtpUsername, _fromEmail, ex.Message);
-            // Graceful degradation - don't throw, just log
+            
+            throw new EmailServiceException(errorMessage, ex);
         }
     }
 

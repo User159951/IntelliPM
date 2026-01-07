@@ -24,11 +24,15 @@ public interface IAIDecisionLogger
     /// <param name="inputData">Input data (JSON)</param>
     /// <param name="outputData">Output data (JSON)</param>
     /// <param name="modelName">AI model name (e.g., "llama3.2:3b")</param>
-    /// <param name="tokensUsed">Number of tokens used</param>
+    /// <param name="tokensUsed">Total number of tokens used (prompt + completion). If 0, will be calculated from promptTokens + completionTokens.</param>
+    /// <param name="promptTokens">Number of prompt tokens (input)</param>
+    /// <param name="completionTokens">Number of completion tokens (output)</param>
     /// <param name="executionTimeMs">Execution time in milliseconds</param>
+    /// <param name="isSuccess">Whether the execution was successful (default: true)</param>
+    /// <param name="errorMessage">Error message if execution failed (default: null)</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Task representing the async operation</returns>
-    System.Threading.Tasks.Task LogDecisionAsync(
+    /// <returns>Task representing the async operation. Returns the ID of the created AIDecisionLog, or null if logging failed.</returns>
+    System.Threading.Tasks.Task<int?> LogDecisionAsync(
         string agentType,
         string decisionType,
         string reasoning,
@@ -46,7 +50,11 @@ public interface IAIDecisionLogger
         string? outputData = null,
         string modelName = "llama3.2:3b",
         int tokensUsed = 0,
+        int promptTokens = 0,
+        int completionTokens = 0,
         int executionTimeMs = 0,
+        bool isSuccess = true,
+        string? errorMessage = null,
         CancellationToken cancellationToken = default);
 }
 

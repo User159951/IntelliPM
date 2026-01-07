@@ -106,11 +106,6 @@ export const FeatureFlagsProvider: React.FC<FeatureFlagsProviderProps> = ({
         
         setError(error);
         setIsLoading(false);
-
-        // Log error in development
-        if (import.meta.env.DEV) {
-          console.error('[FeatureFlagsProvider] Error fetching flags:', error);
-        }
       }
     }
   }, [user, isAuthenticated]);

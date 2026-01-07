@@ -10,6 +10,7 @@ import { QAAgentResults } from './QAAgentResults';
 import { BusinessAgentResults } from './BusinessAgentResults';
 import { ManagerAgentResults } from './ManagerAgentResults';
 import { DeliveryAgentResults } from './DeliveryAgentResults';
+import { CollapsibleAIResponse } from '../CollapsibleAIResponse';
 
 interface AgentResultsDisplayProps {
   agentType: AgentType;
@@ -84,7 +85,6 @@ export function AgentResultsDisplay({ agentType, result, isLoading }: AgentResul
       }
     } catch (error) {
       // If rendering fails, fall back to text display
-      console.error('Error rendering structured view:', error);
       return <FallbackDisplay content={result.content} />;
     }
   }
@@ -97,9 +97,11 @@ function FallbackDisplay({ content }: { content: string }) {
   return (
     <Card>
       <CardContent className="pt-6">
-        <pre className="text-sm whitespace-pre-wrap font-mono bg-muted p-4 rounded-lg overflow-auto max-h-96">
-          {content}
-        </pre>
+        <CollapsibleAIResponse
+          content={content}
+          storageKey="agent-fallback-response"
+          className="font-mono bg-muted p-4 rounded-lg"
+        />
       </CardContent>
     </Card>
   );

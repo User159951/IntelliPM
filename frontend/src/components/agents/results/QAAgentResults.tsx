@@ -9,6 +9,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import type { QAAgentOutput, DefectPattern } from '@/types/agents';
 import { cn } from '@/lib/utils';
+import { VirtualizedList } from '../VirtualizedList';
 
 interface QAAgentResultsProps {
   output: QAAgentOutput;
@@ -118,11 +119,24 @@ export function QAAgentResults({ output }: QAAgentResultsProps) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {output.patterns.map((pattern, index) => (
-          <PatternCard key={index} pattern={pattern} />
-        ))}
-      </div>
+      {output.patterns.length > 10 ? (
+        <VirtualizedList
+          items={output.patterns}
+          renderItem={(pattern, index) => (
+            <div className="mb-4">
+              <PatternCard pattern={pattern} />
+            </div>
+          )}
+          itemHeight={200}
+          maxHeight={600}
+        />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {output.patterns.map((pattern, index) => (
+            <PatternCard key={index} pattern={pattern} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

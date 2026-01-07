@@ -124,7 +124,7 @@ export function CreateDefectDialog({
                     setFormData({ ...formData, severity: value })
                   }
                 >
-                  <SelectTrigger id="severity">
+                  <SelectTrigger id="severity" name="severity">
                     <SelectValue placeholder="Select severity" />
                   </SelectTrigger>
                   <SelectContent>
@@ -146,7 +146,7 @@ export function CreateDefectDialog({
                     })
                   }
                 >
-                  <SelectTrigger id="assignee">
+                  <SelectTrigger id="assignee" name="assignedToId">
                     <SelectValue placeholder="Unassigned" />
                   </SelectTrigger>
                   <SelectContent>

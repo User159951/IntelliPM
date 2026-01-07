@@ -1,15 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
 using System.Net;
 
 namespace IntelliPM.API.Controllers;
 
 /// <summary>
 /// Controller for API health smoke tests
-/// Exposes endpoint without versioning at /api/health/api
+/// Exposes versioned endpoint at /api/v1/health/api
+/// Note: This endpoint is versioned for consistency with other API endpoints.
+/// Monitoring tools should be updated to use the new versioned route.
 /// </summary>
 [ApiController]
-[Route("api/health")]
+[Route("api/v{version:apiVersion}/health")]
+[ApiVersion("1.0")]
 public class HealthApiController : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -61,7 +65,7 @@ public class HealthApiController : ControllerBase
 
             // Test 3: Health endpoint (should return 200 - public)
             checks.Add(await CheckEndpointAsync(
-                "/api/health",
+                "/api/v1/health",
                 HttpMethod.Get,
                 baseUrl,
                 expectedStatusCode: HttpStatusCode.OK,

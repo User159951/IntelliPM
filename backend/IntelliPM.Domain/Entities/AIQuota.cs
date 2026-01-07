@@ -16,6 +16,14 @@ public class AIQuota : IAggregateRoot
     public string TierName { get; set; } = "Free"; // "Free", "Pro", "Enterprise", "Custom"
     public bool IsActive { get; set; } = true;
 
+    // Scheduled quota support
+    /// <summary>
+    /// Effective date for scheduled quota changes.
+    /// If null, quota is active immediately.
+    /// If set, quota becomes active at this date/time.
+    /// </summary>
+    public DateTimeOffset? EffectiveDate { get; set; }
+
     // Current period
     public DateTimeOffset PeriodStartDate { get; set; }
     public DateTimeOffset PeriodEndDate { get; set; }

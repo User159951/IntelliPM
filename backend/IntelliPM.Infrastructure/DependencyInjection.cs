@@ -27,6 +27,9 @@ public static class DependencyInjection
         // Register CurrentUserService
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         
+        // Register CorrelationIdService
+        services.AddScoped<IntelliPM.Application.Common.Interfaces.ICorrelationIdService, CorrelationIdService>();
+        
         // Register PermissionService
         services.AddScoped<IPermissionService, PermissionService>();
 
@@ -79,14 +82,16 @@ public static class DependencyInjection
         services.AddScoped<IVectorMemoryStore, VectorMemoryStorePgvector>();
 
         // HTTP Client Factory (for health checks and LLM)
-        services.AddHttpClient();
+        // Add correlation ID propagation handler
+        services.AddTransient<CorrelationIdHttpMessageHandler>();
 
         // LLM (Ollama)
         services.AddHttpClient<ILlmClient, OllamaClient>(client =>
         {
             client.BaseAddress = new Uri(config["Ollama:Endpoint"] ?? "http://localhost:11434");
             client.Timeout = TimeSpan.FromMinutes(2); // LLM calls can be slow
-        });
+        })
+        .AddHttpMessageHandler<CorrelationIdHttpMessageHandler>();
 
         // AI Agent Service (using Semantic Kernel with automatic function calling)
         services.AddScoped<IAgentService, SemanticKernelAgentService>();
@@ -114,6 +119,7 @@ public static class DependencyInjection
         // Background Services
         services.AddHostedService<OutboxProcessor>();
         services.AddHostedService<MilestoneStatusUpdater>();
+        services.AddHostedService<ScheduledQuotaProcessor>();
 
 
         return services;

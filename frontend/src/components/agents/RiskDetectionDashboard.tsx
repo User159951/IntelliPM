@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
 import { showToast, showError } from '@/lib/sweetalert';
-import { useState } from 'react';
+import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
+import { useState, useCallback, useEffect } from 'react';
 import type { AgentResponse } from '@/types';
 
 interface RiskDetectionDashboardProps {
@@ -30,26 +32,74 @@ interface RiskDetectionResult {
 
 export function RiskDetectionDashboard({ projectId }: RiskDetectionDashboardProps) {
   const [risks, setRisks] = useState<Risk[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | undefined>(undefined);
+
+  const { handleError, executeWithErrorHandling, isBlocked, getErrorMessage } = useAIErrorHandler({
+    showToast: false, // We'll handle toasts manually for better UX
+  });
+
+  // Check if blocked on mount
+  useEffect(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+    }
+  }, [isBlocked, getErrorMessage]);
 
   const detectMutation = useMutation({
-    mutationFn: () => agentsApi.detectRisks(projectId),
+    mutationFn: async () => {
+      return executeWithErrorHandling(
+        () => agentsApi.detectRisks(projectId),
+        40000 // Estimated 40 seconds for risk detection
+      );
+    },
     onSuccess: (data: AgentResponse) => {
       try {
         const parsed = JSON.parse(data.content);
         const result = parsed as RiskDetectionResult;
         setRisks(result.risks || []);
+        setError(null);
+        setCanRetry(false);
         showToast(`${result.risks?.length || 0} risque(s) détecté(s)`, 'success');
       } catch {
         // Try metadata
         const result = (data.metadata as unknown as RiskDetectionResult) || { risks: [] };
         setRisks(result.risks);
+        setError(null);
+        setCanRetry(false);
         showToast(`${result.risks.length} risque(s) détecté(s)`, 'success');
       }
     },
     onError: (error: Error) => {
-      showError('Erreur lors de la détection des risques', error.message);
+      const errorResult = handleError(error);
+      setError(error.message || 'Erreur lors de la détection des risques');
+      setCanRetry(errorResult.canRetry);
+      setRetryAfter(errorResult.retryAfter);
+      
+      if (!errorResult.isQuotaExceeded && !errorResult.isAIDisabled) {
+        showError('Erreur lors de la détection des risques', error.message);
+      }
     },
   });
+
+  const handleDetectRisks = useCallback(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+      return;
+    }
+
+    setError(null);
+    setCanRetry(false);
+    setRetryAfter(undefined);
+    detectMutation.mutate();
+  }, [isBlocked, getErrorMessage, detectMutation]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -74,13 +124,13 @@ export function RiskDetectionDashboard({ projectId }: RiskDetectionDashboardProp
           Détection des Risques
         </h2>
         <Button
-          onClick={() => detectMutation.mutate()}
-          disabled={detectMutation.isPending}
+          onClick={handleDetectRisks}
+          disabled={detectMutation.isPending || isBlocked()}
         >
           {detectMutation.isPending ? (
             <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Analyse en cours...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analyse en cours... (peut prendre jusqu&apos;à 40 secondes)
             </>
           ) : (
             <>
@@ -91,7 +141,37 @@ export function RiskDetectionDashboard({ projectId }: RiskDetectionDashboardProp
         </Button>
       </div>
 
-      {detectMutation.isPending && <Skeleton className="h-96" />}
+      {/* Error State */}
+      {error && !detectMutation.isPending && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="space-y-2">
+            <p>{error}</p>
+            {canRetry && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDetectRisks}
+                className="mt-2"
+              >
+                <RefreshCw className="mr-2 h-3 w-3" />
+                Réessayer{retryAfter ? ` (dans ${retryAfter}s)` : ''}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {detectMutation.isPending && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Analyse des risques en cours... Cela peut prendre jusqu&apos;à 40 secondes.</span>
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      )}
 
       {risks.length > 0 && (
         <div className="grid gap-4">

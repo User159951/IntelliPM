@@ -23,9 +23,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return stored;
     }
     
-    // Detect system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = prefersDark ? 'dark' : 'light';
+    // Default theme set to LIGHT
+    const initialTheme = 'light';
     
     // Apply theme immediately to prevent flicker
     document.documentElement.classList.remove('light', 'dark');

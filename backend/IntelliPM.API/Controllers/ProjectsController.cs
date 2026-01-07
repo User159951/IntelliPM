@@ -686,6 +686,68 @@ public class ProjectsController : BaseApiController
     }
 
     /// <summary>
+    /// Get all teams assigned to a project.
+    /// Returns teams that are currently assigned (active) to the project.
+    /// </summary>
+    /// <param name="id">Project ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of assigned teams</returns>
+    /// <response code="200">Returns the list of assigned teams</response>
+    /// <response code="401">User is not authenticated</response>
+    /// <response code="403">User does not have permission to view project teams</response>
+    /// <response code="404">Project not found</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("{id}/assigned-teams")]
+    [RequirePermission("projects.view")]
+    [ProducesResponseType(typeof(List<ProjectAssignedTeamDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetProjectAssignedTeams(int id, CancellationToken ct = default)
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving assigned teams for project {ProjectId}", id);
+
+            var query = new GetProjectAssignedTeamsQuery
+            {
+                ProjectId = id
+            };
+
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Project {ProjectId} not found when retrieving assigned teams", id);
+            return Problem(
+                title: "Not Found",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+        catch (UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access when retrieving assigned teams for project {ProjectId}", id);
+            return Problem(
+                title: "Forbidden",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving assigned teams for project {ProjectId}", id);
+            return Problem(
+                title: "Error retrieving assigned teams",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
     /// Change a member's role in a project
     /// </summary>
     [HttpPut("{projectId}/members/{userId}/role")]

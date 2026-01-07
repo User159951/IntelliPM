@@ -115,7 +115,7 @@ export function UserCard({ user, onClick, showActions = false, className }: User
   const handleActionClick = (e: React.MouseEvent, action: 'edit' | 'delete') => {
     e.stopPropagation();
     // Action handlers would be passed as props in a real implementation
-    console.log(`${action} user ${normalizedUser.id}`);
+    // Action: ${action} for user ${normalizedUser.id}
   };
 
   const lastLoginText = normalizedUser.lastLoginAt

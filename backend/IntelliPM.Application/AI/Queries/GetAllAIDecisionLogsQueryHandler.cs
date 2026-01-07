@@ -81,7 +81,8 @@ public class GetAllAIDecisionLogsQueryHandler : IRequestHandler<GetAllAIDecision
                 d.RequiresHumanApproval,
                 d.ApprovedByHuman,
                 d.CreatedAt,
-                d.TokensUsed
+                d.TokensUsed,
+                d.CostAccumulated
             ))
             .ToListAsync(ct);
 

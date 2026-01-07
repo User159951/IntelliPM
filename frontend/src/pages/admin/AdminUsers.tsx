@@ -242,6 +242,8 @@ export default function AdminUsers() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              id="search-users"
+              name="search"
               placeholder="Search by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -250,7 +252,7 @@ export default function AdminUsers() {
           </div>
 
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[150px]" id="role-filter" name="role">
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
@@ -261,7 +263,7 @@ export default function AdminUsers() {
           </Select>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[150px]" id="status-filter" name="status">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -364,6 +366,8 @@ export default function AdminUsers() {
                 <TableRow>
                   <TableHead className="w-12">
                     <Checkbox
+                      id="select-all-users"
+                      name="selectAll"
                       checked={
                         filteredUsers.length > 0 &&
                         selectedUsers.size === filteredUsers.length
@@ -427,6 +431,8 @@ export default function AdminUsers() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <Checkbox
+                        id={`select-user-${user.id}`}
+                        name={`selectUser-${user.id}`}
                         checked={selectedUsers.has(user.id)}
                         onCheckedChange={() => toggleUserSelection(user.id)}
                         aria-label={`Select user ${user.username}`}

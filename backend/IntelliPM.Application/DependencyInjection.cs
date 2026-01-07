@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IAIAvailabilityService, AIAvailabilityService>();
         services.AddScoped<IAIDecisionLogger, AIDecisionLogger>();
+        services.AddScoped<IAIPricingService, AIPricingService>();
         services.AddScoped<ITaskDependencyValidator, TaskDependencyValidator>();
         services.AddScoped<IMilestoneValidator, MilestoneValidator>();
         services.AddScoped<IReleaseNotesGenerator, ReleaseNotesGenerator>();

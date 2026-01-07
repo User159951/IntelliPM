@@ -115,7 +115,6 @@ export default function AdminPermissions() {
       await mutation.mutateAsync(pendingPayload);
       // Success handled in mutation.onSuccess
     } catch (error) {
-      console.error('Failed to update permissions:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update permissions';
       showError('Failed to update permissions', errorMessage);
       // Don't close dialog on error - it stays open

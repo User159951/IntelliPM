@@ -166,7 +166,14 @@ export function PermissionGuard({
 
   // Handle error state
   if (error) {
-    console.error('Permission check error:', error);
+    // Show user-friendly error message if notification is enabled
+    if (showNotification && !hasNotifiedRef.current) {
+      showError(
+        'Permission Check Failed',
+        'Unable to verify permissions. Please try again or contact support if the issue persists.'
+      );
+      hasNotifiedRef.current = true;
+    }
     if (fallback) {
       return <>{fallback}</>;
     }
@@ -180,7 +187,14 @@ export function PermissionGuard({
 
   // Validate projectId requirement
   if (projectId !== undefined && (projectId === null || projectId <= 0)) {
-    console.warn('PermissionGuard: projectId is required but invalid:', projectId);
+    // Show user-friendly error message if notification is enabled
+    if (showNotification && !hasNotifiedRef.current) {
+      showError(
+        'Invalid Project',
+        'A valid project is required to access this resource. Please select a project and try again.'
+      );
+      hasNotifiedRef.current = true;
+    }
     if (fallback) {
       return <>{fallback}</>;
     }
@@ -267,7 +281,14 @@ export function PermissionGuardAll({
   }
 
   if (error) {
-    console.error('Permission check error:', error);
+    // Show user-friendly error message if notification is enabled
+    if (showNotification && !hasNotifiedRef.current) {
+      showError(
+        'Permission Check Failed',
+        'Unable to verify permissions. Please try again or contact support if the issue persists.'
+      );
+      hasNotifiedRef.current = true;
+    }
     if (fallback) {
       return <>{fallback}</>;
     }
@@ -361,7 +382,14 @@ export function PermissionGuardAny({
   }
 
   if (error) {
-    console.error('Permission check error:', error);
+    // Show user-friendly error message if notification is enabled
+    if (showNotification && !hasNotifiedRef.current) {
+      showError(
+        'Permission Check Failed',
+        'Unable to verify permissions. Please try again or contact support if the issue persists.'
+      );
+      hasNotifiedRef.current = true;
+    }
     if (fallback) {
       return <>{fallback}</>;
     }

@@ -29,6 +29,9 @@ export default defineConfig(() => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: ['react-window'],
+  },
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
     'import.meta.env.VITE_BUILD_DATE': JSON.stringify(buildDate),

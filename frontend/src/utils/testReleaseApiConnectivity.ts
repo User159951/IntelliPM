@@ -20,9 +20,6 @@ export class ReleaseApiConnectivityTester {
    * @param createTestData - If true, creates a test release for mutation tests
    */
   async runAllTests(createTestData = false): Promise<void> {
-    console.log('%c🚀 Starting Release API Connectivity Tests...', 'color: #4CAF50; font-size: 16px; font-weight: bold;');
-    console.log('='.repeat(80));
-
     this.results = [];
 
     // Phase 1: Read-only tests (safe to run)
@@ -35,7 +32,6 @@ export class ReleaseApiConnectivityTester {
     
     // Phase 3: Mutation tests (only if createTestData = true)
     if (createTestData) {
-      console.log('\n%c⚠️  Running mutation tests (creates/modifies data)...', 'color: #FF9800; font-weight: bold;');
       
       await this.testCreateRelease();
       await this.testUpdateRelease();
@@ -51,7 +47,6 @@ export class ReleaseApiConnectivityTester {
       await this.testDeployRelease();
       await this.testDeleteRelease();
     } else {
-      console.log('\n%c⏭️  Skipping mutation tests (set createTestData=true to run)', 'color: #9E9E9E; font-style: italic;');
       this.skipMutationTests();
     }
 
@@ -639,48 +634,11 @@ export class ReleaseApiConnectivityTester {
 
   private addResult(result: TestResult): void {
     this.results.push(result);
-    
-    const color = result.status === 'SUCCESS' ? '#4CAF50' : 
-                  result.status === 'FAIL' ? '#F44336' : '#9E9E9E';
-    
-    console.log(`%c${result.method.padEnd(6)} ${result.endpoint}`, `color: ${color}; font-weight: bold;`);
-    console.log(`       ${result.message}`);
-    if (result.error) {
-      console.log(`       Error: ${result.error}`);
-    }
   }
 
   private printSummary(): void {
-    console.log('\n' + '='.repeat(80));
-    console.log('%c📊 TEST SUMMARY', 'color: #2196F3; font-size: 16px; font-weight: bold;');
-    console.log('='.repeat(80));
-
-    const total = this.results.length;
-    const success = this.results.filter(r => r.status === 'SUCCESS').length;
-    const failed = this.results.filter(r => r.status === 'FAIL').length;
-    const skipped = this.results.filter(r => r.status === 'SKIP').length;
-
-    console.log(`%c✅ SUCCESS: ${success}/${total}`, 'color: #4CAF50; font-weight: bold;');
-    console.log(`%c❌ FAILED:  ${failed}/${total}`, failed > 0 ? 'color: #F44336; font-weight: bold;' : 'color: #9E9E9E;');
-    console.log(`%c⏭️  SKIPPED: ${skipped}/${total}`, 'color: #9E9E9E;');
-
-    if (failed > 0) {
-      console.log('\n%c⚠️  FAILED ENDPOINTS:', 'color: #F44336; font-weight: bold;');
-      this.results
-        .filter(r => r.status === 'FAIL')
-        .forEach(r => {
-          console.log(`   ${r.method} ${r.endpoint}`);
-          console.log(`   → Status: ${r.statusCode ?? 'Unknown'}, Error: ${r.error ?? 'Unknown error'}`);
-        });
-    }
-
-    console.log('\n' + '='.repeat(80));
-    
-    if (failed === 0 && success > 0) {
-      console.log('%c🎉 All tested endpoints are working correctly!', 'color: #4CAF50; font-size: 14px; font-weight: bold;');
-    } else if (failed > 0) {
-      console.log('%c❌ Some endpoints failed. Check the errors above.', 'color: #F44336; font-size: 14px; font-weight: bold;');
-    }
+    // Summary is available via getResults() method
+    // Test results are stored in this.results array
   }
 
   /**
@@ -702,10 +660,7 @@ if (typeof window !== 'undefined') {
     return releaseApiTester.getResults();
   };
 
-  console.log('%cRelease API Connectivity Tester loaded!', 'color: #2196F3; font-weight: bold;');
-  console.log('Run tests with: %ctestReleaseApi()%c (read-only) or %ctestReleaseApi(true)%c (with mutations)', 
-    'font-weight: normal;', 'background: #EEEEEE; padding: 2px 6px; border-radius: 3px; font-family: monospace;',
-    'font-weight: normal;', 'background: #EEEEEE; padding: 2px 6px; border-radius: 3px; font-family: monospace;',
-    'font-weight: normal;');
+  // Release API Connectivity Tester loaded
+  // Run tests with: testReleaseApi() (read-only) or testReleaseApi(true) (with mutations)
 }
 

@@ -55,11 +55,16 @@ public class AIDecisionLog : IAggregateRoot
     public DateTimeOffset? AppliedAt { get; set; }
     public string? ActualOutcome { get; set; } // What actually happened after decision
 
+    // Cost tracking
+    public decimal CostAccumulated { get; set; } = 0m; // Cost in USD for this decision
+
     // Metadata
     public DateTimeOffset CreatedAt { get; set; }
     public int ExecutionTimeMs { get; set; } // How long decision took
     public string? ErrorMessage { get; set; }
     public bool IsSuccess { get; set; } = true;
+    public string ExecutionStatus { get; set; } = "Success"; // "Success", "Failed", "PartialFailure"
+    public string? CorrelationId { get; set; } // Request correlation ID for distributed tracing
 
     // Navigation properties
     public User RequestedByUser { get; set; } = null!;

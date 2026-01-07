@@ -28,6 +28,7 @@ public class SemanticKernelAgentService : IAgentService
     private readonly IConfiguration _configuration;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAIAvailabilityService _availabilityService;
+    private readonly ICorrelationIdService _correlationIdService;
     private readonly int _timeoutSeconds;
     
     public SemanticKernelAgentService(
@@ -36,7 +37,8 @@ public class SemanticKernelAgentService : IAgentService
         AppDbContext dbContext,
         IConfiguration configuration,
         ICurrentUserService currentUserService,
-        IAIAvailabilityService availabilityService)
+        IAIAvailabilityService availabilityService,
+        ICorrelationIdService correlationIdService)
     {
         _kernel = kernel;
         _logger = logger;
@@ -44,6 +46,7 @@ public class SemanticKernelAgentService : IAgentService
         _configuration = configuration;
         _currentUserService = currentUserService;
         _availabilityService = availabilityService;
+        _correlationIdService = correlationIdService;
         
         // Get timeout from configuration (default: 30 seconds)
         _timeoutSeconds = _configuration.GetValue<int>("Agent:TimeoutSeconds", 30);
@@ -60,9 +63,12 @@ public class SemanticKernelAgentService : IAgentService
     {
         var stopwatch = Stopwatch.StartNew();
         var userId = _currentUserService.GetUserId();
+        var organizationId = _currentUserService.GetOrganizationId();
+        var correlationId = _correlationIdService.GetCorrelationId();
         var executionLog = new AgentExecutionLog
         {
             Id = Guid.NewGuid(),
+            OrganizationId = organizationId > 0 ? organizationId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
             AgentId = "task-improver",
             UserId = userId > 0 ? userId.ToString() : "system",
             UserInput = taskDescription,
@@ -229,9 +235,12 @@ Format your response in markdown with clear sections.";
     {
         var stopwatch = Stopwatch.StartNew();
         var userId = _currentUserService.GetUserId();
+        var organizationId = _currentUserService.GetOrganizationId();
+        var correlationId = _correlationIdService.GetCorrelationId();
         var executionLog = new AgentExecutionLog
         {
             Id = Guid.NewGuid(),
+            OrganizationId = organizationId > 0 ? organizationId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
             AgentId = "risk-analyzer",
             UserId = userId > 0 ? userId.ToString() : "system",
             UserInput = $"Analyze risks for project {projectId}",
@@ -382,10 +391,12 @@ End with:
         var stopwatch = Stopwatch.StartNew();
         var userId = _currentUserService.GetUserId();
         var organizationId = _currentUserService.GetOrganizationId();
+        var correlationId = _correlationIdService.GetCorrelationId();
         
         var executionLog = new AgentExecutionLog
         {
             Id = Guid.NewGuid(),
+            OrganizationId = organizationId > 0 ? organizationId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
             AgentId = "sprint-planner",
             UserId = userId > 0 ? userId.ToString() : "system",
             UserInput = $"Suggest sprint plan for sprint {sprintId} in project {projectId}",
@@ -573,10 +584,12 @@ Use the tools to analyze backlog, team capacity, and sprint capacity, then sugge
         var stopwatch = Stopwatch.StartNew();
         var userId = _currentUserService.GetUserId();
         var organizationId = _currentUserService.GetOrganizationId();
+        var correlationId = _correlationIdService.GetCorrelationId();
         
         var executionLog = new AgentExecutionLog
         {
             Id = Guid.NewGuid(),
+            OrganizationId = organizationId > 0 ? organizationId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
             AgentId = "task-dependency-analyzer",
             UserId = userId > 0 ? userId.ToString() : "system",
             UserInput = $"Analyze task dependencies for project {projectId}",
@@ -755,10 +768,12 @@ Provide a comprehensive dependency analysis with recommendations.";
         var stopwatch = Stopwatch.StartNew();
         var userId = _currentUserService.GetUserId();
         var organizationId = _currentUserService.GetOrganizationId();
+        var correlationId = _correlationIdService.GetCorrelationId();
         
         var executionLog = new AgentExecutionLog
         {
             Id = Guid.NewGuid(),
+            OrganizationId = organizationId > 0 ? organizationId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
             AgentId = "sprint-retrospective-generator",
             UserId = userId > 0 ? userId.ToString() : "system",
             UserInput = $"Generate retrospective for sprint {sprintId}",

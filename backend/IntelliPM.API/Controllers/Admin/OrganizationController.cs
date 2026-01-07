@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Organizations.Queries;
 using IntelliPM.Application.Organizations.Commands;
+using IntelliPM.Application.Organizations.DTOs;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Models;
 using IntelliPM.Application.Identity.DTOs;
@@ -109,6 +110,46 @@ public class OrganizationController : BaseApiController
             _logger.LogError(ex, "Error getting organization members.");
             return Problem(
                 title: "Error retrieving organization members",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Get the current user's organization permission policy (Admin only).
+    /// Returns the permission policy for the admin's organization.
+    /// If no policy exists, returns default values (all permissions allowed).
+    /// </summary>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Organization permission policy</returns>
+    [HttpGet("permission-policy")]
+    [ProducesResponseType(typeof(OrganizationPermissionPolicyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyOrganizationPermissionPolicy(CancellationToken ct = default)
+    {
+        try
+        {
+            var query = new GetMyOrganizationPermissionPolicyQuery();
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to get own organization permission policy.");
+            return Forbid();
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Organization not found for current user.");
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting own organization permission policy.");
+            return Problem(
+                title: "Error retrieving organization permission policy",
                 detail: ex.Message,
                 statusCode: StatusCodes.Status500InternalServerError
             );

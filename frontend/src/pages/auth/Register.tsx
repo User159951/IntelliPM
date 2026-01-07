@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 export default function Register() {
   return (
@@ -8,9 +10,17 @@ export default function Register() {
       <Card className="w-full max-w-md p-8">
         <CardHeader>
           <CardTitle>🔒 Inscription fermée</CardTitle>
-          </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-4">
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Registration Disabled</AlertTitle>
+            <AlertDescription>
+              Registration is disabled. Users must be invited by an administrator.
+            </AlertDescription>
+          </Alert>
+          
+          <p className="text-muted-foreground">
             Les inscriptions publiques sont désactivées pour des raisons de sécurité.
           </p>
           <p className="text-muted-foreground">
@@ -19,8 +29,8 @@ export default function Register() {
           <Button asChild className="w-full mt-6">
             <Link to="/login">← Retour à la connexion</Link>
           </Button>
-            </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
     </div>
   );
 }

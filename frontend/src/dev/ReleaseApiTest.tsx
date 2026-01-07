@@ -52,7 +52,7 @@ export const ReleaseApiTestPage: React.FC = () => {
         skipped: testResults.filter(r => r.status === 'SKIP').length
       });
     } catch (error) {
-      console.error('Test execution failed:', error);
+      // Test execution failed
     } finally {
       setTesting(false);
     }

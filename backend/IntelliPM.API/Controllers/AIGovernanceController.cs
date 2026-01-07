@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Application.AI.Queries;
+using IntelliPM.Application.Agent.Queries;
 using IntelliPM.Application.AI.Commands;
 using IntelliPM.Application.Common.Models;
 
@@ -299,6 +300,59 @@ public class AIGovernanceController : BaseApiController
             _logger.LogError(ex, "Error getting AI usage statistics");
             return Problem(
                 title: "Error retrieving usage statistics",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Get agent execution logs for performance monitoring and analysis.
+    /// Returns detailed execution logs with performance metrics, success/failure status, and token usage.
+    /// </summary>
+    /// <param name="agentId">Filter by agent ID (e.g., "delivery-agent")</param>
+    /// <param name="agentType">Filter by agent type (e.g., "DeliveryAgent", "ProductAgent")</param>
+    /// <param name="userId">Filter by user ID</param>
+    /// <param name="status">Filter by status (e.g., "Success", "Error")</param>
+    /// <param name="success">Filter by success status (true/false)</param>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 20, max: 100)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated list of agent execution logs</returns>
+    [HttpGet("executions")]
+    [ProducesResponseType(typeof(GetAgentAuditLogsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetExecutionLogs(
+        [FromQuery] string? agentId,
+        [FromQuery] string? agentType,
+        [FromQuery] string? userId,
+        [FromQuery] string? status,
+        [FromQuery] bool? success,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var query = new Application.Agent.Queries.GetAgentAuditLogsQuery
+            {
+                Page = page,
+                PageSize = pageSize,
+                AgentId = agentId,
+                AgentType = agentType,
+                UserId = userId,
+                Status = status,
+                Success = success
+            };
+
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting agent execution logs");
+            return Problem(
+                title: "Error retrieving execution logs",
                 detail: ex.Message,
                 statusCode: StatusCodes.Status500InternalServerError
             );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   Dialog,
@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { QuotaAlertBanner } from '@/components/ai-governance/QuotaAlertBanner';
 import { agentsApi } from '@/api/agents';
 import { showToast, showError } from '@/lib/sweetalert';
+import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
 import type { ImproveTaskRequest, AgentResponse } from '@/types';
 import {
   Loader2,
@@ -26,6 +27,7 @@ import {
   Plus,
   AlertCircle,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -71,7 +73,7 @@ function parseImprovedTaskData(response: AgentResponse): ImprovedTask | null {
       };
     }
   } catch (error) {
-    console.error('Error parsing improved task data:', error);
+    // Error parsing improved task data, return null (fail-safe)
   }
   
   return null;
@@ -88,6 +90,13 @@ export function AITaskImproverDialog({
   const [improvedTask, setImprovedTask] = useState<ImprovedTask | null>(null);
   const [editedTask, setEditedTask] = useState<ImprovedTask | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { isRequestInFlight } = useRequestDeduplication();
+  const [canRetry, setCanRetry] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | undefined>(undefined);
+
+  const { handleError, executeWithErrorHandling, isBlocked, getErrorMessage } = useAIErrorHandler({
+    showToast: false, // We'll handle toasts manually for better UX
+  });
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -95,41 +104,76 @@ export function AITaskImproverDialog({
       setImprovedTask(null);
       setEditedTask(null);
       setError(null);
+      setCanRetry(false);
+      setRetryAfter(undefined);
     }
   }, [open]);
 
+  // Check if blocked when dialog opens
+  useEffect(() => {
+    if (open && isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+    }
+  }, [open, isBlocked, getErrorMessage]);
+
   const improveMutation = useMutation({
-    mutationFn: (data: ImproveTaskRequest) => agentsApi.improveTask(data),
+    mutationFn: async (data: ImproveTaskRequest) => {
+      return executeWithErrorHandling(
+        () => agentsApi.improveTask(data),
+        30000 // Estimated 30 seconds
+      );
+    },
     onSuccess: (result) => {
       const parsed = parseImprovedTaskData(result);
       if (parsed) {
         setImprovedTask(parsed);
         setEditedTask(parsed);
         setError(null);
+        setCanRetry(false);
         showToast('Analyse terminée!', 'success');
       } else {
         setError('Impossible de parser les données améliorées. Réponse reçue mais format inattendu.');
+        setCanRetry(true);
       }
     },
     onError: (error: Error) => {
+      const errorResult = handleError(error);
       setError(error.message || 'Échec de l\'analyse');
-      showError('Échec de l\'analyse', error.message);
+      setCanRetry(errorResult.canRetry);
+      setRetryAfter(errorResult.retryAfter);
+      
+      if (!errorResult.isQuotaExceeded && !errorResult.isAIDisabled) {
+        showError('Échec de l\'analyse', error.message);
+      }
     },
   });
 
-  const handleAnalyze = () => {
+  const handleAnalyze = useCallback(() => {
     if (!initialTitle.trim() && !initialDescription.trim()) {
       showError('Erreur', 'Veuillez fournir au moins un titre ou une description');
       return;
     }
 
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+      return;
+    }
+
     setError(null);
+    setCanRetry(false);
+    setRetryAfter(undefined);
     improveMutation.mutate({
       title: initialTitle,
       description: initialDescription,
       projectId,
     });
-  };
+  }, [initialTitle, initialDescription, projectId, isBlocked, getErrorMessage, improveMutation]);
 
   const handleApply = () => {
     if (editedTask) {
@@ -169,6 +213,7 @@ export function AITaskImproverDialog({
 
   const isAnalyzing = improveMutation.isPending;
   const hasResult = !!improvedTask && !!editedTask;
+  const isBlockedState = isBlocked();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -205,7 +250,7 @@ export function AITaskImproverDialog({
             <Button
               type="button"
               onClick={handleAnalyze}
-              disabled={isAnalyzing || (!initialTitle.trim() && !initialDescription.trim())}
+              disabled={isAnalyzing || isBlocked() || (!initialTitle.trim() && !initialDescription.trim())}
               className="w-full"
             >
               {isAnalyzing ? (
@@ -225,6 +270,10 @@ export function AITaskImproverDialog({
           {/* Loading State */}
           {isAnalyzing && (
             <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>L&apos;IA analyse votre tâche... Cela peut prendre jusqu&apos;à 30 secondes.</span>
+              </div>
               <div className="space-y-2">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-32 w-full" />
@@ -237,7 +286,21 @@ export function AITaskImproverDialog({
           {error && !isAnalyzing && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="space-y-2">
+                <p>{error}</p>
+                {canRetry && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAnalyze}
+                    className="mt-2"
+                  >
+                    <RefreshCw className="mr-2 h-3 w-3" />
+                    Réessayer{retryAfter ? ` (dans ${retryAfter}s)` : ''}
+                  </Button>
+                )}
+              </AlertDescription>
             </Alert>
           )}
 
@@ -381,7 +444,7 @@ export function AITaskImproverDialog({
           <Button
             type="button"
             onClick={handleApply}
-            disabled={!hasResult || isAnalyzing}
+            disabled={!hasResult || isAnalyzing || isBlockedState}
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
             Appliquer

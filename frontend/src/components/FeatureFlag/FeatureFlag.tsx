@@ -104,9 +104,6 @@ export function FeatureFlag({
 
   // Handle error state (fail-safe: don't show feature)
   if (error) {
-    if (import.meta.env.DEV) {
-      console.error(`[FeatureFlag] Error checking flag "${flagName}":`, error);
-    }
     // On error, don't show the feature (fail-safe)
     return fallback ? <>{fallback}</> : null;
   }

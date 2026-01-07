@@ -142,6 +142,15 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasPrecision(5, 4)
                         .HasColumnType("decimal(5,4)");
 
+                    b.Property<string>("CorrelationId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("CostAccumulated")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 6)
+                        .HasColumnType("decimal(10,6)")
+                        .HasDefaultValue(0m);
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -172,6 +181,13 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExecutionStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Success");
 
                     b.Property<int>("ExecutionTimeMs")
                         .HasColumnType("int");
@@ -238,6 +254,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ApprovedByUserId");
 
+                    b.HasIndex("CorrelationId")
+                        .HasDatabaseName("IX_AIDecisionLogs_CorrelationId");
+
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("IX_AIDecisionLogs_CreatedAt");
 
@@ -247,6 +266,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DecisionType")
                         .HasDatabaseName("IX_AIDecisionLogs_DecisionType");
+
+                    b.HasIndex("ExecutionStatus")
+                        .HasDatabaseName("IX_AIDecisionLogs_ExecutionStatus");
 
                     b.HasIndex("OrganizationId")
                         .HasDatabaseName("IX_AIDecisionLogs_OrganizationId");
@@ -304,6 +326,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("DecisionsMade")
                         .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("EffectiveDate")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("EnforceQuota")
                         .ValueGeneratedOnAdd()
@@ -393,6 +418,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EffectiveDate")
+                        .HasDatabaseName("IX_AIQuotas_EffectiveDate");
+
                     b.HasIndex("IsQuotaExceeded")
                         .HasDatabaseName("IX_AIQuotas_IsQuotaExceeded");
 
@@ -404,6 +432,10 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TierName")
                         .HasDatabaseName("IX_AIQuotas_TierName");
+
+                    b.HasIndex("IsActive", "EffectiveDate")
+                        .HasDatabaseName("IX_AIQuotas_Scheduled")
+                        .HasFilter("[IsActive] = 0 AND [EffectiveDate] IS NOT NULL");
 
                     b.HasIndex("IsActive", "PeriodEndDate")
                         .HasDatabaseName("IX_AIQuotas_Active_PeriodEndDate")
@@ -478,6 +510,10 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Property<string>("AgentResponse")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("AgentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -490,9 +526,21 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Property<int>("ExecutionTimeMs")
                         .HasColumnType("int");
 
+                    b.Property<int?>("LinkedDecisionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("TokensUsed")
+                        .HasColumnType("int");
 
                     b.Property<string>("ToolsCalled")
                         .HasColumnType("nvarchar(max)");
@@ -506,6 +554,10 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LinkedDecisionId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("AgentExecutionLogs");
                 });
@@ -3380,6 +3432,24 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.AgentExecutionLog", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.AIDecisionLog", "LinkedDecision")
+                        .WithMany()
+                        .HasForeignKey("LinkedDecisionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LinkedDecision");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Alert", b =>

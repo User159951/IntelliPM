@@ -65,6 +65,9 @@ public class GetAIOverviewStatsQueryHandler : IRequestHandler<GetAIOverviewStats
             ? decisionsLast30Days.Average(d => (double)d.ConfidenceScore)
             : 0.0;
 
+        // Total cost for last 30 days
+        var totalCostLast30Days = decisionsLast30Days.Sum(d => d.CostAccumulated);
+
         // Top 5 agents by decision count
         var topAgents = decisionsLast30Days
             .GroupBy(d => d.AgentType)
@@ -121,6 +124,7 @@ public class GetAIOverviewStatsQueryHandler : IRequestHandler<GetAIOverviewStats
             ApprovedDecisions = approvedDecisions,
             RejectedDecisions = rejectedDecisions,
             AverageConfidenceScore = averageConfidenceScore,
+            TotalCostLast30Days = totalCostLast30Days,
             TopAgents = topAgents,
             QuotaByTier = quotaByTier
         };

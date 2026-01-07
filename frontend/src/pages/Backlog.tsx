@@ -157,60 +157,49 @@ export default function Backlog() {
     );
   }, [sprintsData]);
 
-  // Mock data for epics/features/stories (keeping existing functionality)
-  const mockBacklog = {
-    epics: [
-      {
-        id: 1,
-        title: 'User Authentication System',
-        description: 'Complete authentication and authorization features',
-        features: [
-          {
-            id: 1,
-            title: 'Social Login Integration',
-            description: 'OAuth integration with major providers',
-            storyPoints: 13,
-            domainTag: 'Security',
-            stories: [
-              { id: 1, title: 'Google OAuth Setup', storyPoints: 5, domainTag: 'Security' },
-              { id: 2, title: 'GitHub OAuth Setup', storyPoints: 5, domainTag: 'Security' },
-              { id: 3, title: 'Session Management', storyPoints: 3, domainTag: 'Security' },
-            ],
-          },
-          {
-            id: 2,
-            title: 'Two-Factor Authentication',
-            description: '2FA support for enhanced security',
-            storyPoints: 8,
-            domainTag: 'Security',
-            stories: [
-              { id: 4, title: 'TOTP Implementation', storyPoints: 5, domainTag: 'Security' },
-              { id: 5, title: 'Backup Codes', storyPoints: 3, domainTag: 'Security' },
-            ],
-          },
-        ],
-      },
-      {
-        id: 2,
-        title: 'Dashboard Redesign',
-        description: 'Modern dashboard with improved UX',
-        features: [
-          {
-            id: 3,
-            title: 'Widget System',
-            description: 'Customizable dashboard widgets',
-            storyPoints: 21,
-            domainTag: 'UI',
-            stories: [
-              { id: 6, title: 'Widget Framework', storyPoints: 8, domainTag: 'UI' },
-              { id: 7, title: 'Chart Widgets', storyPoints: 8, domainTag: 'UI' },
-              { id: 8, title: 'Widget Persistence', storyPoints: 5, domainTag: 'Backend' },
-            ],
-          },
-        ],
-      },
-    ],
-  };
+  // Fetch epics
+  const { data: epicsData, isLoading: epicsLoading } = useQuery({
+    queryKey: ['backlog', 'epics', projectId],
+    queryFn: () => backlogApi.getEpics(projectId!, { page: 1, pageSize: 100 }),
+    enabled: !!projectId,
+  });
+
+  // Fetch features for all epics (we'll filter client-side)
+  const { data: featuresData, isLoading: featuresLoading } = useQuery({
+    queryKey: ['backlog', 'features', projectId],
+    queryFn: () => backlogApi.getFeatures(projectId!, { page: 1, pageSize: 1000 }),
+    enabled: !!projectId,
+  });
+
+  // Fetch stories for all features (we'll filter client-side)
+  const { data: storiesData, isLoading: storiesLoading } = useQuery({
+    queryKey: ['backlog', 'stories', projectId],
+    queryFn: () => backlogApi.getStories(projectId!, { page: 1, pageSize: 1000 }),
+    enabled: !!projectId,
+  });
+
+  // Transform data to match the expected structure
+  const backlogHierarchyData = useMemo(() => {
+    if (!epicsData?.items || !featuresData?.items || !storiesData?.items) {
+      return { epics: [] };
+    }
+
+    const epics = epicsData.items.map((epic) => {
+      const features = featuresData.items
+        .filter((feature) => feature.epicId === epic.id)
+        .map((feature) => {
+          const stories = storiesData.items.filter(
+            (story) => story.featureId === feature.id
+          );
+          return { ...feature, stories };
+        });
+      return { ...epic, features };
+    });
+
+    return { epics };
+  }, [epicsData, featuresData, storiesData]);
+
+  const isLoadingBacklogItems = epicsLoading || featuresLoading || storiesLoading;
 
   const createEpicMutation = useMutation({
     mutationFn: (data: { title: string; description: string }) =>
@@ -219,6 +208,7 @@ export default function Backlog() {
       showSuccess("Epic created");
       setDialogOpen(false);
       resetForm();
+      queryClient.invalidateQueries({ queryKey: ['backlog', 'epics', projectId] });
     },
     onError: () => {
       showError('Failed to create epic');
@@ -231,6 +221,7 @@ export default function Backlog() {
       showSuccess("Feature created");
       setDialogOpen(false);
       resetForm();
+      queryClient.invalidateQueries({ queryKey: ['backlog', 'features', projectId] });
     },
     onError: () => {
       showError('Failed to create feature');
@@ -243,6 +234,7 @@ export default function Backlog() {
       showSuccess("Story created");
       setDialogOpen(false);
       resetForm();
+      queryClient.invalidateQueries({ queryKey: ['backlog', 'stories', projectId] });
     },
     onError: () => {
       showError('Failed to create story');
@@ -408,7 +400,7 @@ export default function Backlog() {
                             <SelectValue placeholder="Select epic" />
                           </SelectTrigger>
                           <SelectContent>
-                            {mockBacklog.epics.map((epic) => (
+                            {backlogHierarchyData.epics.map((epic) => (
                               <SelectItem key={epic.id} value={epic.id.toString()}>
                                 {epic.title}
                               </SelectItem>
@@ -429,12 +421,12 @@ export default function Backlog() {
                               <SelectValue placeholder="Select feature" />
                             </SelectTrigger>
                             <SelectContent>
-                              {mockBacklog.epics.flatMap((epic) =>
-                                epic.features.map((feature) => (
+                              {backlogHierarchyData.epics.flatMap((epic) =>
+                                epic.features?.map((feature) => (
                                   <SelectItem key={feature.id} value={feature.id.toString()}>
                                     {feature.title}
                                   </SelectItem>
-                                ))
+                                )) || []
                               )}
                             </SelectContent>
                           </Select>
@@ -631,10 +623,21 @@ export default function Backlog() {
               )}
             </div>
 
-            {/* Epics/Features/Stories (existing functionality) */}
+            {/* Epics/Features/Stories */}
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Epics & Features</h2>
-              {mockBacklog.epics.map((epic) => (
+              {isLoadingBacklogItems ? (
+                <div className="space-y-2">
+                  {[1, 2].map((i) => (
+                    <Card key={i} className="h-32 animate-pulse" />
+                  ))}
+                </div>
+              ) : backlogHierarchyData.epics.length === 0 ? (
+                <Card className="py-8 text-center">
+                  <p className="text-muted-foreground">No epics found. Create your first epic to get started.</p>
+                </Card>
+              ) : (
+                backlogHierarchyData.epics.map((epic) => (
                 <Collapsible key={epic.id} defaultOpen>
                   <Card>
                     <CollapsibleTrigger asChild>
@@ -673,8 +676,8 @@ export default function Backlog() {
                                   </div>
                                 </CollapsibleTrigger>
                                 <CollapsibleContent>
-                                  <div className="px-3 pb-3 ml-8 space-y-2">
-                                    {feature.stories.map((story) => (
+                                    <div className="px-3 pb-3 ml-8 space-y-2">
+                                    {feature.stories?.map((story) => (
                                       <div
                                         key={story.id}
                                         className="p-2 border rounded bg-accent/30 flex items-center justify-between"
@@ -705,7 +708,8 @@ export default function Backlog() {
                     </CollapsibleContent>
                   </Card>
                 </Collapsible>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}

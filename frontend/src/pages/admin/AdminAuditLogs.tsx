@@ -149,6 +149,8 @@ export default function AdminAuditLogs() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            id="search-audit-logs"
+            name="search"
             placeholder="Search logs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -157,7 +159,7 @@ export default function AdminAuditLogs() {
         </div>
 
         <Select value={actionFilter} onValueChange={setActionFilter}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-[150px]" id="action-filter" name="action">
             <SelectValue placeholder="All Actions" />
           </SelectTrigger>
           <SelectContent>
@@ -171,7 +173,7 @@ export default function AdminAuditLogs() {
         </Select>
 
         <Select value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-[150px]" id="entity-type-filter" name="entityType">
             <SelectValue placeholder="All Entities" />
           </SelectTrigger>
           <SelectContent>

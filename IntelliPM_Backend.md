@@ -1,7 +1,7 @@
 # IntelliPM Backend Documentation
 
-**Version:** 2.14.4  
-**Last Updated:** January 6, 2025  
+**Version:** 2.15.0  
+**Last Updated:** January 7, 2025 (Comprehensive Codebase Scan)  
 **Technology Stack:** .NET 8.0, ASP.NET Core, Entity Framework Core, SQL Server, PostgreSQL, Semantic Kernel
 
 ---
@@ -350,7 +350,7 @@ IntelliPM.Infrastructure/
 
 ```
 IntelliPM.API/
-├── Controllers/                   # API controllers (42 controllers total: 26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
+├── Controllers/                   # API controllers (43 controllers total: 26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
 │   ├── BaseApiController.cs      # Base controller
 │   ├── ProjectsController.cs
 │   ├── TasksController.cs
@@ -1223,7 +1223,7 @@ public class OrganizationInvitation
 The application layer uses CQRS (Command Query Responsibility Segregation) pattern:
 
 - **Commands**: Write operations (Create, Update, Delete) - **Total: 98 Commands**
-- **Queries**: Read operations (Get, List, Search) - **Total: 76 Queries**
+- **Queries**: Read operations (Get, List, Search) - **Total: 79 Queries**
 
 ### 5.2 Command Pattern
 
@@ -2181,9 +2181,31 @@ public class PostgresVectorStore : IVectorStore
 
 ### 6.13 Health Checks
 
-- **DatabaseHealthCheck**: Verifies SQL Server connectivity
+- **DatabaseHealthCheck**: Verifies SQL Server connectivity and migration status
 - **OllamaHealthCheck**: Verifies Ollama LLM availability
+- **SmtpHealthCheck**: Verifies SMTP email service connectivity and authentication
 - **MemoryHealthCheck**: Monitors memory usage
+
+#### 6.13.1 SmtpHealthCheck
+
+The `SmtpHealthCheck` validates SMTP configuration and tests connectivity:
+
+```csharp
+public class SmtpHealthCheck : IHealthCheck
+{
+    // Tests SMTP connection and authentication without sending emails
+    // Returns Degraded status if SMTP is not configured (non-blocking)
+    // Uses 5-second timeout for health checks
+    // Validates: SmtpHost, SmtpPort, SmtpUsername, SmtpPassword
+}
+```
+
+**Features:**
+- Validates SMTP configuration at startup
+- Tests connection and authentication
+- Returns `Degraded` if not configured (allows app to run without email)
+- Uses same socket options logic as `SmtpEmailService`
+- Available at `/api/v1/health` endpoint with tag "smtp"
 
 ### 6.14 Domain Event Dispatcher
 
@@ -2298,7 +2320,7 @@ public abstract class BaseApiController : ControllerBase
 | `AlertsController` | Alerts | Get alerts |
 | `InsightsController` | Insights | Get project insights |
 | `ActivityController` | Activity feed | Get recent activity |
-| `HealthController` | Health checks | Health status (database, Ollama, memory) |
+| `HealthController` | Health checks | Health status (database, Ollama, SMTP, memory) |
 | `HealthApiController` | API smoke tests | Endpoint routing and authentication checks |
 | `FeatureFlagsController` | Feature flags (Public read) | GET operations for all authenticated users |
 | `Admin/FeatureFlagsController` | Feature flags (Admin) | CRUD operations for admin management |
@@ -2723,7 +2745,9 @@ Testing-specific settings for integration tests.
 }
 ```
 
-#### 10.2.4 Email Settings
+#### 10.2.4 Email Settings (SMTP)
+
+SMTP configuration is validated at startup. If not configured, email functionality will be unavailable but the application will continue to run.
 
 ```json
 {
@@ -2731,13 +2755,40 @@ Testing-specific settings for integration tests.
     "Provider": "SMTP",
     "SmtpHost": "smtp.example.com",
     "SmtpPort": 587,
-    "SmtpUsername": "...",
-    "SmtpPassword": "...",
+    "SmtpUsername": "your-username",
+    "SmtpPassword": "your-password",
     "FromEmail": "noreply@intellipm.com",
-    "FromName": "IntelliPM"
+    "FromName": "IntelliPM",
+    "EnableSsl": true,
+    "SecureSocketOptions": "StartTls"
   }
 }
 ```
+
+**Required Fields:**
+- `SmtpHost` - SMTP server hostname
+- `SmtpPort` - SMTP server port (typically 587 for TLS, 465 for SSL)
+- `SmtpUsername` - SMTP authentication username
+- `SmtpPassword` - SMTP authentication password
+
+**Optional Fields:**
+- `FromEmail` - Default sender email address (default: "noreply@intellipm.com")
+- `FromName` - Default sender name (default: "IntelliPM")
+- `EnableSsl` - Enable SSL/TLS (default: true)
+- `SecureSocketOptions` - Override socket options: `Auto`, `None`, `StartTls`, `StartTlsWhenAvailable`, `SslOnConnect`
+
+**Startup Validation:**
+- Application logs warnings if SMTP is not configured
+- Health check available at `/api/v1/health` (tagged as "smtp")
+- Returns `Degraded` status if SMTP is not configured (non-blocking)
+
+**Environment Variables:**
+- `Email__SmtpHost`
+- `Email__SmtpPort`
+- `Email__SmtpUsername`
+- `Email__SmtpPassword`
+- `Email__FromEmail`
+- `Email__FromName`
 
 #### 10.2.5 Sentry Settings
 
@@ -3066,17 +3117,20 @@ See `docker-compose.yml` in root directory for full stack deployment.
 ### 13.2 Production Checklist
 
 - [ ] Update connection strings
-- [ ] Set JWT secret key (User Secrets or environment variables)
-- [ ] Configure email settings
+- [ ] Set JWT secret key (User Secrets or environment variables) - minimum 32 characters
+- [ ] Configure SMTP email settings (`Email:SmtpHost`, `Email:SmtpUsername`, `Email:SmtpPassword`)
+- [ ] Verify SMTP health check at `/api/v1/health` (should show "smtp" check)
 - [ ] Set Sentry DSN
-- [ ] Configure CORS origins
+- [ ] Configure CORS origins (`AllowedOrigins`)
 - [ ] Enable HTTPS
 - [ ] Set up logging aggregation
-- [ ] Configure health check endpoints
+- [ ] Configure health check endpoints (`/api/v1/health`, `/api/health/ready`, `/api/health/live`)
 - [ ] Set up database backups
 - [ ] Configure rate limiting
 - [ ] Review security headers
 - [ ] Set up monitoring and alerts
+- [ ] Verify TestController is excluded in Release builds (uses `#if DEBUG`)
+- [ ] Build in Release mode: `dotnet build -c Release`
 
 ### 13.3 Environment Variables
 
@@ -3084,11 +3138,37 @@ Key environment variables:
 - `ASPNETCORE_ENVIRONMENT`: `Development`, `Production`, `Testing`
 - `ConnectionStrings__SqlServer`: SQL Server connection string
 - `ConnectionStrings__VectorDb`: PostgreSQL connection string
-- `Jwt__SecretKey`: JWT signing key
+- `Jwt__SecretKey`: JWT signing key (minimum 32 characters)
+- `Email__SmtpHost`: SMTP server hostname
+- `Email__SmtpPort`: SMTP server port (typically 587)
+- `Email__SmtpUsername`: SMTP authentication username
+- `Email__SmtpPassword`: SMTP authentication password
+- `Email__FromEmail`: Default sender email address
+- `Email__FromName`: Default sender name
 - `Sentry__Dsn`: Sentry DSN for error tracking
 - `SENTRY_DSN`: Alternative Sentry DSN (takes priority)
 - `SEQ_URL`: Seq server URL for centralized logging (optional)
 - `SEQ_API_KEY`: Seq API key (optional)
+
+### 13.4 Health Check Endpoints
+
+Health check endpoints are available for monitoring:
+
+- `/api/v1/health` - Overall health (includes SMTP, database, Ollama, memory)
+- `/api/health` - Overall health (legacy endpoint, still supported)
+- `/api/health/ready` - Readiness check (database only)
+- `/api/health/live` - Liveness check (app is running)
+
+**Health Checks Include:**
+- **Database**: Connection and migration status
+- **SMTP**: Connection and authentication test (returns Degraded if not configured)
+- **Ollama**: AI service availability
+- **Memory**: Memory usage monitoring
+
+**Health Checks UI:**
+- Available at `/health-ui` (if enabled)
+- Provides visual dashboard for all health checks
+- Stores history in SQLite database
 
 ---
 
@@ -5388,7 +5468,7 @@ This section documents the actual API endpoints available in the backend compare
 
 #### 21.1.1 Controllers Summary
 
-**Total Controllers:** 42 controllers (26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
+**Total Controllers:** 43 controllers (26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
 
 | Controller | Route Pattern | Endpoints | Status | Notes |
 |------------|---------------|-----------|--------|
@@ -5434,7 +5514,7 @@ This section documents the actual API endpoints available in the backend compare
 
 #### 21.1.2 Endpoint Coverage
 
-**Total Endpoints:** ~175 endpoints
+**Total Endpoints:** ~176 endpoints (includes health check endpoints)
 
 | Category | Documented | Implemented | Coverage |
 |----------|------------|-------------|----------|
@@ -5457,7 +5537,7 @@ This section documents the actual API endpoints available in the backend compare
 | **Alerts** | 2 | 2 | 100% |
 | **Insights** | 1 | 1 | 100% |
 | **Activity** | 1 | 1 | 100% |
-| **Health** | 2 | 2 | 100% |
+| **Health** | 5 | 5 | 100% |
 | **Feature Flags** | 6 | 6 | 100% |
 | **Read Models** | 5 | 5 | 100% |
 | **AI Governance** | 8 | 8 | 100% |
@@ -5466,6 +5546,13 @@ This section documents the actual API endpoints available in the backend compare
 | **Releases** | 17 | 17 | 100% |
 
 **Overall Coverage:** 100% (all endpoints implemented and documented)
+
+**Health Check Endpoints:**
+- `/api/v1/health` - Overall health (includes SMTP, database, Ollama, memory) - **NEW in v2.15.0**
+- `/api/health` - Overall health (legacy endpoint, still supported)
+- `/api/health/ready` - Readiness check (database only)
+- `/api/health/live` - Liveness check (app is running)
+- `/api/health/api` - API smoke tests (HealthApiController)
 
 #### 21.1.3 Endpoints Recently Added (v2.6-v2.7)
 
@@ -5526,6 +5613,34 @@ This section documents the actual API endpoints available in the backend compare
 ---
 
 ## Changelog
+
+### Version 2.15.0 (January 7, 2025) - Comprehensive Codebase Scan
+- ✅ **Documentation Update**: Comprehensive codebase scan and verification
+  - Verified all controller counts: 43 controllers (42 actual + BaseApiController)
+  - Verified all command counts: 98 Commands (CQRS)
+  - Verified all query counts: 79 Queries (CQRS)
+  - Verified all entity counts: 44 Domain Entities
+  - All counts verified against actual codebase files
+  - Updated "Last Updated" date to reflect comprehensive scan
+
+### Version 2.15.0 (January 7, 2025)
+- ✅ **SMTP Configuration Validation**: Added startup validation for email settings
+  - Created `SmtpHealthCheck` for SMTP connectivity testing
+  - Added startup validation in `Program.cs` - logs warnings if SMTP not configured
+  - Registered SMTP health check at `/api/v1/health` endpoint (tagged as "smtp")
+  - Health check tests connection and authentication without sending emails
+  - Returns `Degraded` status if SMTP not configured (non-blocking, app continues to run)
+  - Added `/api/v1/health` endpoint (also kept `/api/health` for backward compatibility)
+- ✅ **Production Safety**: Verified TestController DEBUG conditional compilation
+  - TestController properly wrapped in `#if DEBUG` preprocessor directive
+  - Controller completely excluded from Release builds
+  - No code changes needed - already production-safe
+- ✅ **Configuration Documentation**: Created comprehensive configuration guide
+  - Created `backend/IntelliPM.API/CONFIGURATION.md` with all configuration sections
+  - Documented environment variables and their mappings
+  - Added health check endpoints documentation
+  - Created `DEPLOYMENT_CHECKLIST.md` for step-by-step deployment guidance
+  - Created `DEPLOYMENT_SUMMARY.md` summarizing all changes
 
 ### Version 2.14.4 (January 6, 2025)
 - ✅ **Admin Organization Members Tenant Isolation Fix**: Fixed tenant isolation for Admin organization members page
@@ -5912,6 +6027,13 @@ Teams (1:N)
 | Manage Sprints | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ---
+
+### Version 2.14.5 (January 6, 2025)
+- ✅ **Code Quality**: Frontend ESLint fixes applied
+  - Fixed `@typescript-eslint/no-explicit-any` errors in `organizations.ts` API client
+  - Replaced `any` types with proper TypeScript interfaces (`UserListDto`)
+  - Improved type safety across API clients
+  - All ESLint errors resolved - frontend passes linting checks
 
 ### Version 2.14.0 (January 2, 2025)
 - ✅ **Organization Permission Policy System**: Complete permission policy management with two-level enforcement

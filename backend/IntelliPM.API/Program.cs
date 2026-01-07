@@ -288,10 +288,37 @@ builder.Services.AddApiVersioning(options =>
     options.SubstituteApiVersionInUrl = true;
 });
 
+// Validate SMTP configuration at startup
+var emailSection = builder.Configuration.GetSection("Email");
+var smtpHost = emailSection["SmtpHost"];
+var smtpPort = emailSection.GetValue<int>("SmtpPort", 587);
+var smtpUsername = emailSection["SmtpUsername"];
+var smtpPassword = emailSection["SmtpPassword"];
+
+if (string.IsNullOrWhiteSpace(smtpHost) || 
+    string.IsNullOrWhiteSpace(smtpUsername) || 
+    string.IsNullOrWhiteSpace(smtpPassword))
+{
+    Log.Logger.Warning(
+        "SMTP configuration incomplete. Email functionality will be unavailable. " +
+        "Required settings: Email:SmtpHost, Email:SmtpUsername, Email:SmtpPassword. " +
+        "Current values - Host: {Host}, Port: {Port}, Username: {Username}",
+        smtpHost ?? "not set",
+        smtpPort,
+        string.IsNullOrWhiteSpace(smtpUsername) ? "not set" : "set");
+}
+else
+{
+    Log.Logger.Information(
+        "SMTP configuration validated. Host: {Host}, Port: {Port}, Username: {Username}",
+        smtpHost, smtpPort, smtpUsername);
+}
+
 // Health Checks
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "db", "sql" })
     .AddCheck<OllamaHealthCheck>("ollama", tags: new[] { "ai", "llm" })
+    .AddCheck<IntelliPM.Infrastructure.Health.SmtpHealthCheck>("smtp", tags: new[] { "email", "smtp" })
     .AddCheck("memory", () =>
     {
         var allocated = GC.GetTotalMemory(forceFullCollection: false);
@@ -604,6 +631,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// Correlation ID middleware (must be early in pipeline, before request logging)
+app.UseMiddleware<IntelliPM.API.Middleware.CorrelationIdMiddleware>();
+
 // Serilog request logging with structured logging
 app.UseSerilogRequestLogging(options =>
 {
@@ -619,6 +649,14 @@ app.UseSerilogRequestLogging(options =>
         diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
         diagnosticContext.Set("UserAgent", httpContext.Request.Headers["User-Agent"].ToString());
         diagnosticContext.Set("RemoteIpAddress", httpContext.Connection.RemoteIpAddress?.ToString());
+        
+        // Add correlation ID if available
+        if (httpContext.Items.TryGetValue(IntelliPM.API.Middleware.CorrelationIdMiddleware.CorrelationIdItemKey, out var correlationId) &&
+            correlationId is string correlationIdStr)
+        {
+            diagnosticContext.Set("CorrelationId", correlationIdStr);
+        }
+        
         if (httpContext.User?.Identity?.IsAuthenticated == true)
         {
             diagnosticContext.Set("UserId", httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
@@ -733,6 +771,12 @@ app.UseMiddleware<IntelliPM.API.Middleware.SentryUserContextMiddleware>();
 app.MapControllers();
 
 // Health Check Endpoints
+app.MapHealthChecks("/api/v1/health", new HealthCheckOptions
+{
+    Predicate = _ => true,
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
 app.MapHealthChecks("/api/health", new HealthCheckOptions
 {
     Predicate = _ => true,

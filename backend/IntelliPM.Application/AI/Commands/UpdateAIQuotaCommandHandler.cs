@@ -119,9 +119,50 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
         }
         else
         {
-            // Schedule quota change
-            // TODO: Implement scheduled quota changes (could use Hangfire or similar)
-            throw new NotImplementedException("Scheduled quota changes not yet implemented");
+            // Schedule quota change for future date
+            var effectiveDate = request.ScheduledDate 
+                ?? throw new ValidationException("ScheduledDate is required when ApplyImmediately is false");
+
+            if (effectiveDate <= DateTimeOffset.UtcNow)
+            {
+                throw new ValidationException("ScheduledDate must be in the future");
+            }
+
+            // Get tier defaults
+            var tierLimits = AIQuotaConstants.DefaultLimits.GetValueOrDefault(
+                request.TierName,
+                AIQuotaConstants.DefaultLimits[AIQuotaConstants.Tiers.Free]
+            );
+
+            // Create scheduled quota (inactive until EffectiveDate)
+            quota = new AIQuota
+            {
+                OrganizationId = request.OrganizationId,
+                TierName = request.TierName,
+                IsActive = false, // Will be activated by background service at EffectiveDate
+                EffectiveDate = effectiveDate,
+                PeriodStartDate = effectiveDate, // Period starts when quota becomes active
+                PeriodEndDate = effectiveDate.AddDays(AIQuotaConstants.QuotaPeriodDays),
+                MaxTokensPerPeriod = request.MaxTokensPerPeriod ?? tierLimits.MaxTokensPerPeriod,
+                MaxRequestsPerPeriod = request.MaxRequestsPerPeriod ?? tierLimits.MaxRequestsPerPeriod,
+                MaxDecisionsPerPeriod = request.MaxDecisionsPerPeriod ?? tierLimits.MaxDecisionsPerPeriod,
+                MaxCostPerPeriod = request.MaxCostPerPeriod ?? tierLimits.MaxCostPerPeriod,
+                AllowOverage = request.AllowOverage ?? tierLimits.AllowOverage,
+                OverageRate = request.OverageRate ?? tierLimits.OverageRate,
+                EnforceQuota = request.EnforceQuota ?? true,
+                AlertThresholdPercentage = AIQuotaConstants.DefaultAlertThreshold,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            // For scheduled quotas, don't copy usage from current quota
+            // Usage will start fresh when quota becomes active
+
+            await _unitOfWork.Repository<AIQuota>().AddAsync(quota, ct);
+
+            _logger.LogInformation(
+                "Scheduled AI quota change for organization {OrganizationId} to tier {TierName} effective at {EffectiveDate}",
+                request.OrganizationId, request.TierName, effectiveDate);
         }
 
         // Create audit log
@@ -137,6 +178,8 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
                 OrganizationId = request.OrganizationId,
                 OldTier = currentQuota?.TierName,
                 NewTier = request.TierName,
+                ApplyImmediately = request.ApplyImmediately,
+                EffectiveDate = quota.EffectiveDate,
                 OldLimits = currentQuota != null ? new
                 {
                     currentQuota.MaxTokensPerPeriod,

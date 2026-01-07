@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import type { DeliveryAgentOutput, DeliveryMilestone, DeliveryRisk, DeliveryActionItem } from '@/types/agents';
 import { Calendar, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { VirtualizedList } from '../VirtualizedList';
 
 interface DeliveryAgentResultsProps {
   output: DeliveryAgentOutput;
@@ -67,11 +68,24 @@ export function DeliveryAgentResults({ output }: DeliveryAgentResultsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              {output.risks.map((risk) => (
-                <RiskCard key={risk.id} risk={risk} />
-              ))}
-            </div>
+            {output.risks.length > 10 ? (
+              <VirtualizedList
+                items={output.risks}
+                renderItem={(risk) => (
+                  <div className="mb-4">
+                    <RiskCard risk={risk} />
+                  </div>
+                )}
+                itemHeight={180}
+                maxHeight={500}
+              />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {output.risks.map((risk) => (
+                  <RiskCard key={risk.id} risk={risk} />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -82,16 +96,31 @@ export function DeliveryAgentResults({ output }: DeliveryAgentResultsProps) {
             <CardTitle>Action Items</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {output.actionItems
-                .sort((a, b) => {
-                  const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-                  return priorityOrder[b.priority] - priorityOrder[a.priority];
-                })
-                .map((item) => (
-                  <ActionItemCard key={item.id} item={item} />
-                ))}
-            </div>
+            {(() => {
+              const sortedItems = output.actionItems.sort((a, b) => {
+                const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+                return priorityOrder[b.priority] - priorityOrder[a.priority];
+              });
+              
+              return sortedItems.length > 10 ? (
+                <VirtualizedList
+                  items={sortedItems}
+                  renderItem={(item) => (
+                    <div className="mb-3">
+                      <ActionItemCard item={item} />
+                    </div>
+                  )}
+                  itemHeight={80}
+                  maxHeight={400}
+                />
+              ) : (
+                <div className="space-y-3">
+                  {sortedItems.map((item) => (
+                    <ActionItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       )}

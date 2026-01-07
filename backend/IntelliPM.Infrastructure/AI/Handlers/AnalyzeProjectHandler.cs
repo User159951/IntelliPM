@@ -8,6 +8,7 @@ using IntelliPM.Application.Agents.Commands;
 using IntelliPM.Application.DTOs.Agent;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Infrastructure.AI.Plugins;
+using IntelliPM.Infrastructure.AI.Helpers;
 using IntelliPM.Infrastructure.Persistence;
 
 namespace IntelliPM.Infrastructure.AI.Handlers;
@@ -22,17 +23,20 @@ public class AnalyzeProjectHandler : IRequestHandler<AnalyzeProjectCommand, Agen
     private readonly ILogger<AnalyzeProjectHandler> _logger;
     private readonly AppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICorrelationIdService _correlationIdService;
 
     public AnalyzeProjectHandler(
         Kernel kernel,
         ILogger<AnalyzeProjectHandler> logger,
         AppDbContext context,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ICorrelationIdService correlationIdService)
     {
         _kernel = kernel;
         _logger = logger;
         _context = context;
         _currentUserService = currentUserService;
+        _correlationIdService = correlationIdService;
     }
 
     public async Task<AgentResponse> Handle(AnalyzeProjectCommand request, CancellationToken cancellationToken)
@@ -79,11 +83,17 @@ Be specific and use bullet points.");
 
             stopwatch.Stop();
 
+            // Extract token usage from response
+            var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
+
             // Log agent execution
             var userId = _currentUserService.GetUserId();
+            var organizationId = _currentUserService.GetOrganizationId();
+            var correlationId = _correlationIdService.GetCorrelationId();
             var log = new Domain.Entities.AgentExecutionLog
             {
                 Id = Guid.NewGuid(),
+                OrganizationId = organizationId > 0 ? organizationId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
                 AgentId = "project-insight",
                 UserId = userId > 0 ? userId.ToString() : "system",
                 UserInput = $"Analyze project {request.ProjectId}",

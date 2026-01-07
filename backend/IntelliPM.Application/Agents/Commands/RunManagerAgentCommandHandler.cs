@@ -42,6 +42,11 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var executionStartTime = DateTime.UtcNow;
+        var userId = _currentUserService.GetUserId();
+        var orgId = organizationId;
+        int? linkedDecisionId = null;
+        int tokensUsed = 0;
         
         // Calculate KPIs
         var sprintRepo = _unitOfWork.Repository<Sprint>();
@@ -86,66 +91,140 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
 
         var highlights = string.Join("\n", highlightsList);
 
-        var result = await _managerAgent.RunAsync(request.ProjectId, kpis, changes, highlights, cancellationToken);
-
-        stopwatch.Stop();
-
-        // Store agent run
-        var agentRun = new AIAgentRun
+        try
         {
-            ProjectId = request.ProjectId,
-            AgentType = "Manager",
-            InputData = JsonSerializer.Serialize(new { kpis, changes, highlights }),
-            OutputData = result.ExecutiveSummary,
-            Confidence = result.Confidence,
-            ExecutedAt = DateTimeOffset.UtcNow
-        };
-        var runRepo = _unitOfWork.Repository<AIAgentRun>();
-        await runRepo.AddAsync(agentRun, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var result = await _managerAgent.RunAsync(request.ProjectId, kpis, changes, highlights, cancellationToken);
+            stopwatch.Stop();
 
-        // Log decision to AIDecisionLog
-        var userId = _currentUserService.GetUserId();
-        var orgId = organizationId;
-        
-        if (userId > 0 && orgId > 0)
-        {
-            var metadata = new Dictionary<string, object>
+            // Store agent run
+            var agentRun = new AIAgentRun
             {
-                { "KPIs", kpis },
-                { "RecentChangesCount", recentChanges.Count },
-                { "HighlightsCount", highlightsList.Count },
-                { "KeyDecisionsNeededCount", result.KeyDecisionsNeeded.Count },
-                { "ExecutionTimeMs", (int)stopwatch.ElapsedMilliseconds }
+                ProjectId = request.ProjectId,
+                AgentType = "Manager",
+                InputData = JsonSerializer.Serialize(new { kpis, changes, highlights }),
+                OutputData = result.ExecutiveSummary,
+                Confidence = result.Confidence,
+                ExecutedAt = DateTimeOffset.UtcNow
             };
+            var runRepo = _unitOfWork.Repository<AIAgentRun>();
+            await runRepo.AddAsync(agentRun, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var decisionJson = JsonSerializer.Serialize(new
+            // Log decision to AIDecisionLog
+            if (userId > 0 && orgId > 0)
             {
-                ExecutiveSummary = result.ExecutiveSummary,
-                KeyDecisionsNeeded = result.KeyDecisionsNeeded,
-                Highlights = result.Highlights
-            });
+                var metadata = new Dictionary<string, object>
+                {
+                    { "KPIs", kpis },
+                    { "RecentChangesCount", recentChanges.Count },
+                    { "HighlightsCount", highlightsList.Count },
+                    { "KeyDecisionsNeededCount", result.KeyDecisionsNeeded.Count },
+                    { "ExecutionTimeMs", (int)stopwatch.ElapsedMilliseconds }
+                };
 
-            await _decisionLogger.LogDecisionAsync(
-                agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
-                decisionType: AIDecisionConstants.DecisionTypes.ExecutiveSummary,
-                reasoning: result.ExecutiveSummary,
-                confidenceScore: result.Confidence,
-                metadata: metadata,
-                userId: userId,
-                organizationId: orgId,
-                projectId: request.ProjectId,
-                entityType: "Project",
-                entityId: request.ProjectId,
-                question: "Generate executive summary with key decisions needed",
-                decision: decisionJson,
-                inputData: JsonSerializer.Serialize(new { kpis, changes, highlights }),
-                outputData: decisionJson,
-                executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
-                cancellationToken: cancellationToken);
+                var decisionJson = JsonSerializer.Serialize(new
+                {
+                    ExecutiveSummary = result.ExecutiveSummary,
+                    KeyDecisionsNeeded = result.KeyDecisionsNeeded,
+                    Highlights = result.Highlights
+                });
+
+                var inputDataJson = JsonSerializer.Serialize(new { kpis, changes, highlights });
+                
+                // Estimate token usage: approximately 4 characters per token
+                var estimatedTokens = (inputDataJson.Length + decisionJson.Length + result.ExecutiveSummary.Length) / 4;
+                tokensUsed = estimatedTokens;
+                
+                linkedDecisionId = await _decisionLogger.LogDecisionAsync(
+                    agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
+                    decisionType: AIDecisionConstants.DecisionTypes.ExecutiveSummary,
+                    reasoning: result.ExecutiveSummary,
+                    confidenceScore: result.Confidence,
+                    metadata: metadata,
+                    userId: userId,
+                    organizationId: orgId,
+                    projectId: request.ProjectId,
+                    entityType: "Project",
+                    entityId: request.ProjectId,
+                    question: "Generate executive summary with key decisions needed",
+                    decision: decisionJson,
+                    inputData: inputDataJson,
+                    outputData: decisionJson,
+                    tokensUsed: estimatedTokens,
+                    executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                    cancellationToken: cancellationToken);
+
+                // Record quota usage after successful execution
+                var quotaRepo = _unitOfWork.Repository<AIQuota>();
+                var quota = await quotaRepo.Query()
+                    .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive && q.TierName != "Disabled", cancellationToken);
+
+                if (quota != null)
+                {
+                    var cost = estimatedTokens * AIQuotaConstants.CostPerToken;
+
+                    quota.RecordUsage(
+                        tokens: estimatedTokens,
+                        agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
+                        decisionType: AIDecisionConstants.DecisionTypes.ExecutiveSummary,
+                        cost: cost);
+
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+            }
+
+            // Create AgentExecutionLog entry
+            var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();
+            var executionLog = new AgentExecutionLog
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId > 0 ? orgId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
+                AgentId = "manager-agent",
+                AgentType = AIDecisionConstants.AgentTypes.ManagerAgent,
+                UserId = userId > 0 ? userId.ToString() : "0",
+                UserInput = JsonSerializer.Serialize(new { kpis, changes, highlights }),
+                AgentResponse = result.ExecutiveSummary,
+                Status = "Success",
+                Success = true,
+                ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                TokensUsed = tokensUsed,
+                ExecutionCostUsd = 0m,
+                CreatedAt = executionStartTime,
+                LinkedDecisionId = linkedDecisionId
+            };
+            await executionLogRepo.AddAsync(executionLog, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return result;
         }
-
-        return result;
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            
+            // Create AgentExecutionLog entry for failed execution
+            var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();
+            var executionLog = new AgentExecutionLog
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId > 0 ? orgId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
+                AgentId = "manager-agent",
+                AgentType = AIDecisionConstants.AgentTypes.ManagerAgent,
+                UserId = userId > 0 ? userId.ToString() : "0",
+                UserInput = JsonSerializer.Serialize(new { kpis, changes, highlights }),
+                Status = "Error",
+                Success = false,
+                ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                TokensUsed = 0,
+                ExecutionCostUsd = 0m,
+                CreatedAt = executionStartTime,
+                ErrorMessage = ex.Message,
+                LinkedDecisionId = null
+            };
+            await executionLogRepo.AddAsync(executionLog, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            
+            throw;
+        }
     }
 }
 

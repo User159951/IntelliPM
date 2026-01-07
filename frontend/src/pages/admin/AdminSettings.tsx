@@ -435,8 +435,10 @@ export default function AdminSettings() {
               ) : (
                 <>
                   <div className="space-y-4">
-                    <Label className="text-base font-semibold">Allowed Roles</Label>
+                    <Label id="project-creation-roles-label" className="text-base font-semibold">Allowed Roles</Label>
                     <RadioGroup
+                      id="project-creation-roles"
+                      aria-labelledby="project-creation-roles-label"
                       value={generalForm.projectCreation}
                       onValueChange={(value) => setGeneralForm({ ...generalForm, projectCreation: value })}
                       disabled={isSaving}
@@ -484,6 +486,7 @@ export default function AdminSettings() {
                       <Label htmlFor="appName">Application Name</Label>
                       <Input
                         id="appName"
+                        name="applicationName"
                         type="text"
                         placeholder="IntelliPM"
                         value={generalForm.applicationName}
@@ -496,6 +499,7 @@ export default function AdminSettings() {
                       <Label htmlFor="timezone">Default Timezone</Label>
                       <Input
                         id="timezone"
+                        name="timezone"
                         type="text"
                         placeholder="UTC"
                         value={generalForm.timezone}
@@ -511,6 +515,7 @@ export default function AdminSettings() {
                       <Label htmlFor="language">Default Language</Label>
                       <Input
                         id="language"
+                        name="language"
                         type="text"
                         placeholder="en"
                         value={generalForm.language}
@@ -526,6 +531,7 @@ export default function AdminSettings() {
                       <Label htmlFor="dateFormat">Date Format</Label>
                       <Input
                         id="dateFormat"
+                        name="dateFormat"
                         type="text"
                         placeholder="MM/dd/yyyy"
                         value={generalForm.dateFormat}
@@ -574,6 +580,7 @@ export default function AdminSettings() {
                       <Label htmlFor="tokenExpiration">Access Token Expiration (minutes)</Label>
                       <Input
                         id="tokenExpiration"
+                        name="tokenExpiration"
                         type="number"
                         min="5"
                         max="1440"
@@ -587,13 +594,14 @@ export default function AdminSettings() {
                     </div>
 
                     {/* Password Policy */}
-                    <div className="space-y-4">
-                      <Label className="text-base font-semibold">Password Policy</Label>
+                    <div className="space-y-4" role="group" aria-labelledby="password-policy-label">
+                      <Label id="password-policy-label" className="text-base font-semibold">Password Policy</Label>
                       
                       <div className="space-y-2">
                         <Label htmlFor="minPasswordLength">Minimum Password Length</Label>
                         <Input
                           id="minPasswordLength"
+                          name="passwordMinLength"
                           type="number"
                           min="6"
                           max="128"
@@ -606,6 +614,7 @@ export default function AdminSettings() {
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="requireUppercase"
+                          name="passwordRequireUppercase"
                           checked={securityForm.passwordRequireUppercase}
                           onCheckedChange={(checked) => setSecurityForm({ ...securityForm, passwordRequireUppercase: checked })}
                           disabled={isSaving}
@@ -618,6 +627,7 @@ export default function AdminSettings() {
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="requireLowercase"
+                          name="passwordRequireLowercase"
                           checked={securityForm.passwordRequireLowercase}
                           onCheckedChange={(checked) => setSecurityForm({ ...securityForm, passwordRequireLowercase: checked })}
                           disabled={isSaving}
@@ -630,6 +640,7 @@ export default function AdminSettings() {
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="requireNumber"
+                          name="passwordRequireNumber"
                           checked={securityForm.passwordRequireNumber}
                           onCheckedChange={(checked) => setSecurityForm({ ...securityForm, passwordRequireNumber: checked })}
                           disabled={isSaving}
@@ -642,6 +653,7 @@ export default function AdminSettings() {
                       <div className="flex items-center space-x-2">
                         <Switch
                           id="requireSpecialChar"
+                          name="passwordRequireSpecialChar"
                           checked={securityForm.passwordRequireSpecialChar}
                           onCheckedChange={(checked) => setSecurityForm({ ...securityForm, passwordRequireSpecialChar: checked })}
                           disabled={isSaving}
@@ -657,6 +669,7 @@ export default function AdminSettings() {
                       <Label htmlFor="maxLoginAttempts">Max Login Attempts</Label>
                       <Input
                         id="maxLoginAttempts"
+                        name="maxLoginAttempts"
                         type="number"
                         min="3"
                         max="10"
@@ -674,6 +687,7 @@ export default function AdminSettings() {
                       <Label htmlFor="sessionDuration">Session Duration (hours)</Label>
                       <Input
                         id="sessionDuration"
+                        name="sessionDuration"
                         type="number"
                         min="1"
                         max="168"
@@ -690,6 +704,7 @@ export default function AdminSettings() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="require2FA"
+                        name="require2FA"
                         checked={securityForm.require2FA}
                         onCheckedChange={(checked) => setSecurityForm({ ...securityForm, require2FA: checked })}
                         disabled={isSaving}
@@ -732,13 +747,14 @@ export default function AdminSettings() {
                 <>
                   <div className="space-y-6">
                     {/* SMTP Configuration */}
-                    <div className="space-y-4">
-                      <Label className="text-base font-semibold">SMTP Configuration</Label>
+                    <div className="space-y-4" role="group" aria-labelledby="smtp-config-label">
+                      <Label id="smtp-config-label" className="text-base font-semibold">SMTP Configuration</Label>
                       
                       <div className="space-y-2">
                         <Label htmlFor="smtpHost">SMTP Host</Label>
                         <Input
                           id="smtpHost"
+                          name="smtpHost"
                           type="text"
                           placeholder="smtp.gmail.com"
                           value={emailForm.smtpHost}
@@ -752,6 +768,7 @@ export default function AdminSettings() {
                           <Label htmlFor="smtpPort">SMTP Port</Label>
                           <Input
                             id="smtpPort"
+                            name="smtpPort"
                             type="number"
                             min="1"
                             max="65535"
@@ -763,16 +780,16 @@ export default function AdminSettings() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="useSsl">Use SSL/TLS</Label>
-                          <div className="flex items-center space-x-2 pt-2">
+                          <div className="flex items-center space-x-2">
                             <Switch
                               id="useSsl"
+                              name="useSsl"
                               checked={emailForm.useSsl}
                               onCheckedChange={(checked) => setEmailForm({ ...emailForm, useSsl: checked })}
                               disabled={isSaving}
                             />
                             <Label htmlFor="useSsl" className="cursor-pointer">
-                              {emailForm.useSsl ? 'Enabled' : 'Disabled'}
+                              Use SSL/TLS ({emailForm.useSsl ? 'Enabled' : 'Disabled'})
                             </Label>
                           </div>
                         </div>
@@ -782,6 +799,7 @@ export default function AdminSettings() {
                         <Label htmlFor="smtpUsername">SMTP Username</Label>
                         <Input
                           id="smtpUsername"
+                          name="smtpUsername"
                           type="text"
                           placeholder="your-email@gmail.com"
                           value={emailForm.smtpUsername}
@@ -794,6 +812,7 @@ export default function AdminSettings() {
                         <Label htmlFor="smtpPassword">SMTP Password</Label>
                         <Input
                           id="smtpPassword"
+                          name="smtpPassword"
                           type="password"
                           placeholder="Enter SMTP password"
                           value={emailForm.smtpPassword}
@@ -809,6 +828,7 @@ export default function AdminSettings() {
                         <Label htmlFor="fromEmail">From Email</Label>
                         <Input
                           id="fromEmail"
+                          name="fromEmail"
                           type="email"
                           placeholder="noreply@intellipm.com"
                           value={emailForm.fromEmail}
@@ -821,6 +841,7 @@ export default function AdminSettings() {
                         <Label htmlFor="fromName">From Name</Label>
                         <Input
                           id="fromName"
+                          name="fromName"
                           type="text"
                           placeholder="IntelliPM"
                           value={emailForm.fromName}
@@ -834,44 +855,49 @@ export default function AdminSettings() {
                     <div className="pt-4 border-t">
                       <div className="flex items-center justify-between">
                         <div>
-                          <Label className="text-base font-semibold">Test Email Configuration</Label>
+                          <h3 className="text-base font-semibold">Test Email Configuration</h3>
                           <p className="text-sm text-muted-foreground">
                             Send a test email to verify your SMTP settings
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="email"
-                            placeholder={user?.email || 'test@example.com'}
-                            value={testEmailAddress}
-                            onChange={(e) => setTestEmailAddress(e.target.value)}
-                            className="w-64"
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={async () => {
-                              const email = testEmailAddress || user?.email;
-                              if (!email) {
-                                showError("Email required", "Please enter an email address or use your account email.");
-                                return;
-                              }
-                              try {
-                                const result = await settingsApi.sendTestEmail(email);
-                                if (result.success) {
-                                  showToast('Test email sent', "success");
-                                } else {
-                                  showError('Failed to send test email', result.message || 'Unknown error');
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="test-email-address" className="sr-only">Email address for test email</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="test-email-address"
+                              name="testEmail"
+                              type="email"
+                              placeholder={user?.email || 'test@example.com'}
+                              value={testEmailAddress}
+                              onChange={(e) => setTestEmailAddress(e.target.value)}
+                              className="w-64"
+                            />
+                            <Button
+                              variant="outline"
+                              onClick={async () => {
+                                const email = testEmailAddress || user?.email;
+                                if (!email) {
+                                  showError("Email required", "Please enter an email address or use your account email.");
+                                  return;
                                 }
-                              } catch (error) {
-                                const errorMessage = error instanceof Error ? error.message : 'Failed to send test email. Please check SMTP configuration.';
-                                showError('Error sending test email', errorMessage);
-                              }
-                            }}
-                            disabled={isSaving}
-                          >
-                            <Mail className="mr-2 h-4 w-4" />
-                            Send Test Email
-                          </Button>
+                                try {
+                                  const result = await settingsApi.sendTestEmail(email);
+                                  if (result.success) {
+                                    showToast('Test email sent', "success");
+                                  } else {
+                                    showError('Failed to send test email', result.message || 'Unknown error');
+                                  }
+                                } catch (error) {
+                                  const errorMessage = error instanceof Error ? error.message : 'Failed to send test email. Please check SMTP configuration.';
+                                  showError('Error sending test email', errorMessage);
+                                }
+                              }}
+                              disabled={isSaving}
+                            >
+                              <Mail className="mr-2 h-4 w-4" />
+                              Send Test Email
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>

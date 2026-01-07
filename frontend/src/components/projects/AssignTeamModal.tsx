@@ -62,10 +62,10 @@ export default function AssignTeamModal({
     enabled: isOpen,
   });
 
-  // Fetch project to get already assigned teams
-  const { data: _project } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => projectsApi.getById(projectId),
+  // Fetch assigned teams for the project
+  const { data: assignedTeamsData, isLoading: assignedTeamsLoading } = useQuery({
+    queryKey: ['project-assigned-teams', projectId],
+    queryFn: () => projectsApi.getAssignedTeams(projectId),
     enabled: isOpen && projectId > 0,
   });
 
@@ -76,13 +76,13 @@ export default function AssignTeamModal({
   }, [teamsData, selectedTeams]);
 
   // Get already assigned team IDs from project
-  // Note: This would ideally come from a project.assignedTeams property
-  // For now, we'll show all teams and let the backend handle duplicates
   const assignedTeamIds = useMemo(() => {
-    // TODO: Fetch assigned teams from project when API endpoint is available
-    // For now, return empty array - backend will handle duplicate assignments gracefully
-    return [] as number[];
-  }, []);
+    if (!assignedTeamsData) return [];
+    // Only include active teams
+    return assignedTeamsData
+      .filter((team) => team.isActive)
+      .map((team) => team.teamId);
+  }, [assignedTeamsData]);
 
   // Available teams (not already assigned)
   const availableTeams = useMemo(() => {
@@ -100,6 +100,7 @@ export default function AssignTeamModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-assigned-teams', projectId] });
       queryClient.invalidateQueries({ queryKey: ['teams'] });
     },
     onError: (error: Error) => {
@@ -196,7 +197,7 @@ export default function AssignTeamModal({
           {/* Team Selection */}
           <div className="space-y-3">
             <Label>Select Teams</Label>
-            {teamsLoading ? (
+            {teamsLoading || assignedTeamsLoading ? (
               <div className="space-y-2">
                 {[...Array(3)].map((_, i) => (
                   <Skeleton key={i} className="h-12 w-full" />
@@ -204,7 +205,9 @@ export default function AssignTeamModal({
               </div>
             ) : availableTeams.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                No teams available to assign. All teams may already be assigned to this project.
+                {teamsData?.teams && teamsData.teams.length > 0
+                  ? 'No available teams. All teams are already assigned to this project.'
+                  : 'No teams available to assign.'}
               </div>
             ) : (
               <div className="space-y-2 max-h-[200px] overflow-y-auto border rounded-md p-2">

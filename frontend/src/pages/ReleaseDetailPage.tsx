@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -31,6 +31,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Edit,
   Rocket,
   Trash,
@@ -46,12 +52,14 @@ import {
 import { format } from 'date-fns';
 import { releasesApi } from '@/api/releases';
 import { projectsApi } from '@/api/projects';
-import { showToast } from '@/lib/sweetalert';
+import { showToast, showError } from '@/lib/sweetalert';
 import type { ReleaseSprintDto } from '@/types/releases';
 import { QualityGatesPanel } from '@/components/releases/QualityGatesPanel';
 import { EditReleaseDialog } from '@/components/releases/EditReleaseDialog';
 import { DeployReleaseDialog } from '@/components/releases/DeployReleaseDialog';
 import { ReleaseNotesViewer } from '@/components/releases/ReleaseNotesViewer';
+import { ReleaseNotesEditor } from '@/components/releases/ReleaseNotesEditor';
+import { useAuth } from '@/contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -180,12 +188,14 @@ export default function ReleaseDetailPage() {
   }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeployOpen, setIsDeployOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isNotesViewerOpen, setIsNotesViewerOpen] = useState(false);
-  const [_notesMode, setNotesMode] = useState<'notes' | 'changelog'>('notes');
+  const [isNotesEditorOpen, setIsNotesEditorOpen] = useState(false);
+  const [notesMode, setNotesMode] = useState<'notes' | 'changelog'>('notes');
 
   // Fetch release data
   const {
@@ -234,6 +244,29 @@ export default function ReleaseDetailPage() {
     }
     return missing;
   }, [release, canDeploy]);
+
+  // Check permissions for editing release notes
+  const canEditNotes = useMemo(() => {
+    return (user?.permissions?.includes('releases.edit') || 
+            user?.permissions?.includes('releases.notes.edit')) ?? false;
+  }, [user]);
+
+  const handleEditNotes = (mode: 'notes' | 'changelog') => {
+    if (!canEditNotes) {
+      showError('Permission denied', 'You do not have permission to edit release notes');
+      return;
+    }
+    setNotesMode(mode);
+    setIsNotesViewerOpen(false);
+    setIsNotesEditorOpen(true);
+  };
+
+  const handleSaveNotes = () => {
+    // ReleaseNotesEditor already handles the API call and shows toast
+    // We just need to refresh the data and close the editor
+    queryClient.invalidateQueries({ queryKey: ['release', Number(releaseId)] });
+    setIsNotesEditorOpen(false);
+  };
 
   const handleDelete = async () => {
     try {
@@ -532,17 +565,29 @@ export default function ReleaseDetailPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Release Notes</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setNotesMode('notes');
-                      setIsNotesViewerOpen(true);
-                    }}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Full
-                  </Button>
+                  <div className="flex gap-2">
+                    {canEditNotes && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditNotes('notes')}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setNotesMode('notes');
+                        setIsNotesViewerOpen(true);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Full
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {release.releaseNotes ? (
@@ -555,9 +600,21 @@ export default function ReleaseDetailPage() {
                       </ReactMarkdown>
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No release notes available.
-                    </p>
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        No release notes available.
+                      </p>
+                      {canEditNotes && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditNotes('notes')}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Add Release Notes
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -568,17 +625,29 @@ export default function ReleaseDetailPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Changelog</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setNotesMode('changelog');
-                      setIsNotesViewerOpen(true);
-                    }}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    View Full
-                  </Button>
+                  <div className="flex gap-2">
+                    {canEditNotes && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditNotes('changelog')}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setNotesMode('changelog');
+                        setIsNotesViewerOpen(true);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Full
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {release.changeLog ? (
@@ -591,9 +660,21 @@ export default function ReleaseDetailPage() {
                       </ReactMarkdown>
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No changelog available.
-                    </p>
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        No changelog available.
+                      </p>
+                      {canEditNotes && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditNotes('changelog')}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Add Changelog
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -654,9 +735,33 @@ export default function ReleaseDetailPage() {
             open={isNotesViewerOpen}
             onOpenChange={setIsNotesViewerOpen}
             onEdit={() => {
-              // TODO: Open editor
+              setIsNotesViewerOpen(false);
+              handleEditNotes(notesMode);
             }}
           />
+
+          <Dialog open={isNotesEditorOpen} onOpenChange={setIsNotesEditorOpen}>
+            <DialogContent className="max-w-7xl h-[90vh] p-0 flex flex-col">
+              <DialogHeader className="sr-only">
+                <DialogTitle>
+                  Edit {notesMode === 'notes' ? 'Release Notes' : 'Changelog'}
+                </DialogTitle>
+              </DialogHeader>
+              {isNotesEditorOpen && release && (
+                <ReleaseNotesEditor
+                  releaseId={Number(releaseId)}
+                  initialContent={
+                    notesMode === 'notes'
+                      ? release.releaseNotes || ''
+                      : release.changeLog || ''
+                  }
+                  mode={notesMode}
+                  onSave={handleSaveNotes}
+                  onCancel={() => setIsNotesEditorOpen(false)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
 
           <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
             <AlertDialogContent>

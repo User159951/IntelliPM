@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MessageSquare, ThumbsUp, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { MessageSquare, ThumbsUp, AlertTriangle, CheckCircle2, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
-import { showToast } from '@/lib/sweetalert';
+import { showToast, showError } from '@/lib/sweetalert';
+import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
 import type { SprintRetrospective } from '@/types/agents';
 
 interface SprintRetrospectivePanelProps {
@@ -17,17 +19,63 @@ interface SprintRetrospectivePanelProps {
 
 export function SprintRetrospectivePanel({ sprintId }: SprintRetrospectivePanelProps) {
   const [retrospective, setRetrospective] = useState<SprintRetrospective | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | undefined>(undefined);
+
+  const { handleError, executeWithErrorHandling, isBlocked, getErrorMessage } = useAIErrorHandler({
+    showToast: false, // We'll handle toasts manually for better UX
+  });
+
+  // Check if blocked on mount
+  useEffect(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+    }
+  }, [isBlocked, getErrorMessage]);
 
   const generateMutation = useMutation({
-    mutationFn: () => agentsApi.generateRetrospective(sprintId),
+    mutationFn: async () => {
+      return executeWithErrorHandling(
+        () => agentsApi.generateRetrospective(sprintId),
+        50000 // Estimated 50 seconds for retrospective generation
+      );
+    },
     onSuccess: (data) => {
       setRetrospective(data);
+      setError(null);
+      setCanRetry(false);
       showToast('Rétrospective générée avec succès', 'success');
     },
-    onError: () => {
-      showToast('Erreur lors de la génération de la rétrospective', 'error');
+    onError: (error: Error) => {
+      const errorResult = handleError(error);
+      setError(error.message || 'Erreur lors de la génération de la rétrospective');
+      setCanRetry(errorResult.canRetry);
+      setRetryAfter(errorResult.retryAfter);
+      
+      if (!errorResult.isQuotaExceeded && !errorResult.isAIDisabled) {
+        showError('Erreur lors de la génération de la rétrospective', error.message);
+      }
     },
   });
+
+  const handleGenerate = useCallback(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+      return;
+    }
+
+    setError(null);
+    setCanRetry(false);
+    setRetryAfter(undefined);
+    generateMutation.mutate();
+  }, [isBlocked, getErrorMessage, generateMutation]);
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
@@ -55,13 +103,13 @@ export function SprintRetrospectivePanel({ sprintId }: SprintRetrospectivePanelP
           Rétrospective de Sprint
         </h2>
         <Button
-          onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending}
+          onClick={handleGenerate}
+          disabled={generateMutation.isPending || isBlocked()}
         >
           {generateMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Génération...
+              Génération... (peut prendre jusqu&apos;à 50 secondes)
             </>
           ) : (
             <>
@@ -72,7 +120,37 @@ export function SprintRetrospectivePanel({ sprintId }: SprintRetrospectivePanelP
         </Button>
       </div>
 
-      {generateMutation.isPending && <Skeleton className="h-96" />}
+      {/* Error State */}
+      {error && !generateMutation.isPending && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="space-y-2">
+            <p>{error}</p>
+            {canRetry && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGenerate}
+                className="mt-2"
+              >
+                <RefreshCw className="mr-2 h-3 w-3" />
+                Réessayer{retryAfter ? ` (dans ${retryAfter}s)` : ''}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {generateMutation.isPending && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Génération de la rétrospective en cours... Cela peut prendre jusqu&apos;à 50 secondes.</span>
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      )}
 
       {retrospective && (
         <div className="space-y-4">

@@ -5,6 +5,7 @@ using IntelliPM.Application.AI.Commands;
 using IntelliPM.Application.AI.Queries;
 using IntelliPM.Application.AI.DTOs;
 using IntelliPM.Application.Common.Models;
+using IntelliPM.Application.Common.Interfaces;
 using System.Text;
 
 namespace IntelliPM.API.Controllers.Admin;
@@ -12,6 +13,7 @@ namespace IntelliPM.API.Controllers.Admin;
 /// <summary>
 /// Admin controller for AI governance endpoints.
 /// Provides administrative access to manage AI quotas, disable/enable AI features, and view cross-organization data.
+/// Admin can only access their own organization; SuperAdmin can access all organizations.
 /// </summary>
 [ApiController]
 [Route("api/admin/ai")]
@@ -20,14 +22,19 @@ public class AdminAIGovernanceController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly ILogger<AdminAIGovernanceController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
     /// <summary>
     /// Initializes a new instance of the AdminAIGovernanceController.
     /// </summary>
-    public AdminAIGovernanceController(IMediator mediator, ILogger<AdminAIGovernanceController> logger)
+    public AdminAIGovernanceController(
+        IMediator mediator, 
+        ILogger<AdminAIGovernanceController> logger,
+        ICurrentUserService currentUserService)
     {
         _mediator = mediator;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -301,8 +308,9 @@ public class AdminAIGovernanceController : BaseApiController
     /// <summary>
     /// Export AI decisions to CSV (Admin only).
     /// Generates a CSV file with all AI decisions for compliance and reporting purposes.
+    /// Admin can only export their own organization; SuperAdmin can export any organization or all.
     /// </summary>
-    /// <param name="organizationId">Filter by organization ID (optional)</param>
+    /// <param name="organizationId">Filter by organization ID (optional for SuperAdmin, required for Admin)</param>
     /// <param name="startDate">Start date for export (default: 30 days ago)</param>
     /// <param name="endDate">End date for export (default: now)</param>
     /// <param name="ct">Cancellation token</param>
@@ -318,6 +326,23 @@ public class AdminAIGovernanceController : BaseApiController
     {
         try
         {
+            // CRITICAL: Enforce organization access control
+            // Admin can only export their own organization
+            // SuperAdmin can export any organization or all (if organizationId is null)
+            if (!_currentUserService.IsSuperAdmin())
+            {
+                // Admin must export only their own organization
+                var adminOrgId = _currentUserService.GetOrganizationId();
+                if (adminOrgId == 0)
+                {
+                    return Forbid("User not authenticated or organization not found");
+                }
+                
+                // Override any provided organizationId with Admin's organization
+                organizationId = adminOrgId;
+            }
+            // SuperAdmin: organizationId can be null (all orgs) or specific org
+
             var query = new ExportAIDecisionsQuery
             {
                 OrganizationId = organizationId,
@@ -328,7 +353,9 @@ public class AdminAIGovernanceController : BaseApiController
             var csvContent = await _mediator.Send(query, ct);
             var bytes = Encoding.UTF8.GetBytes(csvContent);
 
-            var fileName = $"ai_decisions_{DateTime.UtcNow:yyyyMMdd}.csv";
+            var fileName = organizationId.HasValue 
+                ? $"ai_decisions_org_{organizationId}_{DateTime.UtcNow:yyyyMMdd}.csv"
+                : $"ai_decisions_all_{DateTime.UtcNow:yyyyMMdd}.csv";
             return File(bytes, "text/csv", fileName);
         }
         catch (Exception ex)

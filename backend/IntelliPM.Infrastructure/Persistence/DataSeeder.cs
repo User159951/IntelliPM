@@ -882,6 +882,14 @@ public class DataSeeder
                 Description = "View project insights",
                 Category = "Insights",
                 CreatedAt = DateTimeOffset.UtcNow
+            },
+            // AI
+            new Permission
+            {
+                Name = "ai.use",
+                Description = "Use AI agents and features",
+                Category = "AI",
+                CreatedAt = DateTimeOffset.UtcNow
             }
         };
 
@@ -986,7 +994,9 @@ public class DataSeeder
             "activity.view",
             "search.use",
             "metrics.view",
-            "insights.view"
+            "insights.view",
+            // AI permissions
+            "ai.use"
         };
 
         foreach (var permissionName in userPermissions)

@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
@@ -10,6 +11,7 @@ interface ErrorFallbackProps {
 }
 
 export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
+  const navigate = useNavigate();
   const errorObj = error instanceof Error ? error : new Error(String(error));
   
   const handleReportError = async () => {
@@ -47,7 +49,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
               </Button>
             )}
             <Button
-              onClick={() => (window.location.href = '/')}
+              onClick={() => navigate('/')}
               variant="outline"
               className="w-full"
             >

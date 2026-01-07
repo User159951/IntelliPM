@@ -15,16 +15,19 @@ public class AIDecisionLogger : IAIDecisionLogger
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AIDecisionLogger> _logger;
+    private readonly IAIPricingService _pricingService;
 
     public AIDecisionLogger(
         IUnitOfWork unitOfWork,
-        ILogger<AIDecisionLogger> logger)
+        ILogger<AIDecisionLogger> logger,
+        IAIPricingService pricingService)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _pricingService = pricingService;
     }
 
-    public async System.Threading.Tasks.Task LogDecisionAsync(
+    public async System.Threading.Tasks.Task<int?> LogDecisionAsync(
         string agentType,
         string decisionType,
         string reasoning,
@@ -42,7 +45,11 @@ public class AIDecisionLogger : IAIDecisionLogger
         string? outputData = null,
         string modelName = "llama3.2:3b",
         int tokensUsed = 0,
+        int promptTokens = 0,
+        int completionTokens = 0,
         int executionTimeMs = 0,
+        bool isSuccess = true,
+        string? errorMessage = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -92,19 +99,20 @@ public class AIDecisionLogger : IAIDecisionLogger
                 ConfidenceScore = confidenceScore,
                 ModelName = modelName,
                 ModelVersion = string.Empty, // Can be enhanced later
-                TokensUsed = tokensUsed,
-                PromptTokens = 0, // Can be enhanced later
-                CompletionTokens = 0, // Can be enhanced later
+                TokensUsed = tokensUsed > 0 ? tokensUsed : (promptTokens + completionTokens), // Use total if provided, otherwise sum
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
                 InputData = inputData ?? metadataJson,
                 OutputData = outputData ?? reasoning,
                 RequestedByUserId = userId,
                 RequiresHumanApproval = false,
-                Status = AIDecisionConstants.Statuses.Applied, // Default status for RAG agents
-                WasApplied = true,
-                AppliedAt = DateTimeOffset.UtcNow,
+                Status = isSuccess ? AIDecisionConstants.Statuses.Applied : AIDecisionConstants.Statuses.Pending, // Failed executions remain pending
+                WasApplied = isSuccess, // Only mark as applied if successful
+                AppliedAt = isSuccess ? DateTimeOffset.UtcNow : null,
                 CreatedAt = DateTimeOffset.UtcNow,
                 ExecutionTimeMs = executionTimeMs,
-                IsSuccess = true
+                IsSuccess = isSuccess,
+                ErrorMessage = errorMessage
             };
 
             // Add to repository
@@ -115,8 +123,10 @@ public class AIDecisionLogger : IAIDecisionLogger
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Logged AI decision: AgentType={AgentType}, DecisionType={DecisionType}, EntityId={EntityId}, Confidence={Confidence}",
-                agentType, decisionType, finalEntityId, confidenceScore);
+                "Logged AI decision: AgentType={AgentType}, DecisionType={DecisionType}, EntityId={EntityId}, Confidence={Confidence}, DecisionLogId={DecisionLogId}",
+                agentType, decisionType, finalEntityId, confidenceScore, decisionLog.Id);
+
+            return decisionLog.Id;
         }
         catch (Exception ex)
         {
@@ -124,6 +134,7 @@ public class AIDecisionLogger : IAIDecisionLogger
             _logger.LogError(ex,
                 "Failed to log AI decision: AgentType={AgentType}, DecisionType={DecisionType}, ProjectId={ProjectId}",
                 agentType, decisionType, projectId);
+            return null;
         }
     }
 }

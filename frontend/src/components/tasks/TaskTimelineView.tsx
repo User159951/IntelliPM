@@ -276,9 +276,17 @@ export function TaskTimelineView({
                       <TooltipProvider key={item.task.id}>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div
-                              className="flex items-center py-1 hover:bg-muted/50 transition-colors cursor-pointer"
+                            <button
+                              type="button"
+                              className="flex items-center py-1 hover:bg-muted/50 transition-colors cursor-pointer w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                               onClick={() => onTaskClick?.(item.task)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  onTaskClick?.(item.task);
+                                }
+                              }}
+                              aria-label={`View task ${item.task.id}: ${item.task.title}`}
                             >
                               <div className="w-48 flex-shrink-0 flex items-center gap-2">
                                 <span className="text-xs font-mono text-muted-foreground">#{item.task.id}</span>
@@ -299,7 +307,7 @@ export function TaskTimelineView({
                                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-800"></div>
                                 )}
                               </div>
-                            </div>
+                            </button>
                           </TooltipTrigger>
                           <TooltipContent side="right" className="max-w-xs">
                             <div className="space-y-1">

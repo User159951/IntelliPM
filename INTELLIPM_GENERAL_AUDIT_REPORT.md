@@ -1,215 +1,147 @@
-# IntelliPM General & Complete Audit Report
+# INTELLIPM GENERAL PRODUCT AUDIT REPORT
 
-**Date:** January 4, 2025  
-**Version:** 2.14.1  
+**Date:** January 6, 2025  
+**Version:** 2.14.5  
 **Auditor:** Cursor AI (Senior Full-Stack Auditor)  
-**Scope:** Complete codebase analysis (Frontend + Backend)
+**Scope:** Complete codebase analysis (Frontend + Backend)  
+**Methodology:** Static code analysis, manual-style test scenarios, integration gap detection
 
 ---
 
-## Executive Summary
+## EXECUTIVE SUMMARY
 
-### Overall Status: ⚠️ **PARTIAL** (Mostly Functional with Known Issues)
+### Overall Status: ⚠️ **MOSTLY FUNCTIONAL WITH KNOWN GAPS**
 
 **Summary:**
-The IntelliPM application is largely functional with a solid architecture. The codebase follows Clean Architecture principles with CQRS pattern, proper separation of concerns, and comprehensive feature coverage. However, several issues were identified that range from minor (TODOs, mock data) to critical (missing implementations, incomplete features).
+IntelliPM is a well-architected project management application with comprehensive features covering project management, task tracking, sprints, releases, AI agents, and multi-tenant administration. The codebase follows Clean Architecture principles with CQRS, proper separation of concerns, and modern React patterns. However, several incomplete implementations, missing endpoints, and UX issues were identified that impact user experience and feature completeness.
 
-**Top 10 Blockers (P0/P1/P2):**
+### Key Metrics
 
-1. **P1 - Email Service Not Implemented** (`backend/IntelliPM.Infrastructure/Services/EmailService.cs`)
-   - All email methods are stubs (invitations, password reset, notifications)
-   - Impact: Users cannot receive invitation emails, password reset emails, or notification emails
+| Metric | Count |
+|--------|-------|
+| **Total Routes** | 35 routes |
+| **Total Pages** | 43 pages |
+| **Total Actions (ACT-*)** | 850+ interactive elements |
+| **API Client Modules** | 36 modules |
+| **Backend Controllers** | 42 controllers (26 standard + 14 admin + 2 superadmin) |
+| **PASS Scenarios** | ~75% |
+| **FAIL Scenarios** | ~15% |
+| **UNKNOWN Scenarios** | ~10% |
 
-2. **P1 - Scheduled Quota Changes Not Implemented** (`backend/IntelliPM.Application/AI/Commands/UpdateAIQuotaCommandHandler.cs:123`)
-   - Throws `NotImplementedException` for scheduled quota changes
-   - Impact: Cannot schedule future quota changes
+### Top 20 Issues by Priority
 
-3. **P2 - Mock Data in QuotaDetails Page** (`frontend/src/pages/QuotaDetails.tsx:93-115`)
-   - Usage history and breakdown use mock data
-   - Missing endpoints: `/api/admin/ai-quota/usage-history`, `/api/admin/ai-quota/breakdown`
-   - Impact: Users see fake data instead of real usage statistics
+#### P0 - Critical Blockers (3 issues)
+1. **ISS-001**: Email Service Configuration Missing - SMTP settings may not be configured, causing silent failures
+2. **ISS-002**: Scheduled Quota Changes Not Implemented - Throws `NotImplementedException`
+3. **ISS-003**: Mock Data in QuotaDetails - Users see fake usage statistics
 
-4. **P2 - Task Dependency Navigation Not Implemented** (`frontend/src/components/tasks/TaskDependenciesList.tsx:127`)
-   - Click handler only logs to console, doesn't navigate
-   - Impact: Users cannot navigate to dependent tasks from dependency list
+#### P1 - Major Issues (7 issues)
+4. **ISS-004**: Task Dependency Navigation Not Implemented - Click handler only logs to console
+5. **ISS-005**: Assigned Teams Not Fetched - Missing API endpoint for project assigned teams
+6. **ISS-006**: Release Editor TODO - Editor functionality incomplete
+7. **ISS-007**: window.location.reload() Usage - Full page reloads in ReleaseHealthDashboard
+8. **ISS-008**: window.location.href Usage - Direct navigation in ErrorFallback and client.ts
+9. **ISS-009**: Console.log in Production - Debug statements left in production code (15 files)
+10. **ISS-010**: Backlog Mock Data - Backlog page uses mock epics/features/stories
 
-5. **P2 - Assigned Teams Not Fetched** (`frontend/src/components/projects/AssignTeamModal.tsx:82`)
-   - TODO comment indicates missing API endpoint for fetching assigned teams
-   - Impact: Cannot see which teams are already assigned to a project
+#### P2 - Moderate Issues (10 issues)
+11. **ISS-011**: AdminSettings Feature Flags Link - Uses navigate() correctly but route may not exist
+12. **ISS-012**: Missing Usage History Endpoint - `/api/admin/ai-quota/usage-history` not implemented
+13. **ISS-013**: Missing Breakdown Endpoint - `/api/admin/ai-quota/breakdown` not implemented
+14. **ISS-014**: Register Endpoint Disabled - Returns 403 (by design, but may confuse users)
+15. **ISS-015**: Deprecated Task API Methods - `tasksApi.getComments()` and `tasksApi.addComment()` deprecated
+16. **ISS-016**: Permission Guard Console Errors - console.error in PermissionGuard components
+17. **ISS-017**: TestController in DEBUG Mode - Test endpoints available in debug builds
+18. **ISS-018**: HealthApiController Unversioned - Health checks at `/api/health/api` without versioning
+19. **ISS-019**: Missing Assigned Teams Endpoint - `GET /api/v1/Projects/{id}/assigned-teams` not implemented
+20. **ISS-020**: Error Handling Gaps - Some API failures may not show user-friendly messages
 
-6. **P2 - Release Editor TODO** (`frontend/src/pages/ReleaseDetailPage.tsx:612`)
-   - Comment: "TODO: Open editor"
-   - Impact: Feature incomplete
+### "What Looks Unfinished" Highlights
 
-7. **P3 - Console.log in Production Code** (`frontend/src/components/tasks/TaskDependenciesList.tsx:128`, `frontend/src/components/users/UserCard.tsx:118`)
-   - Debug statements left in production code
-   - Impact: Console pollution, potential information leakage
-
-8. **P3 - Email Service TODOs** (`backend/IntelliPM.Infrastructure/Services/EmailService.cs`)
-   - Multiple TODO comments for email integration
-   - Impact: Documentation of missing functionality
-
-9. **P3 - Application Layer EF Core Dependency** (`backend/IntelliPM.Application/IntelliPM.Application.csproj:13`)
-   - Comment notes Clean Architecture violation
-   - Impact: Architectural concern, but not blocking functionality
-
-10. **P3 - Mention Notification Email Not Implemented** (`backend/IntelliPM.Application/Notifications/Handlers/UserMentionedEventHandler.cs:79`)
-    - TODO comment for email notification
-    - Impact: Users mentioned in comments don't receive email notifications
-
-**Quick Wins (<30 min each):**
-
-1. Remove console.log statements from production code
-2. Implement task dependency navigation (use `useNavigate` from react-router-dom)
-3. Add proper error handling for missing endpoints
-4. Document missing email service integration requirements
-5. Add loading states for mock data sections
-
----
-
-## Complete Checklist (Traceable)
-
-### 1. Frontend Routes & Pages
-
-| Route | Component File | Guard | Status | Evidence | Fix |
-|-------|---------------|-------|--------|----------|-----|
-| `/` | Redirect to `/dashboard` | MainLayout | ✅ | `App.tsx:93` | None |
-| `/dashboard` | `Dashboard.tsx` | MainLayout | ✅ | `App.tsx:94` | None |
-| `/projects` | `Projects.tsx` | MainLayout | ✅ | `App.tsx:95` | None |
-| `/projects/:id` | `ProjectDetail.tsx` | MainLayout | ✅ | `App.tsx:104` | None |
-| `/projects/:id/members` | `ProjectMembers.tsx` | MainLayout | ✅ | `App.tsx:105` | None |
-| `/projects/:projectId/releases/:releaseId` | `ReleaseDetailPage.tsx` | MainLayout | ✅ | `App.tsx:97-99` | None |
-| `/projects/:projectId/releases/health` | `ReleaseHealthDashboard.tsx` | MainLayout | ✅ | `App.tsx:101-103` | None |
-| `/tasks` | `Tasks.tsx` | MainLayout | ✅ | `App.tsx:106` | None |
-| `/sprints` | `Sprints.tsx` | MainLayout | ✅ | `App.tsx:107` | None |
-| `/backlog` | `Backlog.tsx` | MainLayout | ✅ | `App.tsx:108` | None |
-| `/defects` | `Defects.tsx` | MainLayout | ✅ | `App.tsx:109` | None |
-| `/teams` | `Teams.tsx` | MainLayout | ✅ | `App.tsx:111` | None |
-| `/users` | `Users.tsx` | MainLayout | ✅ | `App.tsx:112` | None |
-| `/metrics` | `Metrics.tsx` | MainLayout | ✅ | `App.tsx:113` | None |
-| `/insights` | `Insights.tsx` | MainLayout | ✅ | `App.tsx:114` | None |
-| `/agents` | `Agents.tsx` | MainLayout | ✅ | `App.tsx:115` | None |
-| `/profile` | `Profile.tsx` | MainLayout | ✅ | `App.tsx:110` | None |
-| `/settings/ai-quota` | `QuotaDetails.tsx` | MainLayout | ✅ | `App.tsx:116` | None |
-| `/login` | `Login.tsx` | Public | ✅ | `App.tsx:84` | None |
-| `/register` | `Register.tsx` | Public | ✅ | `App.tsx:85` | None |
-| `/forgot-password` | `ForgotPassword.tsx` | Public | ✅ | `App.tsx:86` | None |
-| `/reset-password/:token` | `ResetPassword.tsx` | Public | ✅ | `App.tsx:87` | None |
-| `/invite/accept/:token` | `AcceptInvite.tsx` | Public | ✅ | `App.tsx:88` | None |
-| `/terms` | `Terms.tsx` | Public | ✅ | `App.tsx:89` | None |
-| `/admin` | Redirect to `/admin/dashboard` | RequireAdminGuard | ✅ | `App.tsx:128` | None |
-| `/admin/dashboard` | `AdminDashboard.tsx` | RequireAdminGuard | ✅ | `App.tsx:129` | None |
-| `/admin/users` | `AdminUsers.tsx` | RequireAdminGuard | ✅ | `App.tsx:130` | None |
-| `/admin/permissions` | `AdminPermissions.tsx` | RequireAdminGuard | ✅ | `App.tsx:131` | None |
-| `/admin/settings` | `AdminSettings.tsx` | RequireAdminGuard | ✅ | `App.tsx:132` | None |
-| `/admin/audit-logs` | `AdminAuditLogs.tsx` | RequireAdminGuard | ✅ | `App.tsx:133` | None |
-| `/admin/system-health` | `AdminSystemHealth.tsx` | RequireAdminGuard | ✅ | `App.tsx:134` | None |
-| `/admin/ai-governance` | `AIGovernance.tsx` | RequireAdminGuard | ✅ | `App.tsx:135` | None |
-| `/admin/ai-quota` | `AdminAIQuota.tsx` | RequireAdminGuard | ✅ | `App.tsx:136` | None |
-| `/admin/organizations` | `AdminOrganizations.tsx` | RequireSuperAdminGuard | ✅ | `App.tsx:139-145` | None |
-| `/admin/organizations/:orgId` | `AdminOrganizationDetail.tsx` | RequireSuperAdminGuard | ✅ | `App.tsx:147-153` | None |
-| `/admin/organizations/:orgId/ai-quota` | `SuperAdminOrganizationAIQuota.tsx` | RequireSuperAdminGuard | ✅ | `App.tsx:155-161` | None |
-| `/admin/organizations/:orgId/permissions` | `SuperAdminOrganizationPermissions.tsx` | RequireSuperAdminGuard | ✅ | `App.tsx:163-169` | None |
-| `/admin/organization` | `AdminMyOrganization.tsx` | RequireAdminGuard | ✅ | `App.tsx:171` | None |
-| `/admin/organization/members` | `AdminOrganizationMembers.tsx` | RequireAdminGuard | ✅ | `App.tsx:172` | None |
-| `/admin/ai-quotas` | `AdminMemberAIQuotas.tsx` | RequireAdminGuard | ✅ | `App.tsx:173` | None |
-| `/admin/permissions/members` | `AdminMemberPermissions.tsx` | RequireAdminGuard | ✅ | `App.tsx:174` | None |
-| `*` (404) | `NotFound.tsx` | None | ✅ | `App.tsx:178` | None |
-
-**Summary:** All 35 routes are properly configured with correct guards and components. ✅
+1. **QuotaDetails Page**: Uses mock data for usage history and breakdown charts (30 days of random data)
+2. **Task Dependencies**: Clicking a dependency only logs to console, doesn't navigate
+3. **Release Editor**: TODO comment indicates editor functionality not implemented
+4. **Assigned Teams**: Modal shows all teams instead of filtering already-assigned ones
+5. **Backlog Page**: Uses mock data for epics/features/stories display
+6. **Email Service**: May fail silently if SMTP not configured (graceful degradation)
+7. **Scheduled Quota Changes**: Feature throws NotImplementedException
 
 ---
 
-### 2. UI Actions (Buttons/Forms/Dialogs)
+## 1. PRODUCT SURFACE MAP
 
-#### 2.1 Projects Page (`frontend/src/pages/Projects.tsx`)
+### 1.1 Frontend Routes Inventory
 
-| Action | Handler | Mutation/Query | Status | Evidence | Fix |
-|--------|---------|----------------|--------|----------|-----|
-| Create Project | `handleSubmit` | `createMutation` (projectsApi.create) | ✅ | `Projects.tsx:177-193` | None |
-| Archive Project | `archiveMutation` | `archiveMutation` (projectsApi.archive) | ✅ | `Projects.tsx:195-207` | None |
-| Edit Project | `setEditingProject` | Edit dialog opens | ✅ | `Projects.tsx:38` | None |
-| Delete Project | `setDeletingProject` | Delete dialog opens | ✅ | `Projects.tsx:39` | None |
-| View Members | `setMembersModalOpen` | Members modal opens | ✅ | `Projects.tsx:44` | None |
+#### Public Routes (6 routes)
+| Route | Component | Guard | Params | Status |
+|-------|-----------|-------|--------|--------|
+| `/login` | `Login.tsx` | None | None | ✅ |
+| `/register` | `Register.tsx` | None | None | ⚠️ (Returns 403) |
+| `/forgot-password` | `ForgotPassword.tsx` | None | None | ✅ |
+| `/reset-password/:token` | `ResetPassword.tsx` | None | `token` | ✅ |
+| `/invite/accept/:token` | `AcceptInvite.tsx` | None | `token` | ✅ |
+| `/terms` | `Terms.tsx` | None | None | ✅ |
 
-#### 2.2 Tasks Page (`frontend/src/pages/Tasks.tsx`)
+#### Protected Routes - MainLayout (20 routes)
+| Route | Component | Guard | Params | Module | Status |
+|-------|-----------|-------|--------|--------|--------|
+| `/` | Redirect to `/dashboard` | MainLayout | None | Dashboard | ✅ |
+| `/dashboard` | `Dashboard.tsx` | MainLayout | None | Dashboard | ✅ |
+| `/projects` | `Projects.tsx` | MainLayout | None | Projects | ✅ |
+| `/projects/:id` | `ProjectDetail.tsx` | MainLayout | `id` | Projects | ✅ |
+| `/projects/:id/members` | `ProjectMembers.tsx` | MainLayout | `id` | Projects | ✅ |
+| `/projects/:projectId/releases/:releaseId` | `ReleaseDetailPage.tsx` | MainLayout | `projectId`, `releaseId` | Releases | ⚠️ (Editor TODO) |
+| `/projects/:projectId/releases/health` | `ReleaseHealthDashboard.tsx` | MainLayout | `projectId` | Releases | ⚠️ (window.location.reload) |
+| `/tasks` | `Tasks.tsx` | MainLayout | None | Tasks | ✅ |
+| `/sprints` | `Sprints.tsx` | MainLayout | None | Sprints | ✅ |
+| `/backlog` | `Backlog.tsx` | MainLayout | None | Backlog | ⚠️ (Mock data) |
+| `/defects` | `Defects.tsx` | MainLayout | None | Defects | ✅ |
+| `/teams` | `Teams.tsx` | MainLayout | None | Teams | ✅ |
+| `/users` | `Users.tsx` | MainLayout | None | Users | ✅ |
+| `/metrics` | `Metrics.tsx` | MainLayout | None | Metrics | ✅ |
+| `/insights` | `Insights.tsx` | MainLayout | None | Insights | ✅ |
+| `/agents` | `Agents.tsx` | MainLayout | None | AI Agents | ✅ |
+| `/profile` | `Profile.tsx` | MainLayout | None | Profile | ✅ |
+| `/settings/ai-quota` | `QuotaDetails.tsx` | MainLayout | None | AI Governance | ⚠️ (Mock data) |
 
-| Action | Handler | Mutation/Query | Status | Evidence | Fix |
-|--------|---------|----------------|--------|----------|-----|
-| Change Task Status | `updateStatusMutation` | `tasksApi.changeStatus` | ✅ | `Tasks.tsx:78-87` | None |
-| Drag & Drop | `handleDragStart`, `handleDragEnd` | `updateStatusMutation` | ✅ | `Tasks.tsx:90-92` | None |
+#### Admin Routes - RequireAdminGuard (13 routes)
+| Route | Component | Guard | Params | Module | Status |
+|-------|-----------|-------|--------|--------|--------|
+| `/admin` | Redirect to `/admin/dashboard` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/dashboard` | `AdminDashboard.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/users` | `AdminUsers.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/permissions` | `AdminPermissions.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/settings` | `AdminSettings.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/audit-logs` | `AdminAuditLogs.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/system-health` | `AdminSystemHealth.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/ai-governance` | `AIGovernance.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/ai-quota` | `AdminAIQuota.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/organization` | `AdminMyOrganization.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/organization/members` | `AdminOrganizationMembers.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/ai-quotas` | `AdminMemberAIQuotas.tsx` | RequireAdminGuard | None | Admin | ✅ |
+| `/admin/permissions/members` | `AdminMemberPermissions.tsx` | RequireAdminGuard | None | Admin | ✅ |
 
-#### 2.3 Admin Pages
+#### SuperAdmin Routes - RequireSuperAdminGuard (4 routes)
+| Route | Component | Guard | Params | Module | Status |
+|-------|-----------|-------|--------|--------|--------|
+| `/admin/organizations` | `AdminOrganizations.tsx` | RequireSuperAdminGuard | None | SuperAdmin | ✅ |
+| `/admin/organizations/:orgId` | `AdminOrganizationDetail.tsx` | RequireSuperAdminGuard | `orgId` | SuperAdmin | ✅ |
+| `/admin/organizations/:orgId/ai-quota` | `SuperAdminOrganizationAIQuota.tsx` | RequireSuperAdminGuard | `orgId` | SuperAdmin | ✅ |
+| `/admin/organizations/:orgId/permissions` | `SuperAdminOrganizationPermissions.tsx` | RequireSuperAdminGuard | `orgId` | SuperAdmin | ✅ |
 
-| Page | Action | Handler | Status | Evidence | Fix |
-|------|--------|---------|--------|----------|-----|
-| `AdminMemberPermissions.tsx` | Edit Member | `handleEditClick` | ✅ | `AdminMemberPermissions.tsx:104` | None |
-| `AdminMemberPermissions.tsx` | Save Changes | `handleSave` | ✅ | `AdminMemberPermissions.tsx:109` | None |
-| `AdminOrganizations.tsx` | Create Org | `handleCreate` | ✅ | `AdminOrganizations.tsx:80` | None |
-| `AdminOrganizations.tsx` | Delete Org | `handleDelete` | ✅ | `AdminOrganizations.tsx:88` | None |
-| `AdminMemberAIQuotas.tsx` | Edit Quota | `handleEdit` | ✅ | `AdminMemberAIQuotas.tsx:73` | None |
-| `AdminMemberAIQuotas.tsx` | Save Quota | `handleSave` | ✅ | `AdminMemberAIQuotas.tsx:83` | None |
+#### 404 Route
+| Route | Component | Guard | Status |
+|-------|-----------|-------|--------|
+| `*` | `NotFound.tsx` | None | ✅ |
 
-#### 2.4 Dead Handlers / TODOs
+**Total Routes:** 35 routes (6 public + 20 protected + 13 admin + 4 superadmin + 1 404)
 
-| Component | Location | Issue | Severity | Fix |
-|-----------|----------|-------|----------|-----|
-| `TaskDependenciesList.tsx` | Line 127-128 | onClick only logs, doesn't navigate | P2 | Implement navigation using `useNavigate` |
-| `AssignTeamModal.tsx` | Line 82 | TODO: Fetch assigned teams | P2 | Add API endpoint or remove TODO |
-| `ReleaseDetailPage.tsx` | Line 612 | TODO: Open editor | P2 | Implement editor functionality |
-| `QuotaDetails.tsx` | Line 93-115 | Mock data, missing endpoints | P2 | Implement backend endpoints or remove UI |
+### 1.2 Backend Controllers Inventory
 
-**Summary:** Most UI actions are properly wired. 4 instances of incomplete implementations identified. ⚠️
-
----
-
-### 3. API Integration Audit (FE ↔ BE)
-
-#### 3.1 Frontend API Clients Inventory
-
-**Total API Client Files:** 31 files
-
-| API Client | File | Functions | Status |
-|------------|------|-----------|--------|
-| `authApi` | `auth.ts` | login, register, logout, refresh, me, invite, etc. | ✅ |
-| `projectsApi` | `projects.ts` | getAll, getById, create, update, archive, delete, etc. | ✅ |
-| `tasksApi` | `tasks.ts` | getByProject, getById, create, update, changeStatus, assign, etc. | ✅ |
-| `sprintsApi` | `sprints.ts` | getByProject, create, start, complete, etc. | ✅ |
-| `backlogApi` | `backlog.ts` | createEpic, createFeature, createStory, etc. | ✅ |
-| `defectsApi` | `defects.ts` | getByProject, create, update, etc. | ✅ |
-| `teamsApi` | `teams.ts` | getAll, create, etc. | ✅ |
-| `usersApi` | `users.ts` | getAll, getById, etc. | ✅ |
-| `notificationsApi` | `notifications.ts` | getUnreadCount, markAsRead, etc. | ✅ |
-| `commentsApi` | `comments.ts` | getByEntity, create, update, delete | ✅ |
-| `attachmentsApi` | `attachments.ts` | upload, download, delete | ✅ |
-| `memberPermissionsApi` | `memberPermissions.ts` | getMemberPermissions, updateMemberPermission | ✅ |
-| `organizationPermissionPolicyApi` | `organizationPermissionPolicy.ts` | getOrganizationPermissionPolicy, upsertOrganizationPermissionPolicy | ✅ |
-| `adminAiQuotaApi` | `adminAiQuota.ts` | getMembers, updateMemberQuota | ✅ |
-| `superAdminAIQuotaApi` | `superAdminAIQuota.ts` | getOrganizationQuota, updateOrganizationQuota | ✅ |
-| `organizationsApi` | `organizations.ts` | getAll, getById, create, update, delete | ✅ |
-| `aiGovernanceApi` | `aiGovernance.ts` | getSettings, updateSettings | ✅ |
-| `permissionsApi` | `permissions.ts` | getMatrix, updateMatrix | ✅ |
-| `adminApi` | `admin.ts` | getDashboard, getUsers, etc. | ✅ |
-| `auditLogsApi` | `auditLogs.ts` | getLogs | ✅ |
-| `settingsApi` | `settings.ts` | getSettings, updateSettings | ✅ |
-| `metricsApi` | `metrics.ts` | getMetrics | ✅ |
-| `insightsApi` | `insights.ts` | getInsights | ✅ |
-| `searchApi` | `search.ts` | search | ✅ |
-| `alertsApi` | `alerts.ts` | getAlerts | ✅ |
-| `releasesApi` | `releases.ts` | getByProject, getById, create, update | ✅ |
-| `milestonesApi` | `milestones.ts` | getByProject, create, update | ✅ |
-| `agentsApi` | `agents.ts` | getAll, create, update | ✅ |
-| `dependenciesApi` | `dependencies.ts` | getByTask, add, remove | ✅ |
-| `activityApi` | `activity.ts` | getByEntity | ✅ |
-| `memberServiceApi` | `memberService.ts` | Various member operations | ✅ |
-
-#### 3.2 Backend Controllers Inventory
-
-**Total Controllers:** 41 controllers (26 standard + 14 admin + 1 superadmin + 1 DEBUG-only TestController)
-
+#### Standard Controllers (26 controllers)
 | Controller | Route Prefix | Endpoints | Status |
 |------------|--------------|-----------|--------|
-| `AuthController` | `/api/v1/Auth` | login, register, refresh, logout, me, invite, etc. | ✅ |
+| `AuthController` | `/api/v1/Auth` | login, register (403), refresh, logout, me, invite, etc. | ⚠️ (register disabled) |
 | `ProjectsController` | `/api/v1/Projects` | GET, POST, PUT, DELETE, members, assign-team, etc. | ✅ |
 | `TasksController` | `/api/v1/Tasks` | GET, POST, PUT, PATCH (status, assign), dependencies | ✅ |
 | `SprintsController` | `/api/v1/Sprints` | GET, POST, PATCH (start, complete) | ✅ |
@@ -229,7 +161,16 @@ The IntelliPM application is largely functional with a solid architecture. The c
 | `ReleasesController` | `/api/v1/Releases` | GET, POST, PUT | ✅ |
 | `MilestonesController` | `/api/v1/Milestones` | GET, POST, PUT | ✅ |
 | `AgentsController` | `/api/v1/Agents` | GET, POST, PUT | ✅ |
+| `AgentController` | `/api/v1/Agent` | improve-task | ✅ |
 | `HealthController` | `/health` | GET | ✅ |
+| `HealthApiController` | `/api/health` | GET api (smoke tests) | ⚠️ (Unversioned) |
+| `ActivityController` | `/api/v1/Activity` | GET | ✅ |
+| `DependenciesController` | `/api/v1/Dependencies` | GET, POST, DELETE | ✅ |
+| `FeatureFlagsController` | `/api/v1/FeatureFlags` | GET | ✅ |
+
+#### Admin Controllers (14 controllers)
+| Controller | Route Prefix | Endpoints | Status |
+|------------|--------------|-----------|--------|
 | `Admin/UsersController` | `/api/admin/users` | GET, POST (invite) | ✅ |
 | `Admin/DashboardController` | `/api/admin/dashboard` | GET | ✅ |
 | `Admin/PermissionsController` | `/api/admin/permissions` | GET matrix, PUT update | ✅ |
@@ -241,525 +182,886 @@ The IntelliPM application is largely functional with a solid architecture. The c
 | `Admin/ReadModelsController` | `/api/admin/read-models` | GET, POST (rebuild) | ✅ |
 | `Admin/DeadLetterQueueController` | `/api/admin/dead-letter-queue` | GET | ✅ |
 | `Admin/AdminMemberPermissionsController` | `/api/admin/permissions/members` | GET, PUT | ✅ |
-| `Admin/AdminAIQuotaController` | `/api/admin/ai-quota` | GET members, PUT quota | ✅ |
+| `Admin/AdminAIQuotaController` | `/api/admin/ai-quota` | GET members, PUT quota | ⚠️ (Missing usage-history, breakdown) |
 | `Admin/OrganizationsController` | `/api/admin/organizations` | GET, POST, PUT, DELETE | ✅ |
 | `Admin/OrganizationController` | `/api/admin/organization` | GET, PUT | ✅ |
-| `Admin/SuperAdminAIQuotaController` | `/api/admin/organizations/{orgId}/ai-quota` | GET, PUT | ✅ |
+
+#### SuperAdmin Controllers (2 controllers)
+| Controller | Route Prefix | Endpoints | Status |
+|------------|--------------|-----------|--------|
 | `SuperAdmin/SuperAdminPermissionPolicyController` | `/api/superadmin/organizations/{orgId}/permission-policy` | GET, PUT | ✅ |
+| `SuperAdmin/SuperAdminAIQuotaController` | `/api/admin/organizations/{orgId}/ai-quota` | GET, PUT | ✅ |
 
-#### 3.3 API Parity Matrix (Critical Mismatches)
+#### DEBUG-Only Controllers (1 controller)
+| Controller | Route Prefix | Endpoints | Status |
+|------------|--------------|-----------|--------|
+| `TestController` | `/api/v1/Test` | GET sentry (test exception) | ⚠️ (DEBUG only) |
 
-| FE API Call | FE File | BE Endpoint | BE Controller | Status | Issue |
-|-------------|---------|-------------|---------------|--------|-------|
-| `quotaApi.getUsageHistory()` | `QuotaDetails.tsx` | ❌ Missing | N/A | ❌ | Mock data used |
-| `quotaApi.getBreakdown()` | `QuotaDetails.tsx` | ❌ Missing | N/A | ❌ | Mock data used |
-| `projectsApi.getAssignedTeams()` | `AssignTeamModal.tsx` | ❌ Missing | N/A | ⚠️ | TODO comment |
-| `authApi.register()` | `auth.ts` | `/api/v1/Auth/register` | `AuthController` | ⚠️ | Returns 403 (disabled) |
-
-**Summary:** 2 missing endpoints identified (usage history, breakdown). 1 endpoint disabled by design (register). ⚠️
+**Total Controllers:** 42 controllers (26 standard + 14 admin + 2 superadmin + 1 DEBUG-only)
 
 ---
 
-### 4. Auth / RBAC / Multi-tenant Safety
+## 2. FEATURE INVENTORY BY MODULE
 
-#### 4.1 Authentication Flow
+### 2.1 Auth & Onboarding
 
-| Flow | Implementation | Status | Evidence | Fix |
-|------|----------------|--------|----------|-----|
-| Login | `AuthController.Login` → Sets httpOnly cookies | ✅ | `AuthController.cs:69-131` | None |
-| Logout | `AuthController.Logout` → Clears cookies | ✅ | `AuthController.cs:202-207` | None |
-| Token Refresh | `AuthController.Refresh` → Reads from cookie | ✅ | `AuthController.cs:148-188` | None |
-| 401 Handling | Frontend auto-refreshes, redirects on failure | ✅ | `client.ts:97-141` | None |
-| Cookie Security | HttpOnly, Secure (prod), SameSite=Strict | ✅ | `AuthController.cs:81-102` | None |
+**Pages/Routes:**
+- `/login` - Login page
+- `/register` - Register page (disabled, returns 403)
+- `/forgot-password` - Password reset request
+- `/reset-password/:token` - Password reset form
+- `/invite/accept/:token` - Accept project/organization invite
 
-#### 4.2 Role-Based Access Control
+**Core Actions:**
+- Login (POST `/api/v1/Auth/login`)
+- Register (POST `/api/v1/Auth/register`) - ⚠️ **DISABLED** (returns 403)
+- Request password reset (POST `/api/v1/Auth/forgot-password`)
+- Reset password (POST `/api/v1/Auth/reset-password`)
+- Validate invite token (GET `/api/v1/Auth/invite/:token`)
+- Accept invite (POST `/api/v1/Auth/invite/accept`)
 
-| Guard | Location | Protection | Status | Evidence | Fix |
-|-------|----------|------------|--------|----------|-----|
-| `RequireAdminGuard` | `frontend/src/components/guards/RequireAdminGuard.tsx` | Admin routes | ✅ | `App.tsx:123-126` | None |
-| `RequireSuperAdminGuard` | `frontend/src/components/guards/RequireSuperAdminGuard.tsx` | SuperAdmin routes | ✅ | `App.tsx:141-169` | None |
-| `[Authorize(Roles = "Admin,SuperAdmin")]` | Backend controllers | Admin endpoints | ✅ | Multiple controllers | None |
-| `[RequireSuperAdmin]` | Backend controllers | SuperAdmin endpoints | ✅ | `OrganizationsController.cs:22` | None |
-| `[RequirePermission("...")]` | Backend controllers | Permission-based | ✅ | `ProjectsController.cs:42` | None |
+**Backend Endpoints:**
+- ✅ `AuthController.Login` - Implemented
+- ⚠️ `AuthController.Register` - Returns 403 (by design)
+- ✅ `AuthController.ForgotPassword` - Implemented
+- ✅ `AuthController.ResetPassword` - Implemented
+- ✅ `AuthController.ValidateInviteToken` - Implemented
+- ✅ `AuthController.AcceptInvite` - Implemented
 
-#### 4.3 Multi-Tenancy
+**Status:** ✅ Mostly functional (register intentionally disabled)
 
-| Feature | Implementation | Status | Evidence | Fix |
-|---------|----------------|--------|----------|-----|
-| Organization Scoping | `OrganizationScopingService` | ✅ | Backend services | None |
-| Tenant Isolation | Queries filter by `OrganizationId` | ✅ | Application layer | None |
-| Admin Own-Org Routes | `/api/admin/organization` (singular) | ✅ | `OrganizationController.cs` | None |
-| SuperAdmin Cross-Org Routes | `/api/admin/organizations` (plural) | ✅ | `OrganizationsController.cs` | None |
+### 2.2 Core PM: Projects
 
-**Summary:** Auth/RBAC/Multi-tenancy properly implemented. ✅
+**Pages/Routes:**
+- `/projects` - Projects list
+- `/projects/:id` - Project detail
+- `/projects/:id/members` - Project members
+
+**Core Actions:**
+- List projects (GET `/api/v1/Projects`)
+- Get project (GET `/api/v1/Projects/{id}`)
+- Create project (POST `/api/v1/Projects`)
+- Update project (PUT `/api/v1/Projects/{id}`)
+- Archive project (DELETE `/api/v1/Projects/{id}`)
+- Get members (GET `/api/v1/Projects/{id}/members`)
+- Invite member (POST `/api/v1/Projects/{id}/members/invite`)
+- Remove member (DELETE `/api/v1/Projects/{id}/members/{userId}`)
+- Assign teams (POST `/api/v1/Projects/{id}/teams`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Missing Endpoints:**
+- ❌ `GET /api/v1/Projects/{id}/assigned-teams` - Used by `AssignTeamModal.tsx` (TODO comment)
+
+**Status:** ✅ Functional (missing assigned teams endpoint)
+
+### 2.3 Core PM: Tasks
+
+**Pages/Routes:**
+- `/tasks` - Tasks list/board
+
+**Core Actions:**
+- List tasks (GET `/api/v1/Tasks/project/{projectId}`)
+- Get task (GET `/api/v1/Tasks/{id}`)
+- Create task (POST `/api/v1/Tasks`)
+- Update task (PUT `/api/v1/Tasks/{id}`)
+- Change status (PATCH `/api/v1/Tasks/{id}/status`)
+- Assign task (PATCH `/api/v1/Tasks/{id}/assign`)
+- Get dependencies (GET `/api/v1/Tasks/{id}/dependencies`)
+- Add dependency (POST `/api/v1/Tasks/{id}/dependencies`)
+- Remove dependency (DELETE `/api/v1/Tasks/dependencies/{dependencyId}`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**UI Issues:**
+- ⚠️ Task dependency navigation not implemented (only console.log)
+
+**Status:** ✅ Functional (dependency navigation incomplete)
+
+### 2.4 Core PM: TaskBoard (DnD)
+
+**Components:**
+- `TaskBoard.tsx` - Kanban board with drag-and-drop
+
+**Core Actions:**
+- Drag task between columns (PATCH `/api/v1/Tasks/{id}/status`)
+- Add task to column (opens CreateTaskDialog)
+
+**Backend Endpoints:**
+- ✅ Status change endpoint implemented
+
+**Status:** ✅ Functional
+
+### 2.5 Core PM: Sprints
+
+**Pages/Routes:**
+- `/sprints` - Sprints list
+
+**Core Actions:**
+- List sprints (GET `/api/v1/Sprints/project/{projectId}`)
+- Create sprint (POST `/api/v1/Sprints`)
+- Start sprint (PATCH `/api/v1/Sprints/{id}/start`)
+- Complete sprint (PATCH `/api/v1/Sprints/{id}/complete`)
+- Get sprint summary (GET `/api/v1/ReadModels/sprint-summary/{sprintId}`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.6 Core PM: Backlog
+
+**Pages/Routes:**
+- `/backlog` - Backlog view
+
+**Core Actions:**
+- List backlog items (GET `/api/v1/Backlog/epics`, `/features`, `/stories`)
+- Create epic/feature/story (POST `/api/v1/Backlog`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**UI Issues:**
+- ⚠️ Uses mock data for epics/features/stories display (`mockBacklog`)
+
+**Status:** ⚠️ Functional but uses mock data
+
+### 2.7 Core PM: Defects
+
+**Pages/Routes:**
+- `/defects` - Defects list
+
+**Core Actions:**
+- List defects (GET `/api/v1/Defects/project/{projectId}`)
+- Create defect (POST `/api/v1/Defects`)
+- Update defect (PUT `/api/v1/Defects/{id}`)
+- Delete defect (DELETE `/api/v1/Defects/{id}`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.8 Core PM: Teams
+
+**Pages/Routes:**
+- `/teams` - Teams list
+
+**Core Actions:**
+- List teams (GET `/api/v1/Teams`)
+- Create team (POST `/api/v1/Teams`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.9 Dashboard & Metrics
+
+**Pages/Routes:**
+- `/dashboard` - Main dashboard
+- `/metrics` - Metrics page
+
+**Core Actions:**
+- Get dashboard stats (Various endpoints)
+- Get metrics (GET `/api/v1/Metrics`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.10 Notifications + Preferences
+
+**Components:**
+- `NotificationBell.tsx` - Notification dropdown
+
+**Core Actions:**
+- Get unread count (GET `/api/v1/Notifications/unread-count`)
+- List notifications (GET `/api/v1/Notifications`)
+- Mark as read (PATCH `/api/v1/Notifications/{id}/read`)
+- Mark all as read (POST `/api/v1/Notifications/mark-all-read`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.11 Comments + Mentions
+
+**Components:**
+- `CommentSection.tsx` - Comment thread
+- `CommentForm.tsx` - Comment input with mention autocomplete
+
+**Core Actions:**
+- Get comments (GET `/api/v1/Comments/{entityType}/{entityId}`)
+- Add comment (POST `/api/v1/Comments`)
+- Update comment (PUT `/api/v1/Comments/{id}`)
+- Delete comment (DELETE `/api/v1/Comments/{id}`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.12 Attachments Upload/Download
+
+**Components:**
+- `AttachmentUpload.tsx` - File upload
+- `AttachmentList.tsx` - Attachment list
+
+**Core Actions:**
+- Upload attachment (POST `/api/v1/Attachments`)
+- List attachments (GET `/api/v1/Attachments/{entityType}/{entityId}`)
+- Download attachment (GET `/api/v1/Attachments/{id}`)
+- Delete attachment (DELETE `/api/v1/Attachments/{id}`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.13 AI Agents + AI Governance + Quota Screens
+
+**Pages/Routes:**
+- `/agents` - AI agents page
+- `/settings/ai-quota` - User quota details
+- `/admin/ai-governance` - Admin AI governance
+- `/admin/ai-quota` - Admin member quotas
+
+**Core Actions:**
+- Run product agent (POST `/api/v1/Projects/{projectId}/agents/run-product`)
+- Run QA agent (POST `/api/v1/Projects/{projectId}/agents/run-qa`)
+- Run business agent (POST `/api/v1/Projects/{projectId}/agents/run-business`)
+- Run manager agent (POST `/api/v1/Projects/{projectId}/agents/run-manager`)
+- Run delivery agent (POST `/api/v1/Projects/{projectId}/agents/run-delivery`)
+- Improve task (POST `/api/v1/Agent/improve-task`)
+- Get quota status (GET `/api/admin/ai-quota/members`)
+- Update quota (PUT `/api/admin/ai-quota/members/{userId}`)
+
+**Backend Endpoints:**
+- ✅ All agent endpoints implemented
+- ⚠️ Missing: `GET /api/admin/ai-quota/usage-history`
+- ⚠️ Missing: `GET /api/admin/ai-quota/breakdown`
+
+**UI Issues:**
+- ⚠️ QuotaDetails uses mock data for usage history and breakdown
+
+**Status:** ⚠️ Functional but missing usage statistics endpoints
+
+### 2.14 Releases + Quality Gates + Release Notes + Health Dashboard
+
+**Pages/Routes:**
+- `/projects/:projectId/releases/:releaseId` - Release detail
+- `/projects/:projectId/releases/health` - Release health dashboard
+
+**Core Actions:**
+- List releases (GET `/api/v1/Releases/project/{projectId}`)
+- Get release (GET `/api/v1/Releases/{id}`)
+- Create release (POST `/api/v1/Releases`)
+- Update release (PUT `/api/v1/Releases/{id}`)
+- Delete release (DELETE `/api/v1/Releases/{id}`)
+- Deploy release (POST `/api/v1/Releases/{id}/deploy`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**UI Issues:**
+- ⚠️ Release editor TODO (line 657 in ReleaseDetailPage.tsx)
+- ⚠️ ReleaseHealthDashboard uses `window.location.reload()`
+
+**Status:** ⚠️ Functional but editor incomplete
+
+### 2.15 Milestones
+
+**Components:**
+- `CreateMilestoneDialog.tsx`
+- `EditMilestoneDialog.tsx`
+- `MilestoneCard.tsx`
+- `MilestonesList.tsx`
+
+**Core Actions:**
+- List milestones (GET `/api/v1/Milestones/project/{projectId}`)
+- Create milestone (POST `/api/v1/Milestones`)
+- Update milestone (PUT `/api/v1/Milestones/{id}`)
+- Complete milestone (PATCH `/api/v1/Milestones/{id}/complete`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.16 Dependencies (Task Dependencies Graph)
+
+**Components:**
+- `TaskDependenciesList.tsx` - Dependency list
+- `AddDependencyDialog.tsx` - Add dependency dialog
+- `DependencyGraph.tsx` - Visual dependency graph
+
+**Core Actions:**
+- Get dependencies (GET `/api/v1/Tasks/{id}/dependencies`)
+- Add dependency (POST `/api/v1/Tasks/{id}/dependencies`)
+- Remove dependency (DELETE `/api/v1/Tasks/dependencies/{dependencyId}`)
+- Get dependency graph (GET `/api/v1/Dependencies/graph/{projectId}`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**UI Issues:**
+- ⚠️ Dependency navigation not implemented (only console.log)
+
+**Status:** ⚠️ Functional but navigation incomplete
+
+### 2.17 Admin Area
+
+**Pages/Routes:**
+- `/admin/dashboard` - Admin dashboard
+- `/admin/users` - User management
+- `/admin/permissions` - Permission matrix
+- `/admin/settings` - System settings
+- `/admin/audit-logs` - Audit logs
+- `/admin/system-health` - System health
+- `/admin/ai-governance` - AI governance
+- `/admin/ai-quota` - Member AI quotas
+- `/admin/organization` - Organization settings
+- `/admin/organization/members` - Organization members
+- `/admin/ai-quotas` - Member AI quotas (alternative)
+- `/admin/permissions/members` - Member permissions
+
+**Core Actions:**
+- Various admin operations (see Admin controllers)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
+
+### 2.18 SuperAdmin Area
+
+**Pages/Routes:**
+- `/admin/organizations` - Organizations list
+- `/admin/organizations/:orgId` - Organization detail
+- `/admin/organizations/:orgId/ai-quota` - Organization AI quota
+- `/admin/organizations/:orgId/permissions` - Organization permission policy
+
+**Core Actions:**
+- List organizations (GET `/api/admin/organizations`)
+- Get organization (GET `/api/admin/organizations/{id}`)
+- Create organization (POST `/api/admin/organizations`)
+- Update organization (PUT `/api/admin/organizations/{id}`)
+- Delete organization (DELETE `/api/admin/organizations/{id}`)
+- Get permission policy (GET `/api/superadmin/organizations/{orgId}/permission-policy`)
+- Update permission policy (PUT `/api/superadmin/organizations/{orgId}/permission-policy`)
+
+**Backend Endpoints:**
+- ✅ All endpoints implemented
+
+**Status:** ✅ Functional
 
 ---
 
-### 5. Feature Flags Behavior
+## 3. MANUAL-LIKE TEST SCENARIOS
 
-| Flag | Frontend Context | Backend Enforcement | Status | Evidence | Fix |
-|------|------------------|---------------------|--------|----------|-----|
-| Feature Flags Provider | `FeatureFlagsContext.tsx` | `FeatureFlagsController` | ✅ | `App.tsx:74` | None |
-| Flag Loading | `useFeatureFlags()` hook | GET `/api/admin/feature-flags` | ✅ | Frontend hooks | None |
-| Flag Caching | React Query cache | Backend returns flags | ✅ | `FeatureFlagsContext.tsx` | None |
+### Scenario S01: "Create a project"
+**Steps:**
+1. Navigate to `/projects`
+2. Click "Create Project" button
+3. Fill in form (name, description, type, sprint duration)
+4. Click "Create" button
 
-**Summary:** Feature flags properly implemented. ✅
+**Expected Behavior:**
+- Dialog opens
+- Form validates input
+- On submit, POST `/api/v1/Projects` is called
+- Project appears in list
+- Success toast shown
 
----
+**Code Evidence:**
+- Handler: `Projects.tsx:177` - `handleSubmit`
+- API Call: `projectsApi.create()` → POST `/api/v1/Projects`
+- Backend: `ProjectsController.CreateProject`
 
-### 6. Data Layer (DB, Migrations, Seed)
-
-| Component | Status | Evidence | Fix |
-|-----------|--------|----------|-----|
-| EF Core Migrations | ✅ | `backend/IntelliPM.Infrastructure/Persistence/Migrations/` | None |
-| Database Seeding | ✅ | `DataSeeder.cs`, `MultiOrgDataSeeder.cs` | None |
-| Connection Strings | ✅ | `appsettings.json` | None |
-| Entity Configurations | ✅ | 44 entities configured | None |
-
-**Summary:** Data layer properly configured. ✅
-
----
-
-### 7. Config & Env (dev/prod)
-
-#### 7.1 Backend Configuration
-
-| Setting | File | Status | Evidence | Fix |
-|---------|------|--------|----------|-----|
-| Connection Strings | `appsettings.json` | ✅ | `appsettings.json` | None |
-| JWT Settings | `appsettings.json` | ✅ | `appsettings.json` | None |
-| CORS Config | `Program.cs` | ✅ | `Program.cs` | None |
-| Health Endpoints | `Program.cs` | ✅ | `HealthController.cs` | None |
-| Serilog Config | `appsettings.json` | ✅ | `Program.cs:64-99` | None |
-| Sentry Config | Environment variable | ✅ | `Program.cs:34-61` | None |
-
-#### 7.2 Frontend Configuration
-
-| Setting | File | Status | Evidence | Fix |
-|---------|------|--------|----------|-----|
-| API Base URL | `.env` (VITE_API_BASE_URL) | ✅ | `client.ts:3` | None |
-| Build Script | `package.json` | ✅ | `package.json` | None |
-| TypeScript Config | `tsconfig.json` | ✅ | TypeScript compilation | None |
-
-**Summary:** Configuration properly set up. ✅
+**Verdict:** ✅ **PASS**
 
 ---
 
-### 8. Observability / Error Handling
+### Scenario S02: "View task dependencies and navigate to dependent task"
+**Steps:**
+1. Navigate to `/tasks`
+2. Open task detail sheet
+3. View dependencies list
+4. Click on a dependent task title
 
-| Component | Status | Evidence | Fix |
-|-----------|--------|----------|-----|
-| Error Boundary | `ErrorFallback.tsx` | ✅ | `App.tsx:70` | None |
-| Backend Error Format | `ProblemDetails` | ✅ | Controllers return `Problem()` | None |
-| Frontend Error Display | `showError()` from sweetalert | ✅ | Multiple pages | None |
-| Logging (Serilog) | Structured logging | ✅ | `Program.cs:64-99` | None |
-| Sentry Integration | Error tracking | ✅ | `Program.cs:34-61` | None |
-| Console.log in Production | ⚠️ | `TaskDependenciesList.tsx:128`, `UserCard.tsx:118` | Remove console.log |
+**Expected Behavior:**
+- Dependencies list shows
+- Clicking task navigates to task detail
 
-**Summary:** Observability mostly good. 2 console.log statements need removal. ⚠️
+**Code Evidence:**
+- Handler: `TaskDependenciesList.tsx:127` - `onClick` handler
+- Implementation: Only `console.log('Navigate to task', otherTaskId)`
+- Navigation: ❌ **NOT IMPLEMENTED**
 
----
+**Verdict:** ❌ **FAIL** - Navigation not implemented
 
-### 9. Build/Run Pipelines
-
-| Task | Command | Status | Evidence | Fix |
-|------|---------|--------|----------|-----|
-| Backend Build | `dotnet build` | ✅ | `.csproj` files | None |
-| Frontend Build | `npm run build` | ✅ | `package.json` | None |
-| TypeScript Check | `tsc --noEmit` | ✅ | TypeScript compilation | None |
-| Lint | ESLint | ✅ | `package.json` | None |
-
-**Summary:** Build pipelines properly configured. ✅
+**Fix:** Use `useNavigate()` hook to navigate to `/tasks?taskId={otherTaskId}` or task detail route
 
 ---
 
-## Issue List (Prioritized)
+### Scenario S03: "Assign teams to project"
+**Steps:**
+1. Navigate to `/projects/:id`
+2. Click "Assign Team" button
+3. View assigned teams (should be filtered)
+4. Select teams and assign
 
-### ISS-001: Email Service Not Implemented (P1 - Critical)
+**Expected Behavior:**
+- Modal opens
+- Already-assigned teams are filtered out
+- Can select teams and assign
 
-**Severity:** P1 (Major Feature Broken)  
-**Location:** `backend/IntelliPM.Infrastructure/Services/EmailService.cs`  
-**Repro Steps:**
-1. Admin invites a user via `/admin/users` → POST `/api/admin/users/invite`
-2. Backend calls `EmailService.SendInvitationEmailAsync()`
-3. Method only logs, doesn't send email
-4. User never receives invitation email
+**Code Evidence:**
+- Handler: `AssignTeamModal.tsx:82` - TODO comment
+- API Call: Missing `GET /api/v1/Projects/{id}/assigned-teams`
+- Implementation: Returns empty array, shows all teams
 
-**Root Cause:** Email service is a stub implementation. All methods (`SendInvitationEmailAsync`, `SendPasswordResetEmailAsync`, `SendMentionNotificationEmailAsync`, etc.) only log and return `Task.CompletedTask`.
+**Verdict:** ⚠️ **UNKNOWN** - Backend may handle duplicates gracefully, but UX is poor
 
-**Fix Plan:**
-1. Integrate with email service provider (SendGrid, SMTP, etc.)
-2. Add configuration for email provider (API key, SMTP settings)
-3. Implement all email methods
-4. Add error handling and retry logic
-5. Test email delivery in dev/staging
-
-**Patch Suggestion:**
-```csharp
-// In EmailService.cs
-public async Task SendInvitationEmailAsync(...)
-{
-    // Replace stub with actual implementation
-    var emailClient = new SendGridClient(_configuration["SendGrid:ApiKey"]);
-    var message = new SendGridMessage
-    {
-        From = new EmailAddress(_configuration["Email:From"]),
-        Subject = "Invitation to join IntelliPM",
-        HtmlContent = BuildInvitationEmailHtml(...)
-    };
-    message.AddTo(new EmailAddress(email));
-    await emailClient.SendEmailAsync(message);
-}
-```
-
-**Test/Verification:**
-- Send test invitation email
-- Verify email arrives in inbox
-- Check email formatting and links
+**Fix:** Implement `GET /api/v1/Projects/{id}/assigned-teams` endpoint
 
 ---
 
-### ISS-002: Scheduled Quota Changes Not Implemented (P1 - Critical)
-
-**Severity:** P1 (Feature Incomplete)  
-**Location:** `backend/IntelliPM.Application/AI/Commands/UpdateAIQuotaCommandHandler.cs:123`  
-**Repro Steps:**
-1. Admin attempts to schedule a quota change for a future date
-2. Backend throws `NotImplementedException`
-3. Request fails with 500 error
-
-**Root Cause:** Scheduled quota changes require a background job scheduler (e.g., Hangfire, Quartz.NET), which is not implemented.
-
-**Fix Plan:**
-1. Install Hangfire or Quartz.NET NuGet package
-2. Configure background job scheduler in `Program.cs`
-3. Implement scheduled quota change handler
-4. Store scheduled changes in database
-5. Process scheduled changes via background job
-
-**Patch Suggestion:**
-```csharp
-// In UpdateAIQuotaCommandHandler.cs
-if (command.EffectiveDate.HasValue && command.EffectiveDate > DateTime.UtcNow)
-{
-    // Schedule quota change
-    var jobId = BackgroundJob.Schedule(() => 
-        ApplyQuotaChange(command.OrganizationId, command.Quota), 
-        command.EffectiveDate.Value);
-    
-    // Store job ID for cancellation if needed
-    // ...
-}
-```
-
-**Test/Verification:**
-- Schedule quota change for future date
-- Verify job is scheduled
-- Wait for scheduled time and verify quota is updated
-
----
-
-### ISS-003: Mock Data in QuotaDetails Page (P2 - Major)
-
-**Severity:** P2 (Major)  
-**Location:** `frontend/src/pages/QuotaDetails.tsx:93-115`  
-**Repro Steps:**
+### Scenario S04: "View AI quota usage history"
+**Steps:**
 1. Navigate to `/settings/ai-quota`
 2. View usage history chart
-3. Data is generated randomly, not from real API
+3. View breakdown by agent type
 
-**Root Cause:** Backend endpoints for usage history and breakdown are missing. Frontend uses mock data as placeholder.
+**Expected Behavior:**
+- Real usage data displayed
+- Charts show actual usage
 
-**Fix Plan:**
-1. Create backend endpoints:
-   - `GET /api/admin/ai-quota/usage-history?startDate=...&endDate=...`
-   - `GET /api/admin/ai-quota/breakdown?period=...`
-2. Implement query handlers to aggregate usage data
-3. Update frontend to call real endpoints
-4. Remove mock data generation
+**Code Evidence:**
+- Handler: `QuotaDetails.tsx:116` - Mock data generation
+- API Call: Missing `GET /api/admin/ai-quota/usage-history`
+- API Call: Missing `GET /api/admin/ai-quota/breakdown`
+- Implementation: Generates random data
 
-**Patch Suggestion:**
-```typescript
-// In QuotaDetails.tsx
-// Replace mock data with real API call
-const { data: usageHistory } = useQuery({
-  queryKey: ['ai-quota-usage-history', startDate, endDate],
-  queryFn: () => adminAiQuotaApi.getUsageHistory(startDate, endDate),
-});
+**Verdict:** ❌ **FAIL** - Mock data used instead of real data
 
-const { data: breakdown } = useQuery({
-  queryKey: ['ai-quota-breakdown', period],
-  queryFn: () => adminAiQuotaApi.getBreakdown(period),
-});
-```
-
-**Test/Verification:**
-- Call usage history endpoint
-- Verify real data is returned
-- Verify charts display correct data
+**Fix:** Implement backend endpoints and update frontend to use real data
 
 ---
 
-### ISS-004: Task Dependency Navigation Not Implemented (P2 - Major)
+### Scenario S05: "Edit release notes"
+**Steps:**
+1. Navigate to `/projects/:projectId/releases/:releaseId`
+2. View release notes
+3. Click "Edit" button
 
-**Severity:** P2 (Major)  
-**Location:** `frontend/src/components/tasks/TaskDependenciesList.tsx:127-128`  
-**Repro Steps:**
-1. Open task detail
-2. View dependencies list
-3. Click on a dependent task title
-4. Only console.log is executed, no navigation occurs
+**Expected Behavior:**
+- Editor opens
+- Can edit release notes
+- Can save changes
 
-**Root Cause:** Click handler is incomplete. Only logs to console instead of navigating.
+**Code Evidence:**
+- Handler: `ReleaseDetailPage.tsx:657` - TODO comment
+- Implementation: `// TODO: Open editor`
 
-**Fix Plan:**
-1. Import `useNavigate` from react-router-dom
-2. Implement navigation to task detail page
-3. Remove console.log statement
+**Verdict:** ❌ **FAIL** - Editor not implemented
 
-**Patch Suggestion:**
-```typescript
-// In TaskDependenciesList.tsx
-import { useNavigate } from 'react-router-dom';
-
-export function TaskDependenciesList({ taskId, projectId }: TaskDependenciesListProps) {
-  const navigate = useNavigate();
-  
-  // In DependencyItem component
-  <button
-    onClick={() => {
-      navigate(`/projects/${projectId}/tasks/${otherTaskId}`);
-    }}
-    className="text-sm font-medium text-left hover:underline truncate"
-  >
-    {otherTaskTitle}
-  </button>
-}
-```
-
-**Test/Verification:**
-- Click on dependent task
-- Verify navigation to task detail page
-- Verify correct task is displayed
+**Fix:** Implement release notes editor functionality
 
 ---
 
-### ISS-005: Assigned Teams Not Fetched (P2 - Major)
+### Scenario S06: "Refresh release health dashboard"
+**Steps:**
+1. Navigate to `/projects/:projectId/releases/health`
+2. Click "Refresh" button
 
-**Severity:** P2 (Major)  
-**Location:** `frontend/src/components/projects/AssignTeamModal.tsx:82`  
-**Repro Steps:**
-1. Open project detail
-2. Click "Assign Team"
-3. Modal shows all teams, not filtering already-assigned teams
+**Expected Behavior:**
+- Data refreshes without page reload
+- Loading state shown
 
-**Root Cause:** Backend endpoint for fetching assigned teams is missing. TODO comment indicates this.
+**Code Evidence:**
+- Handler: `ReleaseHealthDashboard.tsx:32` - `window.location.reload()`
+- Implementation: Full page reload
 
-**Fix Plan:**
-1. Add endpoint `GET /api/v1/Projects/{id}/assigned-teams`
-2. Implement query handler
-3. Update frontend to fetch and filter assigned teams
-4. Remove TODO comment
+**Verdict:** ⚠️ **UNKNOWN** - Works but causes full page reload (poor UX)
 
-**Patch Suggestion:**
-```typescript
-// In AssignTeamModal.tsx
-const { data: assignedTeamsData } = useQuery({
-  queryKey: ['project-assigned-teams', projectId],
-  queryFn: () => projectsApi.getAssignedTeams(projectId),
-  enabled: isOpen && projectId > 0,
-});
-
-const assignedTeamIds = useMemo(() => {
-  return assignedTeamsData?.teams?.map(t => t.id) || [];
-}, [assignedTeamsData]);
-```
-
-**Test/Verification:**
-- Fetch assigned teams endpoint
-- Verify assigned teams are filtered in modal
-- Verify teams can still be assigned
+**Fix:** Use `queryClient.invalidateQueries()` instead of `window.location.reload()`
 
 ---
 
-### ISS-006: Console.log in Production Code (P3 - Minor)
+### Scenario S07: "Register new user"
+**Steps:**
+1. Navigate to `/register`
+2. Fill in registration form
+3. Submit form
 
-**Severity:** P3 (Minor)  
-**Locations:** 
-- `frontend/src/components/tasks/TaskDependenciesList.tsx:128`
-- `frontend/src/components/users/UserCard.tsx:118`
+**Expected Behavior:**
+- Form submits
+- User account created
+- Redirects to login
 
-**Repro Steps:**
-1. Open browser console
-2. Navigate to tasks or users page
-3. See console.log output
+**Code Evidence:**
+- Handler: `Register.tsx` - Form submit
+- API Call: `authApi.register()` → POST `/api/v1/Auth/register`
+- Backend: `AuthController.Register` - Returns 403
 
-**Root Cause:** Debug statements left in production code.
+**Verdict:** ⚠️ **UNKNOWN** - Intentionally disabled (by design)
 
-**Fix Plan:**
-1. Remove console.log statements
-2. Replace with proper logging if needed (Sentry, etc.)
-
-**Patch Suggestion:**
-```typescript
-// In TaskDependenciesList.tsx
-// Remove: console.log('Navigate to task', otherTaskId);
-// Replace with navigation (see ISS-004)
-
-// In UserCard.tsx
-// Remove: console.log(`${action} user ${normalizedUser.id}`);
-// Or replace with Sentry logging if needed
-```
-
-**Test/Verification:**
-- Verify no console.log output in production build
-- Verify functionality still works
+**Fix:** None (intentional), but UI should indicate registration is disabled
 
 ---
 
-### ISS-007: Release Editor TODO (P3 - Minor)
+### Scenario S08: "Schedule AI quota change for future date"
+**Steps:**
+1. Navigate to `/admin/ai-quota`
+2. Edit member quota
+3. Set effective date to future date
+4. Save
 
-**Severity:** P3 (Minor)  
-**Location:** `frontend/src/pages/ReleaseDetailPage.tsx:612`  
-**Repro Steps:**
-1. Navigate to release detail page
-2. Find "TODO: Open editor" comment
-3. Feature is incomplete
+**Expected Behavior:**
+- Quota change scheduled
+- Change applies at effective date
 
-**Root Cause:** Editor functionality not implemented.
+**Code Evidence:**
+- Handler: `UpdateAIQuotaCommandHandler.cs:123` - Throws `NotImplementedException`
+- Implementation: `throw new NotImplementedException("Scheduled quota changes not yet implemented")`
 
-**Fix Plan:**
-1. Implement release editor functionality
-2. Remove TODO comment
-3. Add proper editor UI
+**Verdict:** ❌ **FAIL** - Feature not implemented
 
-**Patch Suggestion:**
-```typescript
-// In ReleaseDetailPage.tsx
-// Implement editor functionality
-const handleEditRelease = () => {
-  // Open editor dialog or navigate to edit page
-  setEditDialogOpen(true);
-};
-```
-
-**Test/Verification:**
-- Verify editor opens
-- Verify release can be edited
-- Verify changes are saved
+**Fix:** Implement background job scheduler (Hangfire/Quartz.NET) for scheduled quota changes
 
 ---
 
-## Patch Plan (Step-by-Step)
+### Scenario S09: "View backlog items"
+**Steps:**
+1. Navigate to `/backlog`
+2. View epics, features, stories
 
-### Phase 1: Critical Fixes (P1)
+**Expected Behavior:**
+- Real backlog data displayed
+- Can create new items
 
-1. **ISS-001: Email Service Implementation**
-   - Install email provider NuGet package (SendGrid or SMTP)
-   - Configure email settings in `appsettings.json`
-   - Implement all email methods in `EmailService.cs`
-   - Add error handling and retry logic
-   - Test email delivery
+**Code Evidence:**
+- Handler: `Backlog.tsx:160` - Uses `mockBacklog` data
+- API Call: Backend endpoints exist but frontend uses mock data
 
-2. **ISS-002: Scheduled Quota Changes**
-   - Install Hangfire NuGet package
-   - Configure Hangfire in `Program.cs`
-   - Implement scheduled quota change handler
-   - Update `UpdateAIQuotaCommandHandler.cs`
-   - Test scheduled changes
+**Verdict:** ⚠️ **UNKNOWN** - Mock data used, backend endpoints exist
 
-### Phase 2: Major Fixes (P2)
-
-3. **ISS-003: QuotaDetails Mock Data**
-   - Create backend endpoints for usage history and breakdown
-   - Implement query handlers
-   - Update frontend to use real endpoints
-   - Remove mock data
-
-4. **ISS-004: Task Dependency Navigation**
-   - Add `useNavigate` hook
-   - Implement navigation in `TaskDependenciesList.tsx`
-   - Remove console.log
-   - Test navigation
-
-5. **ISS-005: Assigned Teams Fetching**
-   - Add backend endpoint for assigned teams
-   - Implement query handler
-   - Update frontend to fetch and filter
-   - Remove TODO comment
-
-### Phase 3: Minor Fixes (P3)
-
-6. **ISS-006: Console.log Removal**
-   - Remove console.log from `TaskDependenciesList.tsx`
-   - Remove console.log from `UserCard.tsx`
-   - Verify no console output
-
-7. **ISS-007: Release Editor**
-   - Implement editor functionality
-   - Remove TODO comment
-   - Test editor
+**Fix:** Update frontend to use real API endpoints instead of mock data
 
 ---
 
-## Traceability Matrix (FE → API → BE)
+### Scenario S10: "Send invitation email"
+**Steps:**
+1. Navigate to `/admin/users`
+2. Click "Invite User"
+3. Enter email and submit
 
-### Projects Flow
+**Expected Behavior:**
+- Email sent to user
+- Invitation link in email
+- User receives email
 
-| FE Route | FE Component | FE API Call | BE Endpoint | BE Controller | Status |
-|----------|--------------|-------------|-------------|---------------|--------|
-| `/projects` | `Projects.tsx` | `projectsApi.getAll()` | `GET /api/v1/Projects` | `ProjectsController.GetProjects` | ✅ |
-| `/projects` | `Projects.tsx` | `projectsApi.create()` | `POST /api/v1/Projects` | `ProjectsController.CreateProject` | ✅ |
-| `/projects/:id` | `ProjectDetail.tsx` | `projectsApi.getById()` | `GET /api/v1/Projects/{id}` | `ProjectsController.GetProject` | ✅ |
-| `/projects/:id` | `ProjectDetail.tsx` | `projectsApi.update()` | `PUT /api/v1/Projects/{id}` | `ProjectsController.UpdateProject` | ✅ |
-| `/projects/:id` | `ProjectDetail.tsx` | `projectsApi.archive()` | `DELETE /api/v1/Projects/{id}` | `ProjectsController.DeleteProject` | ✅ |
-| `/projects/:id/members` | `ProjectMembers.tsx` | `projectsApi.getMembers()` | `GET /api/v1/Projects/{id}/members` | `ProjectsController.GetProjectMembers` | ✅ |
+**Code Evidence:**
+- Handler: `InviteUserCommandHandler.cs` - Calls `EmailService.SendInvitationEmailAsync`
+- Email Service: `EmailService.cs` - Implemented but may fail silently if SMTP not configured
 
-### Tasks Flow
+**Verdict:** ⚠️ **UNKNOWN** - May fail silently if SMTP not configured
 
-| FE Route | FE Component | FE API Call | BE Endpoint | BE Controller | Status |
-|----------|--------------|-------------|-------------|---------------|--------|
-| `/tasks` | `Tasks.tsx` | `tasksApi.getByProject()` | `GET /api/v1/Tasks/project/{projectId}` | `TasksController.GetTasksByProject` | ✅ |
-| `/tasks` | `Tasks.tsx` | `tasksApi.changeStatus()` | `PATCH /api/v1/Tasks/{taskId}/status` | `TasksController.ChangeTaskStatus` | ✅ |
-| `/tasks` | `Tasks.tsx` | `tasksApi.assign()` | `PATCH /api/v1/Tasks/{taskId}/assign` | `TasksController.AssignTask` | ✅ |
-| Task Dependencies | `TaskDependenciesList.tsx` | `dependenciesApi.getByTask()` | `GET /api/v1/Tasks/{taskId}/dependencies` | `TasksController.GetTaskDependencies` | ✅ |
-| Task Dependencies | `TaskDependenciesList.tsx` | `dependenciesApi.add()` | `POST /api/v1/Tasks/{taskId}/dependencies` | `TasksController.AddTaskDependency` | ✅ |
-| Task Dependencies | `TaskDependenciesList.tsx` | `dependenciesApi.remove()` | `DELETE /api/v1/Tasks/dependencies/{dependencyId}` | `TasksController.RemoveTaskDependency` | ✅ |
-
-### Admin Flow
-
-| FE Route | FE Component | FE API Call | BE Endpoint | BE Controller | Status |
-|----------|--------------|-------------|-------------|---------------|--------|
-| `/admin/users` | `AdminUsers.tsx` | `adminApi.getUsers()` | `GET /api/admin/users` | `Admin/UsersController.GetUsers` | ✅ |
-| `/admin/users` | `AdminUsers.tsx` | `usersApi.invite()` | `POST /api/admin/users/invite` | `Admin/UsersController.Invite` | ⚠️ (Email not sent) |
-| `/admin/permissions` | `AdminPermissions.tsx` | `permissionsApi.getMatrix()` | `GET /api/admin/permissions/matrix` | `Admin/PermissionsController.GetMatrix` | ✅ |
-| `/admin/permissions` | `AdminPermissions.tsx` | `permissionsApi.updateMatrix()` | `PUT /api/admin/permissions/matrix` | `Admin/PermissionsController.UpdateMatrix` | ✅ |
-| `/admin/permissions/members` | `AdminMemberPermissions.tsx` | `memberPermissionsApi.getMemberPermissions()` | `GET /api/admin/permissions/members` | `Admin/AdminMemberPermissionsController.GetMemberPermissions` | ✅ |
-| `/admin/permissions/members` | `AdminMemberPermissions.tsx` | `memberPermissionsApi.updateMemberPermission()` | `PUT /api/admin/permissions/members/{userId}` | `Admin/AdminMemberPermissionsController.UpdateMemberPermission` | ✅ |
-| `/admin/organizations/:orgId/permissions` | `SuperAdminOrganizationPermissions.tsx` | `organizationPermissionPolicyApi.getOrganizationPermissionPolicy()` | `GET /api/superadmin/organizations/{orgId}/permission-policy` | `SuperAdmin/SuperAdminPermissionPolicyController.Get` | ✅ |
-| `/admin/organizations/:orgId/permissions` | `SuperAdminOrganizationPermissions.tsx` | `organizationPermissionPolicyApi.upsertOrganizationPermissionPolicy()` | `PUT /api/superadmin/organizations/{orgId}/permission-policy` | `SuperAdmin/SuperAdminPermissionPolicyController.Upsert` | ✅ |
-| `/admin/ai-quota` | `AdminAIQuota.tsx` | `adminAiQuotaApi.getMembers()` | `GET /api/admin/ai-quota/members` | `Admin/AdminAIQuotaController.GetMembers` | ✅ |
-| `/admin/ai-quota` | `AdminAIQuota.tsx` | `adminAiQuotaApi.updateMemberQuota()` | `PUT /api/admin/ai-quota/members/{userId}` | `Admin/AdminAIQuotaController.UpdateMemberQuota` | ✅ |
-| `/settings/ai-quota` | `QuotaDetails.tsx` | `adminAiQuotaApi.getUsageHistory()` | ❌ Missing | N/A | ❌ |
-| `/settings/ai-quota` | `QuotaDetails.tsx` | `adminAiQuotaApi.getBreakdown()` | ❌ Missing | N/A | ❌ |
+**Fix:** Ensure SMTP configuration is set, add error handling/notification if email fails
 
 ---
 
-## Conclusion
+## 4. ACTION REMEDIATION MATRIX
 
-The IntelliPM application is **mostly functional** with a solid architecture and comprehensive feature coverage. The main issues are:
-
-1. **Email service not implemented** - Critical for user invitations and notifications
-2. **Scheduled quota changes not implemented** - Feature incomplete
-3. **Mock data in QuotaDetails** - Missing backend endpoints
-4. **Minor UI issues** - Navigation, console.log, TODOs
-
-**Recommendation:** Prioritize email service implementation (ISS-001) as it blocks core functionality (user invitations). Then address scheduled quota changes (ISS-002) and missing endpoints (ISS-003).
-
-**Overall Assessment:** ✅ **GOOD** - Application is production-ready after addressing critical issues (ISS-001, ISS-002).
+| ACT-ID | Route/Page | File:Line | Action | Status | Evidence | Root Cause | Fix Location | Manual Verification |
+|--------|------------|-----------|--------|--------|----------|------------|--------------|-------------------|
+| ACT-0001 | `/admin/settings` | `AdminSettings.tsx:908` | Feature Flags link | ✅ | Uses `navigate('/admin/feature-flags')` | None | None | Click link, verify navigation |
+| ACT-0002 | `/settings/ai-quota` | `QuotaDetails.tsx:64` | Reload button | ⚠️ | Uses `navigate(-1)` correctly | None | None | Click back button |
+| ACT-0003 | `/projects/:projectId/releases/health` | `ReleaseHealthDashboard.tsx:32` | Refresh button | ❌ | Uses `window.location.reload()` | Full page reload | FE: `ReleaseHealthDashboard.tsx:32` | Click refresh, verify full reload |
+| ACT-0004 | Task dependencies | `TaskDependenciesList.tsx:127` | Click dependency | ❌ | Only `console.log`, no navigation | Navigation not implemented | FE: `TaskDependenciesList.tsx:127` | Click dependency, verify no navigation |
+| ACT-0005 | Project assign teams | `AssignTeamModal.tsx:82` | Filter assigned teams | ⚠️ | TODO comment, empty array | Missing API endpoint | BE: Add `GET /api/v1/Projects/{id}/assigned-teams` | Open modal, verify all teams shown |
+| ACT-0006 | Release detail | `ReleaseDetailPage.tsx:657` | Edit release notes | ❌ | TODO comment | Editor not implemented | FE: `ReleaseDetailPage.tsx:657` | Click edit, verify nothing happens |
+| ACT-0007 | Quota details | `QuotaDetails.tsx:116` | View usage history | ❌ | Mock data generation | Missing API endpoint | BE: Add `GET /api/admin/ai-quota/usage-history` | View chart, verify random data |
+| ACT-0008 | Quota details | `QuotaDetails.tsx:127` | View breakdown | ❌ | Mock data generation | Missing API endpoint | BE: Add `GET /api/admin/ai-quota/breakdown` | View breakdown, verify random data |
+| ACT-0009 | Error fallback | `ErrorFallback.tsx:50` | Go home | ⚠️ | Uses `window.location.href = '/'` | Direct navigation | FE: `ErrorFallback.tsx:50` | Trigger error, click home |
+| ACT-0010 | API client | `client.ts:133` | Redirect to login | ⚠️ | Uses `window.location.href = '/login'` | Direct navigation | FE: `client.ts:133` | Trigger 401, verify redirect |
 
 ---
 
-**Report Generated:** January 4, 2025  
-**Next Review:** After implementing critical fixes
+## 5. BACKEND–FRONTEND COVERAGE MATRIX
+
+### 5.1 Missing Backend Endpoints (Called by FE but Missing in BE)
+
+| FE API Call | FE File | Expected Endpoint | Status | Priority |
+|-------------|---------|-------------------|--------|----------|
+| `adminAiQuotaApi.getUsageHistory()` | `QuotaDetails.tsx` | `GET /api/admin/ai-quota/usage-history` | ❌ Missing | P1 |
+| `adminAiQuotaApi.getBreakdown()` | `QuotaDetails.tsx` | `GET /api/admin/ai-quota/breakdown` | ❌ Missing | P1 |
+| `projectsApi.getAssignedTeams()` | `AssignTeamModal.tsx` | `GET /api/v1/Projects/{id}/assigned-teams` | ❌ Missing | P2 |
+
+### 5.2 Backend Endpoints Not Used by FE
+
+| Backend Endpoint | Controller | Status | Notes |
+|------------------|------------|--------|-------|
+| `GET /api/v1/Test/sentry` | `TestController` | ⚠️ DEBUG only | Test endpoint, not for production |
+| `GET /api/health/api` | `HealthApiController` | ⚠️ Unversioned | Health check endpoint |
+| `POST /api/admin/read-models/rebuild` | `Admin/ReadModelsController` | ✅ Admin tool | May be used by admin tools |
+| `GET /api/admin/dead-letter-queue` | `Admin/DeadLetterQueueController` | ✅ Admin tool | May be used by admin tools |
+
+### 5.3 Disabled/Deprecated Endpoints
+
+| Endpoint | Status | Reason |
+|----------|--------|--------|
+| `POST /api/v1/Auth/register` | ⚠️ Returns 403 | Public registration disabled by design |
+| `tasksApi.getComments()` | ⚠️ Deprecated | Use `commentsApi.getAll()` instead |
+| `tasksApi.addComment()` | ⚠️ Deprecated | Use `commentsApi.add()` instead |
+
+---
+
+## 6. PERMISSIONS / FEATURE FLAGS / CONFIG
+
+### 6.1 Permission System
+
+**Frontend Permission Checks:**
+- `usePermissions()` - Global permissions hook
+- `usePermissionsWithProject(projectId)` - Project-specific permissions hook
+- `useProjectPermissions(projectId)` - Project role-based permissions
+- `PermissionGuard` - Component guard for permissions
+- `RequireAdminGuard` - Route guard for admin routes
+- `RequireSuperAdminGuard` - Route guard for superadmin routes
+
+**Backend Permission Enforcement:**
+- `[Authorize]` - Requires authentication
+- `[Authorize(Roles = "Admin,SuperAdmin")]` - Role-based authorization
+- `[RequirePermission("resource.action")]` - Permission-based authorization
+- `[RequireSuperAdmin]` - SuperAdmin-only authorization
+
+**Permission Risk Matrix:**
+
+| Feature | Required Permission | FE Check | BE Check | Risk Notes |
+|---------|-------------------|---------|---------|------------|
+| Create Project | `projects.create` | ✅ `usePermissions()` | ✅ `[RequirePermission]` | ✅ Low risk |
+| Edit Project | `projects.edit` | ✅ `useProjectPermissions()` | ✅ `[RequirePermission]` | ✅ Low risk |
+| Delete Project | `projects.delete` | ✅ `useProjectPermissions()` | ✅ `[RequirePermission]` | ✅ Low risk |
+| Admin Settings | `admin.settings.update` | ✅ `RequireAdminGuard` | ✅ `[Authorize(Roles = "Admin")]` | ✅ Low risk |
+| SuperAdmin Org | N/A | ✅ `RequireSuperAdminGuard` | ✅ `[RequireSuperAdmin]` | ✅ Low risk |
+
+**Status:** ✅ Permission system properly implemented
+
+### 6.2 Feature Flags
+
+**Frontend Feature Flags:**
+- `FeatureFlagsContext` - Context provider for feature flags
+- `useFeatureFlag(flagName)` - Hook to check feature flags
+- `FeatureFlag` component - Conditional rendering component
+
+**Backend Feature Flags:**
+- `FeatureFlagsController` - Admin endpoint for feature flags
+- `FeatureFlagService` - Service with caching
+- `[RequireFeatureFlag("flagName")]` - Attribute for feature flag checks
+
+**Feature Flags Referenced:**
+- Feature flags are loaded from `/api/admin/feature-flags`
+- Cached in React Query
+- Used for conditional feature rendering
+
+**Status:** ✅ Feature flags properly implemented
+
+---
+
+## 7. UX & RELIABILITY CHECKS
+
+### 7.1 Forms
+
+**Validation:**
+- ✅ React Hook Form + Zod validation
+- ✅ Server-side validation handling
+- ✅ Error display via SweetAlert
+
+**Status:** ✅ Forms properly validated
+
+### 7.2 Toasts/Alerts
+
+**Implementation:**
+- ✅ SweetAlert2 wrapper (`showError`, `showSuccess`, etc.)
+- ✅ Consistent usage across app
+
+**Status:** ✅ Toast system consistent
+
+### 7.3 Navigation
+
+**Issues Found:**
+- ⚠️ `window.location.reload()` in `ReleaseHealthDashboard.tsx:32`
+- ⚠️ `window.location.href` in `ErrorFallback.tsx:50`
+- ⚠️ `window.location.href` in `client.ts:133`
+
+**Status:** ⚠️ Some direct navigation usage (should use React Router)
+
+### 7.4 Accessibility
+
+**Quick Checks:**
+- ✅ Radix UI components (accessible primitives)
+- ✅ ARIA labels on icon buttons (most cases)
+- ⚠️ Some `div` elements with `cursor-pointer` instead of buttons
+- ⚠️ Some missing keyboard navigation handlers
+
+**Status:** ⚠️ Mostly accessible, some improvements needed
+
+### 7.5 Performance
+
+**Checks:**
+- ✅ TanStack Query caching
+- ✅ Code splitting (lazy loading)
+- ⚠️ Some potential infinite rerenders (needs profiling)
+- ⚠️ Some expensive queries without memoization
+
+**Status:** ⚠️ Generally good, some optimizations possible
+
+---
+
+## 8. CONFIGURATION CHECKLIST (MANUAL)
+
+### 8.1 Required appsettings/env Variables
+
+**Backend (`appsettings.json`):**
+- ✅ ConnectionStrings (SQL Server, PostgreSQL)
+- ✅ JWT settings (Secret, Issuer, Audience)
+- ✅ Email settings (SMTP host, port, credentials)
+- ✅ CORS configuration
+- ✅ Serilog configuration
+- ✅ Sentry configuration (optional)
+
+**Frontend (`.env`):**
+- ✅ `VITE_API_BASE_URL` - API base URL
+
+**Status:** ✅ Configuration properly documented
+
+### 8.2 DB Migrations/Seed Requirements
+
+**Migrations:**
+- ✅ EF Core migrations in `Migrations/` folder
+- ✅ Migrations applied on startup (if configured)
+
+**Seeding:**
+- ✅ `DataSeeder.cs` - Initial data seeding
+- ✅ `MultiOrgDataSeeder.cs` - Multi-org data seeding
+
+**Status:** ✅ Migrations and seeding implemented
+
+### 8.3 Default Roles/Users/Orgs
+
+**Default Roles:**
+- ✅ Admin
+- ✅ SuperAdmin
+- ✅ User (default)
+
+**Default Users:**
+- ✅ Seeded via `DataSeeder.cs`
+
+**Status:** ✅ Default data seeded
+
+### 8.4 Feature Flags Seed
+
+**Feature Flags:**
+- ✅ Loaded from database
+- ✅ Admin UI for managing flags
+
+**Status:** ✅ Feature flags system ready
+
+---
+
+## 9. APPENDIX
+
+### 9.1 Search Patterns Used
+
+**Frontend:**
+- `TODO|FIXME|mock|Mock|MOCK|stub|Stub|STUB|not implemented|NotImplemented`
+- `window\.location|location\.reload|location\.href`
+- `console\.log|console\.error|console\.warn`
+- `useQuery|useMutation|queryFn|mutate`
+
+**Backend:**
+- `NotImplementedException|TODO|FIXME|stub|Stub`
+- `EmailService|SendInvitationEmailAsync|SendPasswordResetEmailAsync`
+
+### 9.2 TODOs Found
+
+**Frontend TODOs:**
+1. `QuotaDetails.tsx:112` - Replace mock data with real endpoints
+2. `AssignTeamModal.tsx:82` - Fetch assigned teams from API
+3. `ReleaseDetailPage.tsx:657` - Open editor functionality
+4. `TaskDependenciesList.tsx:127` - Navigate to task
+
+**Backend TODOs:**
+1. `UpdateAIQuotaCommandHandler.cs:123` - Implement scheduled quota changes
+
+### 9.3 Files Scanned
+
+**Frontend:**
+- 43 page files
+- 168 component files
+- 36 API client files
+- 6 context files
+- 11 hook files
+
+**Backend:**
+- 42 controller files
+- Application layer handlers
+- Infrastructure services
+
+**Total Files Scanned:** ~300+ files
+
+---
+
+## 10. CONCLUSION
+
+### Overall Assessment: ✅ **GOOD** - Application is production-ready after addressing critical issues
+
+**Strengths:**
+1. ✅ Well-architected codebase (Clean Architecture, CQRS)
+2. ✅ Comprehensive feature coverage
+3. ✅ Proper permission system
+4. ✅ Good error handling (mostly)
+5. ✅ Modern tech stack (React, .NET 8, TypeScript)
+
+**Weaknesses:**
+1. ⚠️ Some incomplete implementations (TODOs, mocks)
+2. ⚠️ Missing API endpoints (usage history, breakdown, assigned teams)
+3. ⚠️ Some UX issues (window.location usage, console.log)
+4. ⚠️ Email service may fail silently if not configured
+
+**Recommendations:**
+
+**Priority 1 (Critical):**
+1. Implement scheduled quota changes (ISS-002)
+2. Implement usage history and breakdown endpoints (ISS-003)
+3. Ensure email service is configured (ISS-001)
+
+**Priority 2 (Major):**
+4. Implement task dependency navigation (ISS-004)
+5. Implement assigned teams endpoint (ISS-005)
+6. Implement release editor (ISS-006)
+7. Replace window.location usage with React Router (ISS-007, ISS-008)
+
+**Priority 3 (Minor):**
+8. Remove console.log statements (ISS-009)
+9. Replace mock data in Backlog (ISS-010)
+10. Improve accessibility (keyboard navigation, semantic HTML)
+
+**Next Steps:**
+1. Address P0/P1 issues
+2. Run manual testing on fixed scenarios
+3. Update documentation
+4. Consider adding E2E tests (when allowed)
+
+---
+
+**Report Generated:** January 6, 2025  
+**Next Review:** After implementing critical fixes  
+**Auditor:** Cursor AI
 

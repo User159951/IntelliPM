@@ -171,6 +171,8 @@ export function DefectDetailSheet({
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
+                id="defect-description"
+                name="description"
                 value={localDefect.description}
                 onChange={(e) => handleFieldChange('description', e.target.value)}
                 rows={6}
@@ -183,6 +185,8 @@ export function DefectDetailSheet({
             <div className="space-y-2">
               <Label>Steps to Reproduce</Label>
               <Textarea
+                id="defect-steps-to-reproduce"
+                name="stepsToReproduce"
                 value={localDefect.stepsToReproduce || ''}
                 onChange={(e) => handleFieldChange('stepsToReproduce', e.target.value)}
                 rows={6}
@@ -196,6 +200,8 @@ export function DefectDetailSheet({
               <div className="space-y-2">
                 <Label>Resolution</Label>
                 <Textarea
+                  id="defect-resolution"
+                  name="resolution"
                   value={localDefect.resolution || ''}
                   onChange={(e) => handleFieldChange('resolution', e.target.value)}
                   rows={4}
@@ -216,7 +222,7 @@ export function DefectDetailSheet({
                   value={localDefect.status}
                   onValueChange={(value: DefectStatus) => handleFieldChange('status', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="defect-status" name="status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -234,7 +240,7 @@ export function DefectDetailSheet({
                   value={localDefect.severity}
                   onValueChange={(value: DefectSeverity) => handleFieldChange('severity', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="defect-severity" name="severity">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -254,7 +260,7 @@ export function DefectDetailSheet({
                     handleFieldChange('assignedToId', value === 'unassigned' ? undefined : parseInt(value))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="defect-assignee" name="assignedToId">
                     <SelectValue placeholder="Unassigned" />
                   </SelectTrigger>
                   <SelectContent>
@@ -271,6 +277,8 @@ export function DefectDetailSheet({
               <div className="space-y-2">
                 <Label>Environment</Label>
                 <Input
+                  id="defect-environment"
+                  name="foundInEnvironment"
                   value={localDefect.foundInEnvironment || ''}
                   onChange={(e) => handleFieldChange('foundInEnvironment', e.target.value)}
                   placeholder="e.g., Production, Chrome 120"

@@ -2,8 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, CheckCircle2, TrendingUp } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, CheckCircle2, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
+import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface ProjectAnalysisPanelProps {
   projectId: number;
@@ -21,25 +25,90 @@ interface ProjectAnalysis {
 }
 
 export function ProjectAnalysisPanel({ projectId }: ProjectAnalysisPanelProps) {
-  const { data: response, isLoading } = useQuery({
-    queryKey: ['project-analysis', projectId],
-    queryFn: () => agentsApi.analyzeProject(projectId),
-    enabled: projectId > 0,
+  const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | undefined>(undefined);
+
+  const { handleError, executeWithErrorHandling, isBlocked, getErrorMessage } = useAIErrorHandler({
+    showToast: false, // We'll handle toasts manually for better UX
   });
 
+  // Check if blocked on mount
+  useEffect(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+    }
+  }, [isBlocked, getErrorMessage]);
+
+  const { data: response, isLoading, error: queryError, refetch } = useQuery({
+    queryKey: ['project-analysis', projectId],
+    queryFn: async () => {
+      return executeWithErrorHandling(
+        () => agentsApi.analyzeProject(projectId),
+        40000 // Estimated 40 seconds for project analysis
+      );
+    },
+    enabled: projectId > 0 && !isBlocked(),
+    retry: false, // We'll handle retries manually
+  });
+
+  // Handle query errors
+  useEffect(() => {
+    if (queryError) {
+      const errorResult = handleError(queryError as Error);
+      setError((queryError as Error).message || 'Erreur lors de l\'analyse du projet');
+      setCanRetry(errorResult.canRetry);
+      setRetryAfter(errorResult.retryAfter);
+    } else {
+      setError(null);
+      setCanRetry(false);
+    }
+  }, [queryError, handleError]);
+
+  const handleRetry = () => {
+    setError(null);
+    setCanRetry(false);
+    setRetryAfter(undefined);
+    refetch();
+  };
+
   if (isLoading) {
-    return <Skeleton className="h-96" />;
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          <span>Analyse du projet en cours... Cela peut prendre jusqu&apos;à 40 secondes.</span>
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    );
   }
 
-  if (!response || response.status === 'Error') {
+  if (error || !response || response.status === 'Error') {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-muted-foreground">
-            {response?.errorMessage || 'Erreur lors de l\'analyse du projet'}
-          </p>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="space-y-2">
+            <p>{error || response?.errorMessage || 'Erreur lors de l\'analyse du projet'}</p>
+            {canRetry && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRetry}
+                className="mt-2"
+              >
+                <RefreshCw className="mr-2 h-3 w-3" />
+                Réessayer{retryAfter ? ` (dans ${retryAfter}s)` : ''}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 

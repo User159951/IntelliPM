@@ -1,4 +1,6 @@
+import React from 'react';
 import { useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { ReleaseHealthDashboard } from '@/components/releases/ReleaseHealthDashboard';
@@ -9,6 +11,21 @@ import { ReleaseHealthDashboard } from '@/components/releases/ReleaseHealthDashb
  */
 export default function ReleaseHealthDashboardPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const handleRefresh = async () => {
+    if (!projectId) return;
+    setIsRefreshing(true);
+    try {
+      // Invalidate all release-related queries for this project
+      await queryClient.invalidateQueries({ queryKey: ['project-releases', Number(projectId)] });
+      await queryClient.invalidateQueries({ queryKey: ['releaseStatistics', Number(projectId)] });
+      await queryClient.invalidateQueries({ queryKey: ['projectReleases', Number(projectId)] });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (!projectId) {
     return (
@@ -29,9 +46,10 @@ export default function ReleaseHealthDashboardPage() {
         </div>
         <Button
           variant="outline"
-          onClick={() => window.location.reload()}
+          onClick={handleRefresh}
+          disabled={isRefreshing}
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>

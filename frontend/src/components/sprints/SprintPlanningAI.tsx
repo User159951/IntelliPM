@@ -4,10 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Sparkles, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { agentsApi } from '@/api/agents';
 import { showToast, showError } from '@/lib/sweetalert';
-import { useState } from 'react';
+import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
+import { useRequestDeduplication } from '@/hooks/useRequestDeduplication';
+import { VirtualizedList } from '@/components/agents/VirtualizedList';
+import { useState, useCallback, useEffect } from 'react';
 import type { AgentResponse } from '@/types';
 
 interface SprintPlanningAIProps {
@@ -33,28 +37,86 @@ interface SprintPlan {
 
 export function SprintPlanningAI({ sprintId, onTasksSelected }: SprintPlanningAIProps) {
   const [plan, setPlan] = useState<SprintPlan | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | undefined>(undefined);
+
+  const { handleError, executeWithErrorHandling, isBlocked, getErrorMessage } = useAIErrorHandler({
+    showToast: false, // We'll handle toasts manually for better UX
+  });
+
+  const { isRequestInFlight } = useRequestDeduplication();
+
+  // Check if blocked on mount
+  useEffect(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+    }
+  }, [isBlocked, getErrorMessage]);
 
   const planMutation = useMutation({
-    mutationFn: () => agentsApi.planSprint(sprintId),
+    mutationFn: async () => {
+      return executeWithErrorHandling(
+        () => agentsApi.planSprint(sprintId),
+        45000 // Estimated 45 seconds for sprint planning
+      );
+    },
     onSuccess: (data: AgentResponse) => {
       try {
         const parsed = JSON.parse(data.content);
         setPlan(parsed as SprintPlan);
+        setError(null);
+        setCanRetry(false);
         showToast('Plan de sprint généré avec succès', 'success');
       } catch {
         const parsed = (data.metadata as unknown as SprintPlan) || null;
         if (parsed) {
           setPlan(parsed);
+          setError(null);
+          setCanRetry(false);
           showToast('Plan de sprint généré avec succès', 'success');
         } else {
+          setError('Impossible de parser le plan de sprint');
+          setCanRetry(true);
           showError('Erreur', 'Impossible de parser le plan de sprint');
         }
       }
     },
     onError: (error: Error) => {
-      showError('Erreur lors de la génération du plan', error.message);
+      const errorResult = handleError(error);
+      setError(error.message || 'Erreur lors de la génération du plan');
+      setCanRetry(errorResult.canRetry);
+      setRetryAfter(errorResult.retryAfter);
+      
+      if (!errorResult.isQuotaExceeded && !errorResult.isAIDisabled) {
+        showError('Erreur lors de la génération du plan', error.message);
+      }
     },
   });
+
+  const handlePlanSprint = useCallback(() => {
+    if (isBlocked()) {
+      const errorMsg = getErrorMessage();
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+      return;
+    }
+
+    const requestKey = `sprint-plan-${sprintId}`;
+    if (isRequestInFlight(requestKey) || planMutation.isPending) {
+      showToast('Génération déjà en cours', 'info');
+      return;
+    }
+
+    setError(null);
+    setCanRetry(false);
+    setRetryAfter(undefined);
+    planMutation.mutate();
+  }, [isBlocked, getErrorMessage, planMutation, sprintId, isRequestInFlight]);
 
   const handleApplyPlan = () => {
     if (plan) {
@@ -72,14 +134,14 @@ export function SprintPlanningAI({ sprintId, onTasksSelected }: SprintPlanningAI
           Planification Intelligente
         </h3>
         <Button
-          onClick={() => planMutation.mutate()}
-          disabled={planMutation.isPending}
+          onClick={handlePlanSprint}
+          disabled={planMutation.isPending || isBlocked()}
           variant="outline"
         >
           {planMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Génération...
+              Génération... (peut prendre jusqu&apos;à 45 secondes)
             </>
           ) : (
             <>
@@ -90,7 +152,37 @@ export function SprintPlanningAI({ sprintId, onTasksSelected }: SprintPlanningAI
         </Button>
       </div>
 
-      {planMutation.isPending && <Skeleton className="h-64" />}
+      {/* Error State */}
+      {error && !planMutation.isPending && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="space-y-2">
+            <p>{error}</p>
+            {canRetry && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePlanSprint}
+                className="mt-2"
+              >
+                <RefreshCw className="mr-2 h-3 w-3" />
+                Réessayer{retryAfter ? ` (dans ${retryAfter}s)` : ''}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {planMutation.isPending && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Génération du plan de sprint en cours... Cela peut prendre jusqu&apos;à 45 secondes.</span>
+          </div>
+          <Skeleton className="h-64" />
+        </div>
+      )}
 
       {plan && (
         <>
@@ -121,20 +213,40 @@ export function SprintPlanningAI({ sprintId, onTasksSelected }: SprintPlanningAI
               <CardTitle>Tâches suggérées ({plan.suggestedTasks.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {plan.suggestedTasks.map((task) => (
-                  <div key={task.taskId} className="border-l-4 border-purple-500 pl-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{task.title}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{task.estimatedPoints} pts</Badge>
-                        <Badge>{task.priority}</Badge>
+              {plan.suggestedTasks.length > 10 ? (
+                <VirtualizedList
+                  items={plan.suggestedTasks}
+                  renderItem={(task) => (
+                    <div className="border-l-4 border-purple-500 pl-3 mb-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{task.title}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{task.estimatedPoints} pts</Badge>
+                          <Badge>{task.priority}</Badge>
+                        </div>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">{task.rationale}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{task.rationale}</p>
-                  </div>
-                ))}
-              </div>
+                  )}
+                  itemHeight={80}
+                  maxHeight={400}
+                />
+              ) : (
+                <div className="space-y-3">
+                  {plan.suggestedTasks.map((task) => (
+                    <div key={task.taskId} className="border-l-4 border-purple-500 pl-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{task.title}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{task.estimatedPoints} pts</Badge>
+                          <Badge>{task.priority}</Badge>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{task.rationale}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

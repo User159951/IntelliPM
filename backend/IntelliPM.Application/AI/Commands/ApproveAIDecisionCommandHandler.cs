@@ -44,10 +44,15 @@ public class ApproveAIDecisionCommandHandler : IRequestHandler<ApproveAIDecision
         }
 
         // Verify user has access to this organization's decisions
-        var organizationId = _currentUserService.GetOrganizationId();
-        if (decision.OrganizationId != organizationId)
+        // SuperAdmin can approve decisions from any organization
+        // Admin can only approve decisions from their own organization
+        if (!_currentUserService.IsSuperAdmin())
         {
-            throw new UnauthorizedException("You do not have access to this decision");
+            var organizationId = _currentUserService.GetOrganizationId();
+            if (decision.OrganizationId != organizationId)
+            {
+                throw new UnauthorizedException("You do not have access to this decision");
+            }
         }
 
         if (!decision.RequiresHumanApproval)

@@ -30,10 +30,15 @@ public class ExportAIDecisionsQueryHandler : IRequestHandler<ExportAIDecisionsQu
             .AsNoTracking()
             .Where(d => d.CreatedAt >= request.StartDate && d.CreatedAt <= request.EndDate);
 
+        // CRITICAL: Enforce organization filtering for multi-tenant isolation
+        // If OrganizationId is provided, filter by it (SuperAdmin can specify any org)
+        // If not provided, this should only be called by SuperAdmin (enforced at controller level)
         if (request.OrganizationId.HasValue)
         {
             query = query.Where(d => d.OrganizationId == request.OrganizationId.Value);
         }
+        // Note: If OrganizationId is null, this returns ALL organizations' data
+        // This should only be accessible by SuperAdmin (enforced in AdminAIGovernanceController)
 
         var decisions = await query
             .OrderBy(d => d.CreatedAt)

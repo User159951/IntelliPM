@@ -116,19 +116,35 @@ public class InviteUserCommandHandler : IRequestHandler<InviteUserCommand, Invit
             inviterName = currentUser.Username;
 
         // Send invitation email with full details
-        await _emailService.SendInvitationEmailAsync(
-            email: request.Email,
-            invitationToken: token,
-            invitationLink: invitationLink,
-            userName: null, // Will use email as fallback
-            inviterName: inviterName,
-            projectName: projectName,
-            role: role,
-            expirationDate: invitation.ExpiresAt.DateTime,
-            ct: cancellationToken);
+        try
+        {
+            await _emailService.SendInvitationEmailAsync(
+                email: request.Email,
+                invitationToken: token,
+                invitationLink: invitationLink,
+                userName: null, // Will use email as fallback
+                inviterName: inviterName,
+                projectName: projectName,
+                role: role,
+                expirationDate: invitation.ExpiresAt.DateTime,
+                ct: cancellationToken);
+            
+            _logger.LogInformation("Invitation email sent successfully to {Email}", request.Email);
+        }
+        catch (EmailServiceException ex)
+        {
+            // Log email failure but don't fail the invitation creation
+            // The invitation is already saved, so the user can still accept it via the link
+            _logger.LogError(ex,
+                "Failed to send invitation email to {Email}, but invitation was created. Invitation ID: {InvitationId}. " +
+                "Error: {ErrorMessage}. The invitation link is still valid: {InvitationLink}",
+                request.Email, invitation.Id, ex.Message, invitationLink);
+            
+            // Continue - the invitation is still valid even if email fails
+        }
 
-        _logger.LogInformation("Invitation created for {Email} with role {Role} by user {CreatedById}", 
-            request.Email, request.GlobalRole, request.CreatedById);
+        _logger.LogInformation("Invitation created for {Email} with role {Role} by user {CreatedById}. Invitation ID: {InvitationId}", 
+            request.Email, request.GlobalRole, request.CreatedById, invitation.Id);
 
         return new InviteUserResponse(
             invitation.Id,

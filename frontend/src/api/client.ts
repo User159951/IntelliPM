@@ -1,11 +1,48 @@
 import { authApi } from './auth';
+import { toast } from '@/components/ui/sonner';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 const API_VERSION = '/api/v1';
 
+// Helper to log errors to Sentry if configured
+function logErrorToSentry(error: Error, context?: Record<string, unknown>): void {
+  if (import.meta.env.VITE_SENTRY_DSN && typeof window !== 'undefined') {
+    // Dynamic import to avoid bundling Sentry if not configured
+    import('@sentry/react').then((Sentry) => {
+      Sentry.captureException(error, {
+        extra: context,
+      });
+    }).catch(() => {
+      // Sentry not available, ignore
+    });
+  }
+}
+
+// Helper to get user-friendly error message based on HTTP status code
+function getUserFriendlyErrorMessage(status: number, defaultMessage: string): string {
+  switch (status) {
+    case 401:
+      return 'Session expired. Please log in again.';
+    case 403:
+      return "You don't have permission for this action.";
+    case 429:
+      return 'Too many requests. Please try again later.';
+    case 500:
+      return 'Server error. Please contact support.';
+    case 502:
+    case 503:
+    case 504:
+      return 'Service temporarily unavailable. Please try again later.';
+    default:
+      return defaultMessage;
+  }
+}
+
 // Flag to prevent infinite redirect loops
 let isRedirecting = false;
 let isRefreshing = false;
+// Queue to hold requests during token refresh
+let refreshPromise: Promise<void> | null = null;
 
 // Store quota error details globally to share across components
 export interface QuotaErrorDetails {
@@ -104,10 +141,11 @@ class ApiClient {
       const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
       
       // Extract error message from backend response
-      let errorMessage = 'Unauthorized';
+      let errorMessage = getUserFriendlyErrorMessage(401, 'Unauthorized');
       try {
         const error = await response.clone().json();
-        errorMessage = error.error || error.message || error.detail || 'Unauthorized';
+        // Use backend message if available, otherwise use user-friendly default
+        errorMessage = error.error || error.message || error.detail || errorMessage;
       } catch {
         // If response is not JSON, use default message
       }
@@ -115,27 +153,63 @@ class ApiClient {
       // Try to refresh token if this is not an auth check and not on auth pages
       // Only try once to avoid infinite loops
       if (!isAuthCheck && !isAuthPage && !isRedirecting && !isRefreshing) {
-        // Check if we have a refresh token cookie by trying to refresh
+        // If a refresh is already in progress, wait for it to complete
+        if (refreshPromise) {
+          try {
+            await refreshPromise;
+            // If refresh succeeded, retry the original request
+            return this.request<T>(endpoint, options);
+          } catch {
+            // Refresh failed, throw error
+            throw new Error(errorMessage);
+          }
+        }
+        
+        // Start a new refresh attempt
         isRefreshing = true;
+        refreshPromise = (async () => {
+          try {
+            await authApi.refresh();
+            // Refresh succeeded
+          } catch (refreshError) {
+            // Refresh failed, notify auth context and redirect to login
+            isRefreshing = false;
+            isRedirecting = true;
+            
+            // Log to Sentry
+            logErrorToSentry(refreshError instanceof Error ? refreshError : new Error(String(refreshError)), {
+              endpoint,
+              action: 'token_refresh_failed',
+            });
+            
+            // Notify auth context that authentication failed
+            window.dispatchEvent(new Event('auth:failed'));
+            
+            // Use History API for SPA navigation instead of full page reload
+            window.history.pushState(null, '', '/login');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+            // Reset flag after navigation
+            setTimeout(() => {
+              isRedirecting = false;
+            }, 100);
+            
+            // Reject the promise so waiting requests know refresh failed
+            throw refreshError;
+          } finally {
+            // Clear the refresh promise after completion (success or failure)
+            setTimeout(() => {
+              refreshPromise = null;
+              isRefreshing = false;
+            }, 100);
+          }
+        })();
+        
         try {
-          await authApi.refresh();
+          await refreshPromise;
           // If refresh succeeded, retry the original request
-          isRefreshing = false;
           return this.request<T>(endpoint, options);
-        } catch (refreshError) {
-          // Refresh failed, notify auth context and redirect to login
-          isRefreshing = false;
-          isRedirecting = true;
-          
-          // Notify auth context that authentication failed
-          window.dispatchEvent(new Event('auth:failed'));
-          
-          window.location.href = '/login';
-          // Reset flag after navigation
-          setTimeout(() => {
-            isRedirecting = false;
-          }, 100);
-          // Don't throw error to prevent error toast on auth pages
+        } catch {
+          // Refresh failed, throw error
           return Promise.reject(new Error(errorMessage));
         }
       }
@@ -154,7 +228,14 @@ class ApiClient {
           };
           // Clear quota error when AI is disabled
           lastQuotaError = null;
-          throw new Error(errorData.message || 'AI features are currently disabled for your organization. Please contact an administrator for assistance.');
+          const errorMessage = errorData.message || 'AI features are currently disabled for your organization. Please contact an administrator for assistance.';
+          
+          // Show toast notification
+          toast.error('Access Denied', {
+            description: errorMessage,
+          });
+          
+          throw new Error(errorMessage);
         }
       } catch (e) {
         if (e instanceof Error && e.message.includes('AI features')) {
@@ -162,6 +243,13 @@ class ApiClient {
         }
         // Not an AI disabled error, continue with normal 403 handling
       }
+      
+      // Generic 403 error
+      const errorMessage = getUserFriendlyErrorMessage(403, "You don't have permission for this action.");
+      toast.error('Access Denied', {
+        description: errorMessage,
+      });
+      throw new Error(errorMessage);
     }
 
     if (response.status === 429) {
@@ -179,7 +267,14 @@ class ApiClient {
           };
           // Clear AI disabled error when quota is exceeded
           lastAIDisabledError = null;
-          throw new Error(errorData.message || `Monthly AI ${errorData.details.quotaType?.toLowerCase() || 'request'} limit exceeded (${errorData.details.currentUsage || 0}/${errorData.details.maxLimit || 0}). Please upgrade to continue using AI features.`);
+          const errorMessage = errorData.message || `Monthly AI ${errorData.details.quotaType?.toLowerCase() || 'request'} limit exceeded (${errorData.details.currentUsage || 0}/${errorData.details.maxLimit || 0}). Please upgrade to continue using AI features.`;
+          
+          // Show toast notification
+          toast.error('Quota Exceeded', {
+            description: errorMessage,
+          });
+          
+          throw new Error(errorMessage);
         }
       } catch (e) {
         if (e instanceof Error && e.message.includes('limit exceeded')) {
@@ -210,7 +305,11 @@ class ApiClient {
         // If response is not JSON, use header value or default
       }
       
-      throw new Error(`Too many requests. Please wait ${retryAfter} seconds before trying again.`);
+      const errorMessage = getUserFriendlyErrorMessage(429, `Too many requests. Please wait ${retryAfter} seconds before trying again.`);
+      toast.error('Too Many Requests', {
+        description: errorMessage,
+      });
+      throw new Error(errorMessage);
     }
 
     if (!response.ok) {
@@ -236,13 +335,38 @@ class ApiClient {
 
       // Backend error shape (global exception handler) uses `error` and `errors`
       // in addition to possible `title` / `detail`. Prefer the most specific text available.
-      const message =
-        fieldMessage ||
+      const defaultMessage = fieldMessage ||
         error.detail ||
         error.title ||
         error.message ||
         error.error ||
         'Request failed';
+      
+      // Get user-friendly message based on status code
+      const message = getUserFriendlyErrorMessage(response.status, defaultMessage);
+      
+      // Log error to Sentry for server errors (5xx)
+      if (response.status >= 500) {
+        logErrorToSentry(new Error(message), {
+          endpoint,
+          status: response.status,
+          errorData: error,
+        });
+      }
+      
+      // Show toast notification for server errors
+      if (response.status >= 500) {
+        toast.error('Server Error', {
+          description: message,
+        });
+      } else if (response.status >= 400 && response.status < 500) {
+        // Show toast for client errors (except 401, 403, 429 which are handled above)
+        if (response.status !== 401 && response.status !== 403 && response.status !== 429) {
+          toast.error('Request Failed', {
+            description: message,
+          });
+        }
+      }
 
       throw new Error(message);
     }

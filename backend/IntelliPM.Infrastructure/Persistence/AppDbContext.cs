@@ -340,10 +340,25 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
-        // Configure AgentExecutionLog decimal precision
+        // Configure AgentExecutionLog decimal precision and foreign key
         modelBuilder.Entity<AgentExecutionLog>()
             .Property(a => a.ExecutionCostUsd)
             .HasColumnType("decimal(10,4)");
+        
+        // Configure foreign key relationship to Organization (multi-tenancy)
+        modelBuilder.Entity<AgentExecutionLog>()
+            .HasOne(a => a.Organization)
+            .WithMany()
+            .HasForeignKey(a => a.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
+        
+        // Configure foreign key relationship to AIDecisionLog
+        modelBuilder.Entity<AgentExecutionLog>()
+            .HasOne(a => a.LinkedDecision)
+            .WithMany()
+            .HasForeignKey(a => a.LinkedDecisionId)
+            .OnDelete(DeleteBehavior.SetNull); // Set to null if decision log is deleted
 
         // Team
         modelBuilder.Entity<Team>()

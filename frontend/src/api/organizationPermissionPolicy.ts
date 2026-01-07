@@ -26,6 +26,14 @@ export const organizationPermissionPolicyApi = {
     apiClient.get(`/api/superadmin/organizations/${orgId}/permission-policy`),
 
   /**
+   * Get the current user's organization permission policy (Admin only).
+   * Returns the permission policy for the admin's own organization.
+   * @returns Organization permission policy details
+   */
+  getMyOrganizationPermissionPolicy: (): Promise<OrganizationPermissionPolicyDto> =>
+    apiClient.get(`/api/admin/organization/permission-policy`),
+
+  /**
    * Upsert (create or update) organization permission policy (SuperAdmin only).
    * @param orgId Organization ID
    * @param data Policy update request

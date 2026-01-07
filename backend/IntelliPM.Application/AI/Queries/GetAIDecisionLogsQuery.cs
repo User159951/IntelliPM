@@ -37,6 +37,7 @@ public record AIDecisionLogDto(
     bool RequiresHumanApproval,
     bool? ApprovedByHuman,
     DateTimeOffset CreatedAt,
-    int TokensUsed
+    int TokensUsed,
+    decimal CostAccumulated
 );
 

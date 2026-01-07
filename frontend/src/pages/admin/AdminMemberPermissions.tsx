@@ -63,14 +63,11 @@ export default function AdminMemberPermissions() {
       }),
   });
 
-  // Get organization ID from members data or user
-  const organizationId = data?.items?.[0]?.organizationId || user?.organizationId || 0;
-
   // Get organization permission policy to know which permissions are allowed
+  // Admin users can now access their own organization's permission policy via the admin endpoint
   const { data: orgPolicy } = useQuery({
-    queryKey: ['organization-permission-policy', organizationId],
-    queryFn: () => organizationPermissionPolicyApi.getOrganizationPermissionPolicy(organizationId),
-    enabled: organizationId > 0,
+    queryKey: ['my-organization-permission-policy'],
+    queryFn: () => organizationPermissionPolicyApi.getMyOrganizationPermissionPolicy(),
   });
 
   // Get permissions matrix to show all available permissions
@@ -191,6 +188,8 @@ export default function AdminMemberPermissions() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            id="search-member-permissions"
+            name="search"
             placeholder="Search members..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -285,7 +284,7 @@ export default function AdminMemberPermissions() {
                 value={formData.globalRole || selectedMember?.globalRole || 'User'}
                 onValueChange={handleRoleChange}
               >
-                <SelectTrigger id="role">
+                <SelectTrigger id="role" name="globalRole">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -320,6 +319,7 @@ export default function AdminMemberPermissions() {
                         >
                           <Checkbox
                             id={`perm-${perm.id}`}
+                            name={`permission-${perm.id}`}
                             checked={isSelected}
                             disabled={!isAllowed}
                             onCheckedChange={() => handleTogglePermission(perm.id)}

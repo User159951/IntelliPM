@@ -32,6 +32,9 @@ public class AIQuotaConfiguration : IEntityTypeConfiguration<AIQuota>
         builder.HasIndex(q => q.PeriodEndDate)
             .HasDatabaseName("IX_AIQuotas_PeriodEndDate");
 
+        builder.HasIndex(q => q.EffectiveDate)
+            .HasDatabaseName("IX_AIQuotas_EffectiveDate");
+
         builder.HasIndex(q => q.IsQuotaExceeded)
             .HasDatabaseName("IX_AIQuotas_IsQuotaExceeded");
 
@@ -39,6 +42,11 @@ public class AIQuotaConfiguration : IEntityTypeConfiguration<AIQuota>
         builder.HasIndex(q => new { q.IsActive, q.PeriodEndDate })
             .HasFilter("[IsActive] = 1")
             .HasDatabaseName("IX_AIQuotas_Active_PeriodEndDate");
+
+        // Index for scheduled quotas (not yet active, but scheduled)
+        builder.HasIndex(q => new { q.IsActive, q.EffectiveDate })
+            .HasFilter("[IsActive] = 0 AND [EffectiveDate] IS NOT NULL")
+            .HasDatabaseName("IX_AIQuotas_Scheduled");
 
         // Required fields
         builder.Property(q => q.OrganizationId)

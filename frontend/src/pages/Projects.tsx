@@ -546,6 +546,15 @@ export default function Projects() {
                   key={project.id}
                   className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
                   onClick={() => navigate(`/projects/${project.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/projects/${project.id}`);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View project ${project.name}`}
                 >
                   <CardHeader className="flex flex-row items-start justify-between space-y-0">
                     <div className="space-y-1">
@@ -699,6 +708,15 @@ export default function Projects() {
                   key={project.id}
                   className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
                   onClick={() => navigate(`/projects/${project.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/projects/${project.id}`);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View project ${project.name}`}
                 >
                   <CardHeader className="flex flex-row items-start justify-between space-y-0">
                     <div className="space-y-1">
@@ -856,6 +874,15 @@ export default function Projects() {
                   key={project.id}
                   className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
                   onClick={() => navigate(`/projects/${project.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/projects/${project.id}`);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View project ${project.name}`}
                 >
                   <CardHeader className="flex flex-row items-start justify-between space-y-0">
                     <div className="space-y-1">

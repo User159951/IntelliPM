@@ -7,6 +7,7 @@ using IntelliPM.Application.AI.Queries;
 using IntelliPM.Application.AI.DTOs;
 using IntelliPM.Application.Common.Models;
 using IntelliPM.Application.Common.Exceptions;
+using IntelliPM.Application.Common.Interfaces;
 using ApplicationException = IntelliPM.Application.Common.Exceptions.ApplicationException;
 
 namespace IntelliPM.API.Controllers.Admin;
@@ -14,6 +15,7 @@ namespace IntelliPM.API.Controllers.Admin;
 /// <summary>
 /// Admin controller for managing AI quota per organization member.
 /// Allows administrators to view and set per-user quota overrides.
+/// Admin can only access their own organization; SuperAdmin can access all organizations.
 /// </summary>
 [ApiController]
 [Route("api/admin/ai-quota")]
@@ -23,11 +25,16 @@ public class AdminAIQuotaController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly ILogger<AdminAIQuotaController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AdminAIQuotaController(IMediator mediator, ILogger<AdminAIQuotaController> logger)
+    public AdminAIQuotaController(
+        IMediator mediator, 
+        ILogger<AdminAIQuotaController> logger,
+        ICurrentUserService currentUserService)
     {
         _mediator = mediator;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -286,6 +293,126 @@ public class AdminAIQuotaController : BaseApiController
             _logger.LogError(ex, "Error updating member AI quota for user {UserId}", userId);
             return Problem(
                 title: "Error updating member AI quota",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Get AI quota usage history for admin dashboard.
+    /// Returns daily usage data aggregated from AIDecisionLog with pagination support.
+    /// </summary>
+    /// <param name="organizationId">Organization ID (optional - if not provided, returns data for all organizations)</param>
+    /// <param name="startDate">Start date for history (default: 30 days ago)</param>
+    /// <param name="endDate">End date for history (default: now)</param>
+    /// <param name="page">Page number (default: 1, minimum: 1)</param>
+    /// <param name="pageSize">Page size (default: 20, minimum: 1, maximum: 100)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Paginated AI quota usage history with daily breakdown</returns>
+    [HttpGet("usage-history")]
+    [ProducesResponseType(typeof(PagedResponse<DailyUsageHistoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetUsageHistory(
+        [FromQuery] int? organizationId = null,
+        [FromQuery] DateTimeOffset? startDate = null,
+        [FromQuery] DateTimeOffset? endDate = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var query = new GetAIQuotaUsageHistoryQuery
+            {
+                OrganizationId = organizationId,
+                StartDate = startDate,
+                EndDate = endDate,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to get AI quota usage history");
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting AI quota usage history");
+            return Problem(
+                title: "Error retrieving usage history",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Get AI quota breakdown by agent type and decision type.
+    /// Provides detailed breakdown for admin dashboard.
+    /// </summary>
+    /// <param name="organizationId">Organization ID (optional - if not provided, returns data for all organizations)</param>
+    /// <param name="period">Period for breakdown: "day", "week", "month" (default: "month")</param>
+    /// <param name="startDate">Start date for breakdown (optional - defaults based on period)</param>
+    /// <param name="endDate">End date for breakdown (optional - defaults to now)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>AI quota breakdown with agent and decision type details</returns>
+    [HttpGet("breakdown")]
+    [ProducesResponseType(typeof(AIQuotaBreakdownDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetBreakdown(
+        [FromQuery] int? organizationId = null,
+        [FromQuery] string period = "month",
+        [FromQuery] DateTimeOffset? startDate = null,
+        [FromQuery] DateTimeOffset? endDate = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            // CRITICAL: Enforce organization access control
+            // Admin can only access their own organization
+            // SuperAdmin can access any organization or all (if organizationId is null)
+            if (!_currentUserService.IsSuperAdmin())
+            {
+                // Admin must access only their own organization
+                var adminOrgId = _currentUserService.GetOrganizationId();
+                if (adminOrgId == 0)
+                {
+                    return Forbid("User not authenticated or organization not found");
+                }
+                
+                // Override any provided organizationId with Admin's organization
+                organizationId = adminOrgId;
+            }
+            // SuperAdmin: organizationId can be null (all orgs) or specific org
+
+            var query = new GetAIQuotaBreakdownQuery
+            {
+                OrganizationId = organizationId,
+                Period = period,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to get AI quota breakdown");
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting AI quota breakdown");
+            return Problem(
+                title: "Error retrieving breakdown",
                 detail: ex.Message,
                 statusCode: StatusCodes.Status500InternalServerError
             );

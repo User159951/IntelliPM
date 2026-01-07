@@ -7,8 +7,10 @@ public record GetAgentAuditLogsQuery : IRequest<GetAgentAuditLogsResponse>
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 50;
     public string? AgentId { get; init; }
+    public string? AgentType { get; init; }
     public string? UserId { get; init; }
     public string? Status { get; init; }
+    public bool? Success { get; init; }
 }
 
 public record GetAgentAuditLogsResponse(
@@ -22,14 +24,18 @@ public record GetAgentAuditLogsResponse(
 public record AgentExecutionLogDto(
     Guid Id,
     string AgentId,
+    string AgentType,
     string UserId,
     string UserInput,
     string? AgentResponse,
     string? ToolsCalled,
     string Status,
+    bool Success,
     int ExecutionTimeMs,
+    int TokensUsed,
     decimal ExecutionCostUsd,
     DateTime CreatedAt,
-    string? ErrorMessage
+    string? ErrorMessage,
+    int? LinkedDecisionId
 );
 

@@ -37,6 +37,8 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
   const [invitationLink, setInvitationLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [emailFailed, setEmailFailed] = useState(false);
+
   const inviteMutation = useMutation({
     mutationFn: async (data: {
       email: string;
@@ -55,7 +57,18 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
     onSuccess: (data) => {
       setInvitationLink(data.invitationLink);
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      showToast('Invitation envoyée', 'success');
+      
+      // Check if response indicates email failure
+      // Note: Backend may not return email status, so we check for email-related errors
+      const emailFailed = (data as any).emailSent === false || (data as any).emailFailed === true;
+      setEmailFailed(emailFailed);
+      
+      if (emailFailed) {
+        showToast('Invitation créée mais l\'email a échoué', 'warning');
+      } else {
+        showToast('Invitation envoyée', 'success');
+      }
+      
       if (onSuccess) {
         onSuccess();
       }
@@ -67,7 +80,17 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
         apiError.response?.data?.error ||
         apiError.message ||
         'Échec de l\'envoi de l\'invitation';
-      showError('Échec de l\'invitation', errorMessage);
+      
+      // Check if error is related to email/SMTP failure
+      const isEmailError = errorMessage.toLowerCase().includes('email') || 
+                          errorMessage.toLowerCase().includes('smtp') ||
+                          errorMessage.toLowerCase().includes('mail');
+      
+      if (isEmailError) {
+        showError('Échec de l\'envoi de l\'email', 'L\'invitation a été créée mais l\'envoi de l\'email a échoué. Vous pouvez partager le lien d\'invitation manuellement.');
+      } else {
+        showError('Échec de l\'invitation', errorMessage);
+      }
     },
   });
 
@@ -103,6 +126,7 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
     setRole('User');
     setInvitationLink(null);
     setCopied(false);
+    setEmailFailed(false);
     onOpenChange(false);
   };
 
@@ -118,6 +142,16 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
 
         {invitationLink ? (
           <div className="space-y-4">
+            {emailFailed && (
+              <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                  ⚠️ L'invitation a été créée mais l'envoi de l'email a échoué
+                </p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                  Vous pouvez partager le lien d'invitation ci-dessous manuellement avec l'utilisateur.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Lien d'invitation</Label>
               <div className="flex gap-2">

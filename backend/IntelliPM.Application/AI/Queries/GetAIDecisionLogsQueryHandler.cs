@@ -91,7 +91,8 @@ public class GetAIDecisionLogsQueryHandler : IRequestHandler<GetAIDecisionLogsQu
                 d.RequiresHumanApproval,
                 d.ApprovedByHuman,
                 d.CreatedAt,
-                d.TokensUsed
+                d.TokensUsed,
+                d.CostAccumulated
             ))
             .ToListAsync(ct);
 

@@ -14,6 +14,7 @@ import { QuotaStatusWidget } from '@/components/ai-governance/QuotaStatusWidget'
 import { QuotaAlertBanner } from '@/components/ai-governance/QuotaAlertBanner';
 import { useAIErrorHandler } from '@/hooks/useAIErrorHandler';
 import { useQuotaNotifications } from '@/hooks/useQuotaNotifications';
+import { useRequestDeduplication } from '@/hooks/useRequestDeduplication';
 import { AgentResultsDisplay } from '@/components/agents/results/AgentResultsDisplay';
 import type { AgentResponse } from '@/types';
 import type { AgentType } from '@/types/agents';
@@ -48,6 +49,9 @@ export default function Agents() {
   
   // Handle quota notifications
   useQuotaNotifications();
+
+  // Request deduplication to prevent double execution
+  const { executeWithDeduplication, isRequestInFlight } = useRequestDeduplication();
 
   const { data: projectsData } = useQuery({
     queryKey: ['projects'],
@@ -104,10 +108,30 @@ export default function Agents() {
   const runAgent = async (agent: AgentConfig) => {
     if (!projectId) return;
 
+    // Check if request is already in flight
+    const requestKey = `${agent.id}-${projectId}`;
+    if (isRequestInFlight(requestKey)) {
+      showToast('Request already in progress', 'info');
+      return;
+    }
+
     setRunningAgents((prev) => new Set(prev).add(agent.id));
     
+    const result = await executeWithDeduplication(requestKey, async () => {
+      return await agent.runFn(parseInt(projectId));
+    });
+
+    // If request was deduplicated (result is null), don't update state
+    if (result === null) {
+      setRunningAgents((prev) => {
+        const next = new Set(prev);
+        next.delete(agent.id);
+        return next;
+      });
+      return;
+    }
+
     try {
-      const result: AgentResponse = await agent.runFn(parseInt(projectId));
       setAgentResults((prev) => ({
         ...prev,
         [agent.id]: {

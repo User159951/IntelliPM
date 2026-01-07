@@ -1,6 +1,7 @@
 using MediatR;
 using IntelliPM.Application.Agents.Services;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Helpers;
 using IntelliPM.Application.Interfaces;
 using IntelliPM.Application.Services;
 using IntelliPM.Domain.Constants;
@@ -42,6 +43,11 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var executionStartTime = DateTime.UtcNow;
+        var userId = _currentUserService.GetUserId();
+        var orgId = organizationId;
+        int? linkedDecisionId = null;
+        int tokensUsed = 0;
         
         // Get active sprint progress
         var sprintRepo = _unitOfWork.Repository<Sprint>();
@@ -78,65 +84,144 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
             .Select(r => $"Risk {r.Id}: {r.Title} (Impact: {r.Impact}, Probability: {r.Probability})")
             .ToListAsync(cancellationToken);
 
-        var result = await _deliveryAgent.RunAsync(request.ProjectId, sprintProgress, velocityTrend, activeRisks, cancellationToken);
-
-        stopwatch.Stop();
-
-        // Store agent run
-        var agentRun = new AIAgentRun
+        try
         {
-            ProjectId = request.ProjectId,
-            AgentType = "Delivery",
-            InputData = JsonSerializer.Serialize(new { sprintProgress, velocityTrend, activeRisks }),
-            OutputData = result.RiskAssessment,
-            Confidence = result.Confidence,
-            ExecutedAt = DateTimeOffset.UtcNow
-        };
-        var runRepo = _unitOfWork.Repository<AIAgentRun>();
-        await runRepo.AddAsync(agentRun, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var result = await _deliveryAgent.RunAsync(request.ProjectId, sprintProgress, velocityTrend, activeRisks, cancellationToken);
+            stopwatch.Stop();
 
-        // Log decision to AIDecisionLog
-        var userId = _currentUserService.GetUserId();
-        var orgId = organizationId;
-        
-        if (userId > 0 && orgId > 0)
-        {
-            var metadata = new Dictionary<string, object>
+            // Store agent run
+            var agentRun = new AIAgentRun
             {
-                { "SprintProgress", sprintProgress },
-                { "VelocityTrendCount", velocityTrend.Count },
-                { "ActiveRisksCount", activeRisks.Count },
-                { "RecommendedActionsCount", result.RecommendedActions.Count },
-                { "ExecutionTimeMs", (int)stopwatch.ElapsedMilliseconds }
+                ProjectId = request.ProjectId,
+                AgentType = "Delivery",
+                InputData = JsonSerializer.Serialize(new { sprintProgress, velocityTrend, activeRisks }),
+                OutputData = result.RiskAssessment,
+                Confidence = result.Confidence,
+                ExecutedAt = DateTimeOffset.UtcNow
             };
+            var runRepo = _unitOfWork.Repository<AIAgentRun>();
+            await runRepo.AddAsync(agentRun, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var decisionJson = JsonSerializer.Serialize(new
+            // Log decision to AIDecisionLog
+            if (userId > 0 && orgId > 0)
             {
-                RiskAssessment = result.RiskAssessment,
-                RecommendedActions = result.RecommendedActions
-            });
+                var metadata = new Dictionary<string, object>
+                {
+                    { "SprintProgress", sprintProgress },
+                    { "VelocityTrendCount", velocityTrend.Count },
+                    { "ActiveRisksCount", activeRisks.Count },
+                    { "RecommendedActionsCount", result.RecommendedActions.Count },
+                    { "ExecutionTimeMs", (int)stopwatch.ElapsedMilliseconds }
+                };
 
-            await _decisionLogger.LogDecisionAsync(
-                agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
-                decisionType: AIDecisionConstants.DecisionTypes.DeliveryAnalysis,
-                reasoning: result.RiskAssessment,
-                confidenceScore: result.Confidence,
-                metadata: metadata,
-                userId: userId,
-                organizationId: orgId,
-                projectId: request.ProjectId,
-                entityType: "Project",
-                entityId: request.ProjectId,
-                question: "Assess delivery risk and provide recommendations",
-                decision: decisionJson,
-                inputData: JsonSerializer.Serialize(new { sprintProgress, velocityTrend, activeRisks }),
-                outputData: decisionJson,
-                executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
-                cancellationToken: cancellationToken);
+                var decisionJson = JsonSerializer.Serialize(new
+                {
+                    RiskAssessment = result.RiskAssessment,
+                    RecommendedActions = result.RecommendedActions
+                });
+
+                var inputDataJson = JsonSerializer.Serialize(new { sprintProgress, velocityTrend, activeRisks });
+                
+                // Estimate token usage (ILlmClient doesn't provide actual token counts)
+                var (promptTokens, completionTokens, totalTokens) = TokenEstimationHelper.EstimateTokenUsage(
+                    inputDataJson + result.RiskAssessment, // Approximate prompt
+                    result.RiskAssessment // Completion
+                );
+                tokensUsed = totalTokens;
+
+                linkedDecisionId = await _decisionLogger.LogDecisionAsync(
+                    agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                    decisionType: AIDecisionConstants.DecisionTypes.DeliveryAnalysis,
+                    reasoning: result.RiskAssessment,
+                    confidenceScore: result.Confidence,
+                    metadata: metadata,
+                    userId: userId,
+                    organizationId: orgId,
+                    projectId: request.ProjectId,
+                    entityType: "Project",
+                    entityId: request.ProjectId,
+                    question: "Assess delivery risk and provide recommendations",
+                    decision: decisionJson,
+                    inputData: inputDataJson,
+                    outputData: decisionJson,
+                    tokensUsed: totalTokens,
+                    promptTokens: promptTokens,
+                    completionTokens: completionTokens,
+                    executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                    cancellationToken: cancellationToken);
+
+                // Record quota usage after successful execution
+                var quotaRepo = _unitOfWork.Repository<AIQuota>();
+                var quota = await quotaRepo.Query()
+                    .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive && q.TierName != "Disabled", cancellationToken);
+
+                if (quota != null)
+                {
+                    var cost = totalTokens * AIQuotaConstants.CostPerToken;
+
+                    quota.RecordUsage(
+                        tokens: totalTokens,
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: AIDecisionConstants.DecisionTypes.DeliveryAnalysis,
+                        cost: cost);
+
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+            }
+
+            // Create AgentExecutionLog entry
+            var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();
+            var executionLog = new AgentExecutionLog
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId > 0 ? orgId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
+                AgentId = "delivery-agent",
+                AgentType = AIDecisionConstants.AgentTypes.DeliveryAgent,
+                UserId = userId > 0 ? userId.ToString() : "0",
+                UserInput = JsonSerializer.Serialize(new { sprintProgress, velocityTrend, activeRisks }),
+                AgentResponse = result.RiskAssessment,
+                Status = "Success",
+                Success = true,
+                ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                TokensUsed = tokensUsed,
+                ExecutionCostUsd = 0m, // Local LLM
+                CreatedAt = executionStartTime,
+                LinkedDecisionId = linkedDecisionId
+            };
+            await executionLogRepo.AddAsync(executionLog, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return result;
         }
-
-        return result;
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            
+            // Create AgentExecutionLog entry for failed execution
+            var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();
+            var executionLog = new AgentExecutionLog
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId > 0 ? orgId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
+                AgentId = "delivery-agent",
+                AgentType = AIDecisionConstants.AgentTypes.DeliveryAgent,
+                UserId = userId > 0 ? userId.ToString() : "0",
+                UserInput = JsonSerializer.Serialize(new { sprintProgress, velocityTrend, activeRisks }),
+                Status = "Error",
+                Success = false,
+                ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                TokensUsed = 0,
+                ExecutionCostUsd = 0m,
+                CreatedAt = executionStartTime,
+                ErrorMessage = ex.Message,
+                LinkedDecisionId = null
+            };
+            await executionLogRepo.AddAsync(executionLog, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            
+            throw;
+        }
     }
 }
 
