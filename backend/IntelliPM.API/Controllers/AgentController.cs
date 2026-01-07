@@ -15,6 +15,9 @@ using IntelliPM.Domain.Constants;
 using IntelliPM.Infrastructure.AI.Helpers;
 using System.Security.Claims;
 using System.Text.Json;
+using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace IntelliPM.API.Controllers;
 
@@ -30,19 +33,25 @@ public class AgentController : BaseApiController
     private readonly ILogger<AgentController> _logger;
     private readonly IAIAvailabilityService _aiAvailabilityService;
     private readonly IAIDecisionLogger _decisionLogger;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IAIPricingService _pricingService;
     
     public AgentController(
         IAgentService agentService,
         IMediator mediator,
         ILogger<AgentController> logger,
         IAIAvailabilityService aiAvailabilityService,
-        IAIDecisionLogger decisionLogger)
+        IAIDecisionLogger decisionLogger,
+        IUnitOfWork unitOfWork,
+        IAIPricingService pricingService)
     {
         _agentService = agentService;
         _mediator = mediator;
         _logger = logger;
         _aiAvailabilityService = aiAvailabilityService;
         _decisionLogger = decisionLogger;
+        _unitOfWork = unitOfWork;
+        _pricingService = pricingService;
     }
 
     /// <summary>
@@ -102,52 +111,117 @@ public class AgentController : BaseApiController
                 return BadRequest(new { error = "Task description is too long (max 5000 characters)" });
             }
             
-            var result = await _agentService.ImproveTaskDescriptionAsync(
-                request.Description, 
-                cancellationToken);
+            AgentResponse result;
+            int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+            string modelName = "llama3.2:3b";
             
-            _logger.LogInformation("✅ Task improvement completed: Status={Status}, Time={Time}ms", 
-                result.Status, result.ExecutionTimeMs);
-            
-            // Log AI decision for audit trail
-            if (userId > 0 && organizationId > 0 && result.Status == "Success")
+            try
             {
-                var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.EstimateTokenUsage(
-                    request.Description,
-                    result.Content
-                );
+                result = await _agentService.ImproveTaskDescriptionAsync(
+                    request.Description, 
+                    cancellationToken);
                 
-                var metadata = new Dictionary<string, object>
+                _logger.LogInformation("✅ Task improvement completed: Status={Status}, Time={Time}ms", 
+                    result.Status, result.ExecutionTimeMs);
+                
+                // Extract token usage
+                if (result.TotalTokens > 0)
                 {
-                    { "ExecutionTimeMs", result.ExecutionTimeMs },
-                    { "ExecutionCostUsd", result.ExecutionCostUsd },
-                    { "ToolsCalled", result.ToolsCalled }
-                };
+                    promptTokens = result.PromptTokens;
+                    completionTokens = result.CompletionTokens;
+                    totalTokens = result.TotalTokens;
+                    if (!string.IsNullOrEmpty(result.Model))
+                        modelName = result.Model;
+                }
+                else
+                {
+                    var (estPromptTokens, estCompletionTokens, estTotalTokens) = TokenUsageHelper.EstimateTokenUsage(
+                        request.Description,
+                        result.Content
+                    );
+                    promptTokens = estPromptTokens;
+                    completionTokens = estCompletionTokens;
+                    totalTokens = estTotalTokens;
+                }
                 
-                await _decisionLogger.LogDecisionAsync(
-                    agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
-                    decisionType: "TaskImprovement",
-                    reasoning: result.Content,
-                    confidenceScore: 0.8m,
-                    metadata: metadata,
-                    userId: userId,
-                    organizationId: organizationId,
-                    entityType: "Task",
-                    entityId: 0,
-                    question: $"Improve task description: {request.Description}",
-                    decision: result.Content,
-                    inputData: JsonSerializer.Serialize(new { Description = request.Description }),
-                    outputData: result.Content,
-                    tokensUsed: totalTokens,
-                    promptTokens: promptTokens,
-                    completionTokens: completionTokens,
-                    executionTimeMs: result.ExecutionTimeMs,
-                    isSuccess: result.Status == "Success",
-                    errorMessage: result.ErrorMessage,
-                    cancellationToken: cancellationToken);
+                // Log AI decision for audit trail
+                if (userId > 0 && organizationId > 0)
+                {
+                    var metadata = new Dictionary<string, object>
+                    {
+                        { "ExecutionTimeMs", result.ExecutionTimeMs },
+                        { "ExecutionCostUsd", result.ExecutionCostUsd },
+                        { "ToolsCalled", result.ToolsCalled }
+                    };
+                    
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
+                        decisionType: "TaskImprovement",
+                        reasoning: result.Content,
+                        confidenceScore: 0.8m,
+                        metadata: metadata,
+                        userId: userId,
+                        organizationId: organizationId,
+                        entityType: "Task",
+                        entityId: 0,
+                        question: $"Improve task description: {request.Description}",
+                        decision: result.Content,
+                        inputData: JsonSerializer.Serialize(new { Description = request.Description }),
+                        outputData: result.Content,
+                        modelName: modelName,
+                        tokensUsed: totalTokens,
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        executionTimeMs: result.ExecutionTimeMs,
+                        isSuccess: result.Status == "Success",
+                        errorMessage: result.ErrorMessage,
+                        cancellationToken: cancellationToken);
+                    
+                    // Record quota usage
+                    var quota = await _unitOfWork.Repository<AIQuota>()
+                        .Query()
+                        .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, cancellationToken);
+                    
+                    if (quota != null)
+                    {
+                        decimal cost = _pricingService.CalculateCost(modelName, promptTokens, completionTokens);
+                        quota.RecordUsage(totalTokens, AIDecisionConstants.AgentTypes.ManagerAgent, "TaskImprovement", cost);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                
+                return Ok(result);
             }
-            
-            return Ok(result);
+            catch (Exception ex)
+            {
+                // Log failure decision
+                if (userId > 0 && organizationId > 0)
+                {
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
+                        decisionType: "TaskImprovement",
+                        reasoning: $"Error: {ex.Message}",
+                        confidenceScore: 0m,
+                        metadata: null,
+                        userId: userId,
+                        organizationId: organizationId,
+                        entityType: "Task",
+                        entityId: 0,
+                        question: $"Improve task description: {request.Description}",
+                        decision: $"Error: {ex.Message}",
+                        inputData: JsonSerializer.Serialize(new { Description = request.Description }),
+                        outputData: null,
+                        modelName: modelName,
+                        tokensUsed: 0,
+                        promptTokens: 0,
+                        completionTokens: 0,
+                        executionTimeMs: 0,
+                        isSuccess: false,
+                        errorMessage: ex.Message,
+                        cancellationToken: cancellationToken);
+                }
+                throw;
+            }
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -234,14 +308,120 @@ public class AgentController : BaseApiController
             _logger.LogInformation("🔍 User {UserId} requesting risk analysis for project {ProjectId}", 
                 userId, projectId);
             
-            var result = await _agentService.AnalyzeProjectRisksAsync(
-                projectId, 
-                cancellationToken);
+            AgentResponse result;
+            int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+            string modelName = "llama3.2:3b";
             
-            _logger.LogInformation("✅ Risk analysis completed: Status={Status}, Time={Time}ms", 
-                result.Status, result.ExecutionTimeMs);
-            
-            return Ok(result);
+            try
+            {
+                result = await _agentService.AnalyzeProjectRisksAsync(
+                    projectId, 
+                    cancellationToken);
+                
+                _logger.LogInformation("✅ Risk analysis completed: Status={Status}, Time={Time}ms", 
+                    result.Status, result.ExecutionTimeMs);
+                
+                // Extract token usage
+                if (result.TotalTokens > 0)
+                {
+                    promptTokens = result.PromptTokens;
+                    completionTokens = result.CompletionTokens;
+                    totalTokens = result.TotalTokens;
+                    if (!string.IsNullOrEmpty(result.Model))
+                        modelName = result.Model;
+                }
+                else
+                {
+                    var (estPromptTokens, estCompletionTokens, estTotalTokens) = TokenUsageHelper.EstimateTokenUsage(
+                        $"Analyze risks for project {projectId}",
+                        result.Content
+                    );
+                    promptTokens = estPromptTokens;
+                    completionTokens = estCompletionTokens;
+                    totalTokens = estTotalTokens;
+                }
+                
+                // Log AI decision for audit trail
+                if (userId > 0 && organizationId > 0)
+                {
+                    var metadata = new Dictionary<string, object>
+                    {
+                        { "ExecutionTimeMs", result.ExecutionTimeMs },
+                        { "ExecutionCostUsd", result.ExecutionCostUsd },
+                        { "ToolsCalled", result.ToolsCalled },
+                        { "ProjectId", projectId }
+                    };
+                    
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: AIDecisionConstants.DecisionTypes.RiskDetection,
+                        reasoning: result.Content,
+                        confidenceScore: 0.8m,
+                        metadata: metadata,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        entityType: "Project",
+                        entityId: projectId,
+                        question: $"Analyze risks for project {projectId}",
+                        decision: result.Content,
+                        inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
+                        outputData: result.Content,
+                        modelName: modelName,
+                        tokensUsed: totalTokens,
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        executionTimeMs: result.ExecutionTimeMs,
+                        isSuccess: result.Status == "Success",
+                        errorMessage: result.ErrorMessage,
+                        cancellationToken: cancellationToken);
+                    
+                    // Record quota usage
+                    var quota = await _unitOfWork.Repository<AIQuota>()
+                        .Query()
+                        .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, cancellationToken);
+                    
+                    if (quota != null)
+                    {
+                        decimal cost = _pricingService.CalculateCost(modelName, promptTokens, completionTokens);
+                        quota.RecordUsage(totalTokens, AIDecisionConstants.AgentTypes.DeliveryAgent, AIDecisionConstants.DecisionTypes.RiskDetection, cost);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // Log failure decision
+                if (userId > 0 && organizationId > 0)
+                {
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: AIDecisionConstants.DecisionTypes.RiskDetection,
+                        reasoning: $"Error: {ex.Message}",
+                        confidenceScore: 0m,
+                        metadata: null,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        entityType: "Project",
+                        entityId: projectId,
+                        question: $"Analyze risks for project {projectId}",
+                        decision: $"Error: {ex.Message}",
+                        inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
+                        outputData: null,
+                        modelName: modelName,
+                        tokensUsed: 0,
+                        promptTokens: 0,
+                        completionTokens: 0,
+                        executionTimeMs: 0,
+                        isSuccess: false,
+                        errorMessage: ex.Message,
+                        cancellationToken: cancellationToken);
+                }
+                throw;
+            }
         }
         catch (AIDisabledException ex)
         {
@@ -411,54 +591,139 @@ public class AgentController : BaseApiController
             var organizationId = GetOrganizationId();
             
             var command = new AnalyzeProjectCommand(projectId);
-            var result = await _mediator.Send(command, cancellationToken);
-
-            // Log AI decision for audit trail
-            if (userId > 0 && organizationId > 0)
+            AgentResponse result;
+            int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+            string modelName = "llama3.2:3b";
+            
+            try
             {
-                var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.EstimateTokenUsage(
-                    $"Analyze project {projectId}",
-                    result.Content
-                );
-                
-                var metadata = new Dictionary<string, object>
+                result = await _mediator.Send(command, cancellationToken);
+
+                // Extract token usage
+                if (result.TotalTokens > 0)
                 {
-                    { "ExecutionTimeMs", result.ExecutionTimeMs },
-                    { "ExecutionCostUsd", result.ExecutionCostUsd },
-                    { "ToolsCalled", result.ToolsCalled },
-                    { "ProjectId", projectId }
-                };
-                
-                await _decisionLogger.LogDecisionAsync(
-                    agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
-                    decisionType: "ProjectAnalysis",
-                    reasoning: result.Content,
-                    confidenceScore: 0.75m,
-                    metadata: metadata,
-                    userId: userId,
-                    organizationId: organizationId,
-                    projectId: projectId,
-                    entityType: "Project",
-                    entityId: projectId,
-                    question: $"Analyze project {projectId}",
-                    decision: result.Content,
-                    inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
-                    outputData: result.Content,
-                    tokensUsed: totalTokens,
-                    promptTokens: promptTokens,
-                    completionTokens: completionTokens,
-                    executionTimeMs: result.ExecutionTimeMs,
-                    isSuccess: result.Status == "Success",
-                    errorMessage: result.ErrorMessage,
-                    cancellationToken: cancellationToken);
-            }
+                    promptTokens = result.PromptTokens;
+                    completionTokens = result.CompletionTokens;
+                    totalTokens = result.TotalTokens;
+                    if (!string.IsNullOrEmpty(result.Model))
+                        modelName = result.Model;
+                }
+                else
+                {
+                    var (estPromptTokens, estCompletionTokens, estTotalTokens) = TokenUsageHelper.EstimateTokenUsage(
+                        $"Analyze project {projectId}",
+                        result.Content
+                    );
+                    promptTokens = estPromptTokens;
+                    completionTokens = estCompletionTokens;
+                    totalTokens = estTotalTokens;
+                }
 
-            if (result.Status == "Error")
+                // Log AI decision for audit trail
+                if (userId > 0 && organizationId > 0)
+                {
+                    var metadata = new Dictionary<string, object>
+                    {
+                        { "ExecutionTimeMs", result.ExecutionTimeMs },
+                        { "ExecutionCostUsd", result.ExecutionCostUsd },
+                        { "ToolsCalled", result.ToolsCalled },
+                        { "ProjectId", projectId }
+                    };
+                    
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
+                        decisionType: "ProjectAnalysis",
+                        reasoning: result.Content,
+                        confidenceScore: 0.75m,
+                        metadata: metadata,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        entityType: "Project",
+                        entityId: projectId,
+                        question: $"Analyze project {projectId}",
+                        decision: result.Content,
+                        inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
+                        outputData: result.Content,
+                        modelName: modelName,
+                        tokensUsed: totalTokens,
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        executionTimeMs: result.ExecutionTimeMs,
+                        isSuccess: result.Status == "Success",
+                        errorMessage: result.ErrorMessage,
+                        cancellationToken: cancellationToken);
+                    
+                    // Record quota usage
+                    var quota = await _unitOfWork.Repository<AIQuota>()
+                        .Query()
+                        .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, cancellationToken);
+                    
+                    if (quota != null)
+                    {
+                        decimal cost = _pricingService.CalculateCost(modelName, promptTokens, completionTokens);
+                        quota.RecordUsage(totalTokens, AIDecisionConstants.AgentTypes.ManagerAgent, "ProjectAnalysis", cost);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+
+                if (result.Status == "Error")
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, result);
+                // Log failure decision
+                if (userId > 0 && organizationId > 0)
+                {
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
+                        decisionType: "ProjectAnalysis",
+                        reasoning: $"Error: {ex.Message}",
+                        confidenceScore: 0m,
+                        metadata: null,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        entityType: "Project",
+                        entityId: projectId,
+                        question: $"Analyze project {projectId}",
+                        decision: $"Error: {ex.Message}",
+                        inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
+                        outputData: null,
+                        modelName: modelName,
+                        tokensUsed: 0,
+                        promptTokens: 0,
+                        completionTokens: 0,
+                        executionTimeMs: 0,
+                        isSuccess: false,
+                        errorMessage: ex.Message,
+                        cancellationToken: cancellationToken);
+                }
+                throw;
             }
-
-            return Ok(result);
+        }
+        catch (AIDisabledException ex)
+        {
+            _logger.LogWarning(ex, "AI disabled for organization {OrganizationId}", ex.OrganizationId);
+            return Problem(
+                title: "AI Disabled",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+        catch (AIQuotaExceededException ex)
+        {
+            _logger.LogWarning(ex, "AI quota exceeded for organization {OrganizationId}. Type: {QuotaType}, Current: {CurrentUsage}, Limit: {MaxLimit}", 
+                ex.OrganizationId, ex.QuotaType, ex.CurrentUsage, ex.MaxLimit);
+            return Problem(
+                title: "Quota Exceeded",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status429TooManyRequests
+            );
         }
         catch (UnauthorizedAccessException)
         {
@@ -489,49 +754,134 @@ public class AgentController : BaseApiController
             var organizationId = GetOrganizationId();
             
             var command = new DetectRisksCommand(projectId);
-            var result = await _mediator.Send(command, cancellationToken);
+            AgentResponse result;
+            int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+            string modelName = "llama3.2:3b";
             
-            // Log AI decision for audit trail
-            if (userId > 0 && organizationId > 0)
+            try
             {
-                var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.EstimateTokenUsage(
-                    $"Detect risks for project {projectId}",
-                    result.Content
-                );
+                result = await _mediator.Send(command, cancellationToken);
                 
-                var metadata = new Dictionary<string, object>
+                // Extract token usage
+                if (result.TotalTokens > 0)
                 {
-                    { "ExecutionTimeMs", result.ExecutionTimeMs },
-                    { "ExecutionCostUsd", result.ExecutionCostUsd },
-                    { "ToolsCalled", result.ToolsCalled },
-                    { "ProjectId", projectId }
-                };
+                    promptTokens = result.PromptTokens;
+                    completionTokens = result.CompletionTokens;
+                    totalTokens = result.TotalTokens;
+                    if (!string.IsNullOrEmpty(result.Model))
+                        modelName = result.Model;
+                }
+                else
+                {
+                    var (estPromptTokens, estCompletionTokens, estTotalTokens) = TokenUsageHelper.EstimateTokenUsage(
+                        $"Detect risks for project {projectId}",
+                        result.Content
+                    );
+                    promptTokens = estPromptTokens;
+                    completionTokens = estCompletionTokens;
+                    totalTokens = estTotalTokens;
+                }
                 
-                await _decisionLogger.LogDecisionAsync(
-                    agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
-                    decisionType: AIDecisionConstants.DecisionTypes.RiskDetection,
-                    reasoning: result.Content,
-                    confidenceScore: 0.8m,
-                    metadata: metadata,
-                    userId: userId,
-                    organizationId: organizationId,
-                    projectId: projectId,
-                    entityType: "Project",
-                    entityId: projectId,
-                    question: $"Detect risks for project {projectId}",
-                    decision: result.Content,
-                    inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
-                    outputData: result.Content,
-                    tokensUsed: totalTokens,
-                    promptTokens: promptTokens,
-                    completionTokens: completionTokens,
-                    executionTimeMs: result.ExecutionTimeMs,
-                    isSuccess: result.Status == "Success",
-                    errorMessage: result.ErrorMessage,
-                    cancellationToken: cancellationToken);
+                // Log AI decision for audit trail
+                if (userId > 0 && organizationId > 0)
+                {
+                    var metadata = new Dictionary<string, object>
+                    {
+                        { "ExecutionTimeMs", result.ExecutionTimeMs },
+                        { "ExecutionCostUsd", result.ExecutionCostUsd },
+                        { "ToolsCalled", result.ToolsCalled },
+                        { "ProjectId", projectId }
+                    };
+                    
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: AIDecisionConstants.DecisionTypes.RiskDetection,
+                        reasoning: result.Content,
+                        confidenceScore: 0.8m,
+                        metadata: metadata,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        entityType: "Project",
+                        entityId: projectId,
+                        question: $"Detect risks for project {projectId}",
+                        decision: result.Content,
+                        inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
+                        outputData: result.Content,
+                        modelName: modelName,
+                        tokensUsed: totalTokens,
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        executionTimeMs: result.ExecutionTimeMs,
+                        isSuccess: result.Status == "Success",
+                        errorMessage: result.ErrorMessage,
+                        cancellationToken: cancellationToken);
+                    
+                    // Record quota usage
+                    var quota = await _unitOfWork.Repository<AIQuota>()
+                        .Query()
+                        .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, cancellationToken);
+                    
+                    if (quota != null)
+                    {
+                        decimal cost = _pricingService.CalculateCost(modelName, promptTokens, completionTokens);
+                        quota.RecordUsage(totalTokens, AIDecisionConstants.AgentTypes.DeliveryAgent, AIDecisionConstants.DecisionTypes.RiskDetection, cost);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                
+                return Ok(result);
             }
-            
-            return Ok(result);
+            catch (Exception ex)
+            {
+                // Log failure decision
+                if (userId > 0 && organizationId > 0)
+                {
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: AIDecisionConstants.DecisionTypes.RiskDetection,
+                        reasoning: $"Error: {ex.Message}",
+                        confidenceScore: 0m,
+                        metadata: null,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        entityType: "Project",
+                        entityId: projectId,
+                        question: $"Detect risks for project {projectId}",
+                        decision: $"Error: {ex.Message}",
+                        inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
+                        outputData: null,
+                        modelName: modelName,
+                        tokensUsed: 0,
+                        promptTokens: 0,
+                        completionTokens: 0,
+                        executionTimeMs: 0,
+                        isSuccess: false,
+                        errorMessage: ex.Message,
+                        cancellationToken: cancellationToken);
+                }
+                throw;
+            }
+        }
+        catch (AIDisabledException ex)
+        {
+            _logger.LogWarning(ex, "AI disabled for organization {OrganizationId}", ex.OrganizationId);
+            return Problem(
+                title: "AI Disabled",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+        catch (AIQuotaExceededException ex)
+        {
+            _logger.LogWarning(ex, "AI quota exceeded for organization {OrganizationId}. Type: {QuotaType}, Current: {CurrentUsage}, Limit: {MaxLimit}", 
+                ex.OrganizationId, ex.QuotaType, ex.CurrentUsage, ex.MaxLimit);
+            return Problem(
+                title: "Quota Exceeded",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status429TooManyRequests
+            );
         }
         catch (UnauthorizedAccessException)
         {
@@ -566,51 +916,137 @@ public class AgentController : BaseApiController
             var sprint = await _mediator.Send(sprintQuery, cancellationToken);
             
             var command = new PlanSprintCommand(sprintId);
-            var result = await _mediator.Send(command, cancellationToken);
+            AgentResponse result;
+            int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+            string modelName = "llama3.2:3b";
             
-            // Log AI decision for audit trail
-            if (userId > 0 && organizationId > 0 && sprint != null)
+            try
             {
-                var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.EstimateTokenUsage(
-                    $"Plan sprint {sprintId}",
-                    result.Content
-                );
+                result = await _mediator.Send(command, cancellationToken);
                 
-                var metadata = new Dictionary<string, object>
+                // Extract token usage
+                if (result.TotalTokens > 0)
                 {
-                    { "ExecutionTimeMs", result.ExecutionTimeMs },
-                    { "ExecutionCostUsd", result.ExecutionCostUsd },
-                    { "ToolsCalled", result.ToolsCalled },
-                    { "SprintId", sprintId },
-                    { "ProjectId", sprint.ProjectId }
-                };
+                    promptTokens = result.PromptTokens;
+                    completionTokens = result.CompletionTokens;
+                    totalTokens = result.TotalTokens;
+                    if (!string.IsNullOrEmpty(result.Model))
+                        modelName = result.Model;
+                }
+                else
+                {
+                    var (estPromptTokens, estCompletionTokens, estTotalTokens) = TokenUsageHelper.EstimateTokenUsage(
+                        $"Plan sprint {sprintId}",
+                        result.Content
+                    );
+                    promptTokens = estPromptTokens;
+                    completionTokens = estCompletionTokens;
+                    totalTokens = estTotalTokens;
+                }
                 
-                await _decisionLogger.LogDecisionAsync(
-                    agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
-                    decisionType: AIDecisionConstants.DecisionTypes.SprintPlanning,
-                    reasoning: result.Content,
-                    confidenceScore: 0.75m,
-                    metadata: metadata,
-                    userId: userId,
-                    organizationId: organizationId,
-                    projectId: sprint.ProjectId,
-                    entityType: "Sprint",
-                    entityId: sprintId,
-                    entityName: sprint.Name,
-                    question: $"Plan sprint {sprintId}",
-                    decision: result.Content,
-                    inputData: JsonSerializer.Serialize(new { SprintId = sprintId, ProjectId = sprint.ProjectId }),
-                    outputData: result.Content,
-                    tokensUsed: totalTokens,
-                    promptTokens: promptTokens,
-                    completionTokens: completionTokens,
-                    executionTimeMs: result.ExecutionTimeMs,
-                    isSuccess: result.Status == "Success",
-                    errorMessage: result.ErrorMessage,
-                    cancellationToken: cancellationToken);
+                // Log AI decision for audit trail
+                if (userId > 0 && organizationId > 0 && sprint != null)
+                {
+                    var metadata = new Dictionary<string, object>
+                    {
+                        { "ExecutionTimeMs", result.ExecutionTimeMs },
+                        { "ExecutionCostUsd", result.ExecutionCostUsd },
+                        { "ToolsCalled", result.ToolsCalled },
+                        { "SprintId", sprintId },
+                        { "ProjectId", sprint.ProjectId }
+                    };
+                    
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: AIDecisionConstants.DecisionTypes.SprintPlanning,
+                        reasoning: result.Content,
+                        confidenceScore: 0.75m,
+                        metadata: metadata,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: sprint.ProjectId,
+                        entityType: "Sprint",
+                        entityId: sprintId,
+                        entityName: sprint.Name,
+                        question: $"Plan sprint {sprintId}",
+                        decision: result.Content,
+                        inputData: JsonSerializer.Serialize(new { SprintId = sprintId, ProjectId = sprint.ProjectId }),
+                        outputData: result.Content,
+                        modelName: modelName,
+                        tokensUsed: totalTokens,
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        executionTimeMs: result.ExecutionTimeMs,
+                        isSuccess: result.Status == "Success",
+                        errorMessage: result.ErrorMessage,
+                        cancellationToken: cancellationToken);
+                    
+                    // Record quota usage
+                    var quota = await _unitOfWork.Repository<AIQuota>()
+                        .Query()
+                        .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, cancellationToken);
+                    
+                    if (quota != null)
+                    {
+                        decimal cost = _pricingService.CalculateCost(modelName, promptTokens, completionTokens);
+                        quota.RecordUsage(totalTokens, AIDecisionConstants.AgentTypes.DeliveryAgent, AIDecisionConstants.DecisionTypes.SprintPlanning, cost);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                
+                return Ok(result);
             }
-            
-            return Ok(result);
+            catch (Exception ex)
+            {
+                // Log failure decision
+                if (userId > 0 && organizationId > 0 && sprint != null)
+                {
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: AIDecisionConstants.DecisionTypes.SprintPlanning,
+                        reasoning: $"Error: {ex.Message}",
+                        confidenceScore: 0m,
+                        metadata: null,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: sprint.ProjectId,
+                        entityType: "Sprint",
+                        entityId: sprintId,
+                        entityName: sprint.Name,
+                        question: $"Plan sprint {sprintId}",
+                        decision: $"Error: {ex.Message}",
+                        inputData: JsonSerializer.Serialize(new { SprintId = sprintId, ProjectId = sprint.ProjectId }),
+                        outputData: null,
+                        modelName: modelName,
+                        tokensUsed: 0,
+                        promptTokens: 0,
+                        completionTokens: 0,
+                        executionTimeMs: 0,
+                        isSuccess: false,
+                        errorMessage: ex.Message,
+                        cancellationToken: cancellationToken);
+                }
+                throw;
+            }
+        }
+        catch (AIDisabledException ex)
+        {
+            _logger.LogWarning(ex, "AI disabled for organization {OrganizationId}", ex.OrganizationId);
+            return Problem(
+                title: "AI Disabled",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+        catch (AIQuotaExceededException ex)
+        {
+            _logger.LogWarning(ex, "AI quota exceeded for organization {OrganizationId}. Type: {QuotaType}, Current: {CurrentUsage}, Limit: {MaxLimit}", 
+                ex.OrganizationId, ex.QuotaType, ex.CurrentUsage, ex.MaxLimit);
+            return Problem(
+                title: "Quota Exceeded",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status429TooManyRequests
+            );
         }
         catch (UnauthorizedAccessException)
         {
@@ -644,57 +1080,148 @@ public class AgentController : BaseApiController
             var userId = GetCurrentUserId();
             var organizationId = GetOrganizationId();
             
+            // Check quota before execution
+            if (organizationId > 0)
+            {
+                await _aiAvailabilityService.CheckQuotaAsync(organizationId, "Requests", cancellationToken);
+            }
+            
             _logger.LogInformation("🔗 User {UserId} requesting dependency analysis for project {ProjectId}", 
                 userId, projectId);
             
-            var result = await _agentService.AnalyzeTaskDependenciesAsync(
-                projectId, 
-                cancellationToken);
+            AgentResponse result;
+            int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+            string modelName = "llama3.2:3b";
             
-            _logger.LogInformation("✅ Dependency analysis completed: Status={Status}, Time={Time}ms", 
-                result.Status, result.ExecutionTimeMs);
-            
-            // Log AI decision for audit trail
-            if (userId > 0 && organizationId > 0 && result.Status == "Success")
+            try
             {
-                var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.EstimateTokenUsage(
-                    $"Analyze dependencies for project {projectId}",
-                    result.Content
-                );
+                result = await _agentService.AnalyzeTaskDependenciesAsync(
+                    projectId, 
+                    cancellationToken);
                 
-                var metadata = new Dictionary<string, object>
+                _logger.LogInformation("✅ Dependency analysis completed: Status={Status}, Time={Time}ms", 
+                    result.Status, result.ExecutionTimeMs);
+                
+                // Extract token usage
+                if (result.TotalTokens > 0)
                 {
-                    { "ExecutionTimeMs", result.ExecutionTimeMs },
-                    { "ExecutionCostUsd", result.ExecutionCostUsd },
-                    { "ToolsCalled", result.ToolsCalled },
-                    { "ProjectId", projectId }
-                };
+                    promptTokens = result.PromptTokens;
+                    completionTokens = result.CompletionTokens;
+                    totalTokens = result.TotalTokens;
+                    if (!string.IsNullOrEmpty(result.Model))
+                        modelName = result.Model;
+                }
+                else
+                {
+                    var (estPromptTokens, estCompletionTokens, estTotalTokens) = TokenUsageHelper.EstimateTokenUsage(
+                        $"Analyze dependencies for project {projectId}",
+                        result.Content
+                    );
+                    promptTokens = estPromptTokens;
+                    completionTokens = estCompletionTokens;
+                    totalTokens = estTotalTokens;
+                }
                 
-                await _decisionLogger.LogDecisionAsync(
-                    agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
-                    decisionType: "DependencyAnalysis",
-                    reasoning: result.Content,
-                    confidenceScore: 0.75m,
-                    metadata: metadata,
-                    userId: userId,
-                    organizationId: organizationId,
-                    projectId: projectId,
-                    entityType: "Project",
-                    entityId: projectId,
-                    question: $"Analyze task dependencies for project {projectId}",
-                    decision: result.Content,
-                    inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
-                    outputData: result.Content,
-                    tokensUsed: totalTokens,
-                    promptTokens: promptTokens,
-                    completionTokens: completionTokens,
-                    executionTimeMs: result.ExecutionTimeMs,
-                    isSuccess: result.Status == "Success",
-                    errorMessage: result.ErrorMessage,
-                    cancellationToken: cancellationToken);
+                // Log AI decision for audit trail
+                if (userId > 0 && organizationId > 0)
+                {
+                    var metadata = new Dictionary<string, object>
+                    {
+                        { "ExecutionTimeMs", result.ExecutionTimeMs },
+                        { "ExecutionCostUsd", result.ExecutionCostUsd },
+                        { "ToolsCalled", result.ToolsCalled },
+                        { "ProjectId", projectId }
+                    };
+                    
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: "DependencyAnalysis",
+                        reasoning: result.Content,
+                        confidenceScore: 0.75m,
+                        metadata: metadata,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        entityType: "Project",
+                        entityId: projectId,
+                        question: $"Analyze task dependencies for project {projectId}",
+                        decision: result.Content,
+                        inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
+                        outputData: result.Content,
+                        modelName: modelName,
+                        tokensUsed: totalTokens,
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        executionTimeMs: result.ExecutionTimeMs,
+                        isSuccess: result.Status == "Success",
+                        errorMessage: result.ErrorMessage,
+                        cancellationToken: cancellationToken);
+                    
+                    // Record quota usage
+                    var quota = await _unitOfWork.Repository<AIQuota>()
+                        .Query()
+                        .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, cancellationToken);
+                    
+                    if (quota != null)
+                    {
+                        decimal cost = _pricingService.CalculateCost(modelName, promptTokens, completionTokens);
+                        quota.RecordUsage(totalTokens, AIDecisionConstants.AgentTypes.DeliveryAgent, "DependencyAnalysis", cost);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                
+                return Ok(result);
             }
-            
-            return Ok(result);
+            catch (Exception ex)
+            {
+                // Log failure decision
+                if (userId > 0 && organizationId > 0)
+                {
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: "DependencyAnalysis",
+                        reasoning: $"Error: {ex.Message}",
+                        confidenceScore: 0m,
+                        metadata: null,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: projectId,
+                        entityType: "Project",
+                        entityId: projectId,
+                        question: $"Analyze task dependencies for project {projectId}",
+                        decision: $"Error: {ex.Message}",
+                        inputData: JsonSerializer.Serialize(new { ProjectId = projectId }),
+                        outputData: null,
+                        modelName: modelName,
+                        tokensUsed: 0,
+                        promptTokens: 0,
+                        completionTokens: 0,
+                        executionTimeMs: 0,
+                        isSuccess: false,
+                        errorMessage: ex.Message,
+                        cancellationToken: cancellationToken);
+                }
+                throw;
+            }
+        }
+        catch (AIDisabledException ex)
+        {
+            _logger.LogWarning(ex, "AI disabled for organization {OrganizationId}", ex.OrganizationId);
+            return Problem(
+                title: "AI Disabled",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+        catch (AIQuotaExceededException ex)
+        {
+            _logger.LogWarning(ex, "AI quota exceeded for organization {OrganizationId}. Type: {QuotaType}, Current: {CurrentUsage}, Limit: {MaxLimit}", 
+                ex.OrganizationId, ex.QuotaType, ex.CurrentUsage, ex.MaxLimit);
+            return Problem(
+                title: "Quota Exceeded",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status429TooManyRequests
+            );
         }
         catch (NotFoundException ex)
         {
@@ -740,6 +1267,12 @@ public class AgentController : BaseApiController
             var userId = GetCurrentUserId();
             var organizationId = GetOrganizationId();
             
+            // Check quota before execution
+            if (organizationId > 0)
+            {
+                await _aiAvailabilityService.CheckQuotaAsync(organizationId, "Requests", cancellationToken);
+            }
+            
             _logger.LogInformation("📝 User {UserId} requesting retrospective generation for sprint {SprintId}", 
                 userId, sprintId);
             
@@ -747,56 +1280,142 @@ public class AgentController : BaseApiController
             var sprintQuery = new GetSprintByIdQuery(sprintId);
             var sprint = await _mediator.Send(sprintQuery, cancellationToken);
             
-            var result = await _agentService.GenerateSprintRetrospectiveAsync(
-                sprintId, 
-                cancellationToken);
+            AgentResponse result;
+            int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+            string modelName = "llama3.2:3b";
             
-            _logger.LogInformation("✅ Retrospective generation completed: Status={Status}, Time={Time}ms", 
-                result.Status, result.ExecutionTimeMs);
-            
-            // Log AI decision for audit trail
-            if (userId > 0 && organizationId > 0 && sprint != null && result.Status == "Success")
+            try
             {
-                var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.EstimateTokenUsage(
-                    $"Generate retrospective for sprint {sprintId}",
-                    result.Content
-                );
+                result = await _agentService.GenerateSprintRetrospectiveAsync(
+                    sprintId, 
+                    cancellationToken);
                 
-                var metadata = new Dictionary<string, object>
+                _logger.LogInformation("✅ Retrospective generation completed: Status={Status}, Time={Time}ms", 
+                    result.Status, result.ExecutionTimeMs);
+                
+                // Extract token usage
+                if (result.TotalTokens > 0)
                 {
-                    { "ExecutionTimeMs", result.ExecutionTimeMs },
-                    { "ExecutionCostUsd", result.ExecutionCostUsd },
-                    { "ToolsCalled", result.ToolsCalled },
-                    { "SprintId", sprintId },
-                    { "ProjectId", sprint.ProjectId }
-                };
+                    promptTokens = result.PromptTokens;
+                    completionTokens = result.CompletionTokens;
+                    totalTokens = result.TotalTokens;
+                    if (!string.IsNullOrEmpty(result.Model))
+                        modelName = result.Model;
+                }
+                else
+                {
+                    var (estPromptTokens, estCompletionTokens, estTotalTokens) = TokenUsageHelper.EstimateTokenUsage(
+                        $"Generate retrospective for sprint {sprintId}",
+                        result.Content
+                    );
+                    promptTokens = estPromptTokens;
+                    completionTokens = estCompletionTokens;
+                    totalTokens = estTotalTokens;
+                }
                 
-                await _decisionLogger.LogDecisionAsync(
-                    agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
-                    decisionType: "SprintRetrospective",
-                    reasoning: result.Content,
-                    confidenceScore: 0.8m,
-                    metadata: metadata,
-                    userId: userId,
-                    organizationId: organizationId,
-                    projectId: sprint.ProjectId,
-                    entityType: "Sprint",
-                    entityId: sprintId,
-                    entityName: sprint.Name,
-                    question: $"Generate retrospective for sprint {sprintId}",
-                    decision: result.Content,
-                    inputData: JsonSerializer.Serialize(new { SprintId = sprintId, ProjectId = sprint.ProjectId }),
-                    outputData: result.Content,
-                    tokensUsed: totalTokens,
-                    promptTokens: promptTokens,
-                    completionTokens: completionTokens,
-                    executionTimeMs: result.ExecutionTimeMs,
-                    isSuccess: result.Status == "Success",
-                    errorMessage: result.ErrorMessage,
-                    cancellationToken: cancellationToken);
+                // Log AI decision for audit trail
+                if (userId > 0 && organizationId > 0 && sprint != null)
+                {
+                    var metadata = new Dictionary<string, object>
+                    {
+                        { "ExecutionTimeMs", result.ExecutionTimeMs },
+                        { "ExecutionCostUsd", result.ExecutionCostUsd },
+                        { "ToolsCalled", result.ToolsCalled },
+                        { "SprintId", sprintId },
+                        { "ProjectId", sprint.ProjectId }
+                    };
+                    
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: "SprintRetrospective",
+                        reasoning: result.Content,
+                        confidenceScore: 0.8m,
+                        metadata: metadata,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: sprint.ProjectId,
+                        entityType: "Sprint",
+                        entityId: sprintId,
+                        entityName: sprint.Name,
+                        question: $"Generate retrospective for sprint {sprintId}",
+                        decision: result.Content,
+                        inputData: JsonSerializer.Serialize(new { SprintId = sprintId, ProjectId = sprint.ProjectId }),
+                        outputData: result.Content,
+                        modelName: modelName,
+                        tokensUsed: totalTokens,
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        executionTimeMs: result.ExecutionTimeMs,
+                        isSuccess: result.Status == "Success",
+                        errorMessage: result.ErrorMessage,
+                        cancellationToken: cancellationToken);
+                    
+                    // Record quota usage
+                    var quota = await _unitOfWork.Repository<AIQuota>()
+                        .Query()
+                        .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, cancellationToken);
+                    
+                    if (quota != null)
+                    {
+                        decimal cost = _pricingService.CalculateCost(modelName, promptTokens, completionTokens);
+                        quota.RecordUsage(totalTokens, AIDecisionConstants.AgentTypes.DeliveryAgent, "SprintRetrospective", cost);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                
+                return Ok(result);
             }
-            
-            return Ok(result);
+            catch (Exception ex)
+            {
+                // Log failure decision
+                if (userId > 0 && organizationId > 0 && sprint != null)
+                {
+                    await _decisionLogger.LogDecisionAsync(
+                        agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
+                        decisionType: "SprintRetrospective",
+                        reasoning: $"Error: {ex.Message}",
+                        confidenceScore: 0m,
+                        metadata: null,
+                        userId: userId,
+                        organizationId: organizationId,
+                        projectId: sprint.ProjectId,
+                        entityType: "Sprint",
+                        entityId: sprintId,
+                        entityName: sprint.Name,
+                        question: $"Generate retrospective for sprint {sprintId}",
+                        decision: $"Error: {ex.Message}",
+                        inputData: JsonSerializer.Serialize(new { SprintId = sprintId, ProjectId = sprint.ProjectId }),
+                        outputData: null,
+                        modelName: modelName,
+                        tokensUsed: 0,
+                        promptTokens: 0,
+                        completionTokens: 0,
+                        executionTimeMs: 0,
+                        isSuccess: false,
+                        errorMessage: ex.Message,
+                        cancellationToken: cancellationToken);
+                }
+                throw;
+            }
+        }
+        catch (AIDisabledException ex)
+        {
+            _logger.LogWarning(ex, "AI disabled for organization {OrganizationId}", ex.OrganizationId);
+            return Problem(
+                title: "AI Disabled",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+        catch (AIQuotaExceededException ex)
+        {
+            _logger.LogWarning(ex, "AI quota exceeded for organization {OrganizationId}. Type: {QuotaType}, Current: {CurrentUsage}, Limit: {MaxLimit}", 
+                ex.OrganizationId, ex.QuotaType, ex.CurrentUsage, ex.MaxLimit);
+            return Problem(
+                title: "Quota Exceeded",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status429TooManyRequests
+            );
         }
         catch (NotFoundException ex)
         {

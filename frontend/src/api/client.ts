@@ -1,5 +1,6 @@
 import { authApi } from './auth';
 import { toast } from '@/components/ui/sonner';
+import { extractPermissionError, formatPermissionForError } from '@/lib/utils';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 const API_VERSION = '/api/v1';
@@ -244,8 +245,40 @@ class ApiClient {
         // Not an AI disabled error, continue with normal 403 handling
       }
       
-      // Generic 403 error
-      const errorMessage = getUserFriendlyErrorMessage(403, "You don't have permission for this action.");
+      // Try to extract permission error details from response
+      let errorMessage = getUserFriendlyErrorMessage(403, "You don't have permission for this action.");
+      try {
+        const errorData = await response.clone().json();
+        const permissionError = extractPermissionError({
+          response: {
+            status: 403,
+            data: errorData,
+          },
+        });
+        
+        if (permissionError) {
+          errorMessage = permissionError;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+        
+        // Check if error message contains permission name that can be formatted
+        // Look for patterns like "projects.create" or "tasks.delete"
+        const permissionPattern = /([a-z]+\.[a-z]+(?:\.[a-z]+)?)/i;
+        const match = errorMessage.match(permissionPattern);
+        if (match) {
+          const permissionName = formatPermissionForError(match[1]);
+          errorMessage = `You need ${permissionName} permission to perform this action.`;
+        }
+      } catch {
+        // If response is not JSON, use default message
+      }
+      
+      // Show toast notification with permission error
       toast.error('Access Denied', {
         description: errorMessage,
       });

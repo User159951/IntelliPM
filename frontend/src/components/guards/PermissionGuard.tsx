@@ -1,9 +1,15 @@
 import React, { useRef, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { usePermissions, usePermissionsWithProject } from '@/hooks/usePermissions';
+import { usePermissions, usePermissionsWithProject, PERMISSIONS } from '@/hooks/usePermissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { showError } from "@/lib/sweetalert";
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 /**
  * Props for the PermissionGuard component
@@ -50,6 +56,19 @@ export interface PermissionGuardProps {
    * Optional custom loading component to show while checking permissions
    */
   loadingComponent?: React.ReactNode;
+
+  /**
+   * Optional tooltip text to show when permission is denied
+   * If not provided, a default message will be shown
+   */
+  tooltipText?: string;
+
+  /**
+   * Optional flag to show tooltip instead of fallback/redirect
+   * When true, wraps children in a tooltip that explains why action is unavailable
+   * Default: false
+   */
+  showTooltip?: boolean;
 }
 
 /**
@@ -107,6 +126,75 @@ export interface PermissionGuardProps {
  * @param props - PermissionGuardProps
  * @returns React element or null
  */
+/**
+ * Get human-readable permission name from permission string
+ */
+function getPermissionDisplayName(permission: string): string {
+  // Try to find in PERMISSIONS constant first
+  const permissionEntry = Object.entries(PERMISSIONS).find(
+    ([_, value]) => value === permission
+  );
+  
+  if (permissionEntry) {
+    // Convert "PROJECTS_CREATE" to "Create Projects"
+    const key = permissionEntry[0];
+    const parts = key.split('_');
+    const action = parts[parts.length - 1].toLowerCase();
+    const resource = parts.slice(0, -1).join(' ').toLowerCase();
+    
+    const actionMap: Record<string, string> = {
+      create: 'Create',
+      edit: 'Edit',
+      delete: 'Delete',
+      view: 'View',
+      manage: 'Manage',
+      invite: 'Invite',
+      remove: 'Remove',
+      changeRole: 'Change Role',
+      assign: 'Assign',
+      comment: 'Comment',
+      update: 'Update',
+    };
+    
+    const actionDisplay = actionMap[action] || action;
+    const resourceDisplay = resource
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    return `${actionDisplay} ${resourceDisplay}`;
+  }
+  
+  // Fallback: format permission string
+  const parts = permission.split('.');
+  if (parts.length === 2) {
+    const [resource, action] = parts;
+    const actionMap: Record<string, string> = {
+      create: 'Create',
+      edit: 'Edit',
+      delete: 'Delete',
+      view: 'View',
+      manage: 'Manage',
+      invite: 'Invite',
+      remove: 'Remove',
+      changerole: 'Change Role',
+      assign: 'Assign',
+      comment: 'Comment',
+      update: 'Update',
+    };
+    
+    const actionDisplay = actionMap[action.toLowerCase()] || action;
+    const resourceDisplay = resource
+      .split('.')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    return `${actionDisplay} ${resourceDisplay}`;
+  }
+  
+  return permission;
+}
+
 export function PermissionGuard({
   requiredPermission,
   projectId,
@@ -115,6 +203,8 @@ export function PermissionGuard({
   redirectTo = '/dashboard',
   showNotification = true,
   loadingComponent,
+  tooltipText,
+  showTooltip = false,
 }: PermissionGuardProps): React.ReactElement | null {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const hasNotifiedRef = useRef(false);
@@ -142,15 +232,17 @@ export function PermissionGuard({
       isAuthenticated &&
       !hasPermission &&
       showNotification &&
-      !hasNotifiedRef.current
+      !hasNotifiedRef.current &&
+      !showTooltip // Don't show notification if using tooltip mode
     ) {
+      const permissionName = getPermissionDisplayName(requiredPermission);
       showError(
         'Access Denied',
-        `You don't have permission to access this resource. Required: ${requiredPermission}`
+        `You need ${permissionName} permission to perform this action.`
       );
       hasNotifiedRef.current = true;
     }
-  }, [isLoading, isAuthenticated, hasPermission, showNotification, requiredPermission]);
+  }, [isLoading, isAuthenticated, hasPermission, showNotification, requiredPermission, showTooltip]);
 
   // Handle loading state
   if (isLoading) {
@@ -203,14 +295,33 @@ export function PermissionGuard({
 
   // User doesn't have permission
   if (!hasPermission) {
+    // If showTooltip is true, wrap children in tooltip instead of hiding
+    if (showTooltip) {
+      const defaultTooltipText = tooltipText || `You need ${getPermissionDisplayName(requiredPermission)} permission to perform this action.`;
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-block cursor-not-allowed opacity-50">
+                {children}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">{defaultTooltipText}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    
     if (redirectTo) {
       return <Navigate to={redirectTo} replace />;
     }
-    if (fallback) {
+    if (fallback !== undefined) {
       return <>{fallback}</>;
     }
-    // Default: redirect to dashboard with error toast
-    return <Navigate to="/dashboard" replace />;
+    // Default: return null (hide component) instead of redirecting
+    return null;
   }
 
   // User has permission - render children

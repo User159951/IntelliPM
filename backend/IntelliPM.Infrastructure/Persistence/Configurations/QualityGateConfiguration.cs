@@ -33,6 +33,10 @@ public class QualityGateConfiguration : IEntityTypeConfiguration<QualityGate>
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(qg => qg.IsBlocking)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.Property(qg => qg.Threshold)
             .HasPrecision(5, 2); // Supports values like 99.99 for percentages
 

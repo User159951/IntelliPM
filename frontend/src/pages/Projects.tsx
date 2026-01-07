@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { projectsApi } from '@/api/projects';
 import { usersApi, type User } from '@/api/users';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PermissionGuard } from '@/components/guards/PermissionGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +36,7 @@ export default function Projects() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
@@ -269,13 +272,18 @@ export default function Projects() {
               </SelectContent>
             </Select>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Project
-              </Button>
-            </DialogTrigger>
+          <PermissionGuard 
+            requiredPermission="projects.create" 
+            fallback={null}
+            showNotification={false}
+          >
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Project
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
@@ -499,6 +507,7 @@ export default function Projects() {
               </form>
             </DialogContent>
           </Dialog>
+          </PermissionGuard>
         </div>
       </div>
 
@@ -738,35 +747,49 @@ export default function Projects() {
                         }}>
                           View details
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingProject(project);
-                          }}
+                        <PermissionGuard 
+                          requiredPermission="projects.edit" 
+                          projectId={project.id}
+                          fallback={null}
+                          showNotification={false}
                         >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit project
-                        </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingProject(project);
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit project
+                          </DropdownMenuItem>
+                        </PermissionGuard>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            archiveMutation.mutate(project.id);
-                          }}
+                        <PermissionGuard 
+                          requiredPermission="projects.delete" 
+                          projectId={project.id}
+                          fallback={null}
+                          showNotification={false}
                         >
-                          Archive
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingProject(project);
-                          }}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete project
-                        </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              archiveMutation.mutate(project.id);
+                            }}
+                          >
+                            Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingProject(project);
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete project
+                          </DropdownMenuItem>
+                        </PermissionGuard>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </CardHeader>
@@ -904,35 +927,49 @@ export default function Projects() {
                         }}>
                           View details
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingProject(project);
-                          }}
+                        <PermissionGuard 
+                          requiredPermission="projects.edit" 
+                          projectId={project.id}
+                          fallback={null}
+                          showNotification={false}
                         >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit project
-                        </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingProject(project);
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit project
+                          </DropdownMenuItem>
+                        </PermissionGuard>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            archiveMutation.mutate(project.id);
-                          }}
+                        <PermissionGuard 
+                          requiredPermission="projects.delete" 
+                          projectId={project.id}
+                          fallback={null}
+                          showNotification={false}
                         >
-                          Archive
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingProject(project);
-                          }}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete project
-                        </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              archiveMutation.mutate(project.id);
+                            }}
+                          >
+                            Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingProject(project);
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete project
+                          </DropdownMenuItem>
+                        </PermissionGuard>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </CardHeader>

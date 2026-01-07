@@ -7,6 +7,7 @@ using IntelliPM.Application.Services;
 using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace IntelliPM.Application.Agents.Commands;
@@ -18,23 +19,32 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
     private readonly IAIDecisionLogger _decisionLogger;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAIAvailabilityService _availabilityService;
+    private readonly ICorrelationIdService _correlationIdService;
+    private readonly ILogger<RunBusinessAgentCommandHandler> _logger;
 
     public RunBusinessAgentCommandHandler(
         BusinessAgent businessAgent, 
         IUnitOfWork unitOfWork,
         IAIDecisionLogger decisionLogger,
         ICurrentUserService currentUserService,
-        IAIAvailabilityService availabilityService)
+        IAIAvailabilityService availabilityService,
+        ICorrelationIdService correlationIdService,
+        ILogger<RunBusinessAgentCommandHandler> logger)
     {
         _businessAgent = businessAgent;
         _unitOfWork = unitOfWork;
         _decisionLogger = decisionLogger;
         _currentUserService = currentUserService;
         _availabilityService = availabilityService;
+        _correlationIdService = correlationIdService;
+        _logger = logger;
     }
 
     public async Task<BusinessAgentOutput> Handle(RunBusinessAgentCommand request, CancellationToken cancellationToken)
     {
+        // Get correlation ID for tracing
+        var correlationId = _correlationIdService.GetCorrelationId() ?? Guid.NewGuid().ToString();
+        
         // Check quota before execution
         var organizationId = _currentUserService.GetOrganizationId();
         if (organizationId > 0)
@@ -48,6 +58,10 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
         var orgId = organizationId;
         int? linkedDecisionId = null;
         int tokensUsed = 0;
+        
+        _logger.LogInformation(
+            "Starting {AgentType} execution | Project: {ProjectId} | CorrelationId: {CorrelationId}",
+            "BusinessAgent", request.ProjectId, correlationId);
         
         // Fetch completed features
         var storyRepo = _unitOfWork.Repository<UserStory>();
@@ -68,9 +82,12 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
             .Where(t => t.ProjectId == request.ProjectId && t.StoryPoints != null)
             .SumAsync(t => (decimal?)t.StoryPoints!.Value, cancellationToken) ?? 0m;
 
-        // Calculate Velocity: Average story points completed per sprint from completed sprints
+        // Calculate Velocity: Average story points completed per sprint from last 3 months
+        var threeMonthsAgo = DateTimeOffset.UtcNow.AddMonths(-3);
         var completedSprintList = await sprintRepo.Query()
-            .Where(s => s.ProjectId == request.ProjectId && s.Status == SprintConstants.Statuses.Completed)
+            .Where(s => s.ProjectId == request.ProjectId 
+                && s.Status == SprintConstants.Statuses.Completed
+                && s.EndDate >= threeMonthsAgo)
             .OrderByDescending(s => s.EndDate)
             .Select(s => new { s.Id, s.Number, s.EndDate, s.StartDate })
             .ToListAsync(cancellationToken);
@@ -90,6 +107,7 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
             sprintPointsMap = sprintPointsData.ToDictionary(sp => sp.SprintId, sp => sp.Points);
         }
 
+        // Calculate average velocity from completed sprints
         decimal velocity = 0m;
         if (completedSprintList.Count > 0)
         {
@@ -100,22 +118,10 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
             velocity = sprintVelocities.Count > 0 ? sprintVelocities.Average() : 0m;
         }
 
-        // Calculate DefectRate: Defects per story point (or as percentage if preferred)
-        var defectRepo = _unitOfWork.Repository<Defect>();
-        var totalDefects = await defectRepo.Query()
-            .Where(d => d.ProjectId == request.ProjectId)
-            .CountAsync(cancellationToken);
-
-        decimal defectRate = 0m;
-        if (totalStoryPoints > 0)
-        {
-            defectRate = totalDefects / totalStoryPoints;
-        }
-        else if (totalDefects > 0)
-        {
-            // If no story points but defects exist, use a high rate to indicate issues
-            defectRate = 1.0m;
-        }
+        // Calculate completed story points
+        var completedStoryPoints = await taskRepo.Query()
+            .Where(t => t.ProjectId == request.ProjectId && t.Status == TaskConstants.Statuses.Done && t.StoryPoints != null)
+            .SumAsync(t => (decimal?)t.StoryPoints!.Value, cancellationToken) ?? 0m;
 
         // Calculate Progress: Percentage of completed tasks
         var totalTasks = await taskRepo.Query()
@@ -125,6 +131,31 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
         var completedTasks = await taskRepo.Query()
             .Where(t => t.ProjectId == request.ProjectId && t.Status == TaskConstants.Statuses.Done)
             .CountAsync(cancellationToken);
+
+        // Calculate DefectRate: Bugs / total completed tasks
+        var defectRepo = _unitOfWork.Repository<Defect>();
+        var bugCount = await defectRepo.Query()
+            .Where(d => d.ProjectId == request.ProjectId)
+            .CountAsync(cancellationToken);
+
+        decimal defectRate = 0m;
+        if (completedTasks > 0)
+        {
+            defectRate = (decimal)bugCount / completedTasks;
+        }
+
+        // Calculate average cycle time: Average days from CreatedAt to UpdatedAt for completed tasks
+        var avgCycleTime = await taskRepo.Query()
+            .Where(t => t.ProjectId == request.ProjectId 
+                && t.Status == TaskConstants.Statuses.Done)
+            .Select(t => (t.UpdatedAt - t.CreatedAt).TotalDays)
+            .DefaultIfEmpty(0)
+            .AverageAsync(cancellationToken);
+
+        // Calculate completion rate: completedStoryPoints / totalStoryPoints
+        var completionRate = totalStoryPoints > 0 
+            ? completedStoryPoints / totalStoryPoints 
+            : 0m;
 
         decimal progress = totalTasks > 0 ? (completedTasks * 100m) / totalTasks : 0m;
 
@@ -150,13 +181,16 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
             .Select(s => sprintPointsMap.ContainsKey(s.Id) ? sprintPointsMap[s.Id] : 0m)
             .ToList();
 
-        // Calculate completed story points
-        var completedStoryPoints = await taskRepo.Query()
-            .Where(t => t.ProjectId == request.ProjectId && t.Status == TaskConstants.Statuses.Done && t.StoryPoints != null)
-            .SumAsync(t => (decimal?)t.StoryPoints!.Value, cancellationToken) ?? 0m;
+        // Get project name for context
+        var projectRepo = _unitOfWork.Repository<Project>();
+        var project = await projectRepo.Query()
+            .Where(p => p.Id == request.ProjectId)
+            .Select(p => new { p.Name })
+            .FirstOrDefaultAsync(cancellationToken);
 
         var kpis = new Dictionary<string, object>
         {
+            { "ProjectName", project?.Name ?? "Unknown" },
             { "CompletedSprints", completedSprints },
             { "CompletedFeatures", completedFeatures.Count },
             { "TotalStoryPoints", totalStoryPoints },
@@ -172,8 +206,8 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
         {
             { "Velocity", velocity },
             { "DefectRate", defectRate },
-            { "Progress", progress },
-            { "CompletedStoryPoints", completedStoryPoints }
+            { "AvgCycleTimeDays", (decimal)avgCycleTime },
+            { "CompletionRate", completionRate }
         };
 
         try
@@ -227,6 +261,10 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
             );
             tokensUsed = totalTokens;
             
+            _logger.LogInformation(
+                "Completed {AgentType} execution | Tokens: {TokensUsed} | Duration: {DurationMs}ms | CorrelationId: {CorrelationId}",
+                "BusinessAgent", tokensUsed, stopwatch.ElapsedMilliseconds, correlationId);
+            
             linkedDecisionId = await _decisionLogger.LogDecisionAsync(
                 agentType: AIDecisionConstants.AgentTypes.BusinessAgent,
                 decisionType: AIDecisionConstants.DecisionTypes.BusinessValueAnalysis,
@@ -246,12 +284,13 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
                 promptTokens: promptTokens,
                 completionTokens: completionTokens,
                 executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                correlationId: correlationId,
                 cancellationToken: cancellationToken);
 
             // Record quota usage after successful execution
             var quotaRepo = _unitOfWork.Repository<AIQuota>();
             var quota = await quotaRepo.Query()
-                .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive && q.TierName != "Disabled", cancellationToken);
+                .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive, cancellationToken);
 
             if (quota != null)
             {
@@ -294,6 +333,10 @@ public class RunBusinessAgentCommandHandler : IRequestHandler<RunBusinessAgentCo
         catch (Exception ex)
         {
             stopwatch.Stop();
+            
+            _logger.LogError(ex,
+                "Failed {AgentType} execution | Error: {ErrorMessage} | CorrelationId: {CorrelationId}",
+                "BusinessAgent", ex.Message, correlationId);
             
             // Create AgentExecutionLog entry for failed execution
             var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();

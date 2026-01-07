@@ -2,6 +2,7 @@ using MediatR;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Models;
 using IntelliPM.Domain.Entities;
+using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -77,7 +78,7 @@ public class GetAllAIDecisionLogsQueryHandler : IRequestHandler<GetAllAIDecision
                 d.Question,
                 d.Decision,
                 d.ConfidenceScore,
-                d.Status,
+                d.Status.ToString(),
                 d.RequiresHumanApproval,
                 d.ApprovedByHuman,
                 d.CreatedAt,

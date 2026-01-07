@@ -1,6 +1,7 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Domain.Entities;
+using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -44,7 +45,7 @@ public class GetAIDecisionByIdQueryHandler : IRequestHandler<GetAIDecisionByIdQu
                 d.TokensUsed,
                 d.PromptTokens,
                 d.CompletionTokens,
-                d.Status,
+                d.Status.ToString(),
                 d.RequiresHumanApproval,
                 d.ApprovedByHuman,
                 d.ApprovedByUserId,

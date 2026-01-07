@@ -7,6 +7,7 @@ using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace IntelliPM.Application.Agents.Commands;
@@ -18,23 +19,32 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
     private readonly IAIDecisionLogger _decisionLogger;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAIAvailabilityService _availabilityService;
+    private readonly ICorrelationIdService _correlationIdService;
+    private readonly ILogger<RunProductAgentCommandHandler> _logger;
 
     public RunProductAgentCommandHandler(
         ProductAgent productAgent, 
         IUnitOfWork unitOfWork,
         IAIDecisionLogger decisionLogger,
         ICurrentUserService currentUserService,
-        IAIAvailabilityService availabilityService)
+        IAIAvailabilityService availabilityService,
+        ICorrelationIdService correlationIdService,
+        ILogger<RunProductAgentCommandHandler> logger)
     {
         _productAgent = productAgent;
         _unitOfWork = unitOfWork;
         _decisionLogger = decisionLogger;
         _currentUserService = currentUserService;
         _availabilityService = availabilityService;
+        _correlationIdService = correlationIdService;
+        _logger = logger;
     }
 
     public async Task<ProductAgentOutput> Handle(RunProductAgentCommand request, CancellationToken cancellationToken)
     {
+        // Get correlation ID for tracing
+        var correlationId = _correlationIdService.GetCorrelationId() ?? Guid.NewGuid().ToString();
+        
         // Check quota before execution
         var organizationId = _currentUserService.GetOrganizationId();
         if (organizationId > 0)
@@ -49,6 +59,10 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
         int? linkedDecisionId = null;
         int tokensUsed = 0;
         
+        _logger.LogInformation(
+            "Starting {AgentType} execution | Project: {ProjectId} | CorrelationId: {CorrelationId}",
+            "ProductAgent", request.ProjectId, correlationId);
+        
         // Fetch backlog items
         var backlogRepo = _unitOfWork.Repository<BacklogItem>();
         var backlogItems = await backlogRepo.Query()
@@ -56,82 +70,32 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
             .Select(b => $"{b.Id}: {b.Title}")
             .ToListAsync(cancellationToken);
 
-        // Fetch real recent completions from database
-        var recentCompletions = new List<string>();
+        // Get recent completions from the last 30 days
         var thirtyDaysAgo = DateTimeOffset.UtcNow.AddDays(-30);
-
-        // Fetch completed UserStories (recent, last 30 days)
-        var userStoryRepo = _unitOfWork.Repository<UserStory>();
-        var completedStories = await userStoryRepo.Query()
-            .Where(s => s.ProjectId == request.ProjectId 
-                && s.Status == "Done" 
-                && s.UpdatedAt >= thirtyDaysAgo)
-            .OrderByDescending(s => s.UpdatedAt)
-            .Take(10)
-            .Select(s => new { s.Id, s.Title, s.StoryPoints, s.UpdatedAt })
-            .ToListAsync(cancellationToken);
-
-        foreach (var story in completedStories)
-        {
-            var storyPointsText = story.StoryPoints.HasValue ? $" ({story.StoryPoints} SP)" : "";
-            var dateText = story.UpdatedAt.ToString("yyyy-MM-dd");
-            recentCompletions.Add($"Story '{story.Title}' completed{storyPointsText} on {dateText}");
-        }
-
-        // Fetch completed Features (recent, last 30 days)
-        var featureRepo = _unitOfWork.Repository<Feature>();
-        var completedFeatures = await featureRepo.Query()
-            .Where(f => f.ProjectId == request.ProjectId 
-                && f.Status == "Done" 
-                && f.UpdatedAt >= thirtyDaysAgo)
-            .OrderByDescending(f => f.UpdatedAt)
-            .Take(10)
-            .Select(f => new { f.Id, f.Title, f.StoryPoints, f.UpdatedAt })
-            .ToListAsync(cancellationToken);
-
-        foreach (var feature in completedFeatures)
-        {
-            var storyPointsText = feature.StoryPoints.HasValue ? $" ({feature.StoryPoints} SP)" : "";
-            var dateText = feature.UpdatedAt.ToString("yyyy-MM-dd");
-            recentCompletions.Add($"Feature '{feature.Title}' delivered{storyPointsText} on {dateText}");
-        }
-
-        // Fetch completed ProjectTasks (recent, last 30 days)
         var taskRepo = _unitOfWork.Repository<ProjectTask>();
         var completedTasks = await taskRepo.Query()
-            .Include(t => t.Assignee)
             .Where(t => t.ProjectId == request.ProjectId 
                 && t.Status == TaskConstants.Statuses.Done 
                 && t.UpdatedAt >= thirtyDaysAgo)
             .OrderByDescending(t => t.UpdatedAt)
-            .Take(15)
+            .Take(10)
+            .Select(t => new {
+                t.Title,
+                t.UpdatedAt,
+                t.StoryPoints
+            })
             .ToListAsync(cancellationToken);
 
-        foreach (var task in completedTasks)
-        {
-            var storyPointsText = task.StoryPoints != null ? $" ({task.StoryPoints.Value} SP)" : "";
-            var assigneeName = task.Assignee != null 
-                ? $" by {string.Join(" ", new[] { task.Assignee.FirstName, task.Assignee.LastName }.Where(n => !string.IsNullOrEmpty(n)))}"
-                : "";
-            var dateText = task.UpdatedAt.ToString("yyyy-MM-dd");
-            recentCompletions.Add($"Task '{task.Title}' completed{storyPointsText}{assigneeName} on {dateText}");
-        }
+        var recentCompletions = completedTasks
+            .Select(c => c.StoryPoints != null 
+                ? $"{c.Title} ({c.StoryPoints.Value} pts, completed {c.UpdatedAt:MMM dd})"
+                : $"{c.Title} (completed {c.UpdatedAt:MMM dd})")
+            .ToList();
 
-        // Fetch deployed Releases (recent, last 90 days)
-        var releaseRepo = _unitOfWork.Repository<Release>();
-        var deployedReleases = await releaseRepo.Query()
-            .Where(r => r.ProjectId == request.ProjectId 
-                && r.Status == ReleaseStatus.Deployed 
-                && r.ActualReleaseDate >= DateTimeOffset.UtcNow.AddDays(-90))
-            .OrderByDescending(r => r.ActualReleaseDate)
-            .Take(5)
-            .Select(r => new { r.Name, r.Version, r.ActualReleaseDate })
-            .ToListAsync(cancellationToken);
-
-        foreach (var release in deployedReleases)
+        // Fallback if no completions
+        if (!recentCompletions.Any())
         {
-            var dateText = release.ActualReleaseDate?.ToString("yyyy-MM-dd") ?? "Unknown";
-            recentCompletions.Add($"Release '{release.Name}' v{release.Version} deployed on {dateText}");
+            recentCompletions.Add("No recent completions in the last 30 days");
         }
 
         try
@@ -182,6 +146,10 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
                 var estimatedTokens = (inputDataJson.Length + decisionJson.Length + result.Rationale.Length) / 4;
                 tokensUsed = estimatedTokens;
                 
+                _logger.LogInformation(
+                    "Completed {AgentType} execution | Tokens: {TokensUsed} | Duration: {DurationMs}ms | CorrelationId: {CorrelationId}",
+                    "ProductAgent", tokensUsed, stopwatch.ElapsedMilliseconds, correlationId);
+                
                 linkedDecisionId = await _decisionLogger.LogDecisionAsync(
                     agentType: AIDecisionConstants.AgentTypes.ProductAgent,
                     decisionType: AIDecisionConstants.DecisionTypes.BacklogPrioritization,
@@ -199,12 +167,13 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
                     outputData: decisionJson,
                     tokensUsed: estimatedTokens,
                     executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                    correlationId: correlationId,
                     cancellationToken: cancellationToken);
 
                 // Record quota usage after successful execution
                 var quotaRepo = _unitOfWork.Repository<AIQuota>();
                 var quota = await quotaRepo.Query()
-                    .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive && q.TierName != "Disabled", cancellationToken);
+                    .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive, cancellationToken);
 
                 if (quota != null)
                 {
@@ -247,6 +216,10 @@ public class RunProductAgentCommandHandler : IRequestHandler<RunProductAgentComm
         catch (Exception ex)
         {
             stopwatch.Stop();
+            
+            _logger.LogError(ex,
+                "Failed {AgentType} execution | Error: {ErrorMessage} | CorrelationId: {CorrelationId}",
+                "ProductAgent", ex.Message, correlationId);
             
             // Create AgentExecutionLog entry for failed execution
             var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();

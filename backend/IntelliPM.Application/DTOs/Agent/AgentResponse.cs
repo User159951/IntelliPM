@@ -49,5 +49,25 @@ public class AgentResponse
     /// Metadata for additional context (optional)
     /// </summary>
     public Dictionary<string, object>? Metadata { get; set; }
+
+    /// <summary>
+    /// Number of prompt tokens used (input)
+    /// </summary>
+    public int PromptTokens { get; set; }
+
+    /// <summary>
+    /// Number of completion tokens used (output)
+    /// </summary>
+    public int CompletionTokens { get; set; }
+
+    /// <summary>
+    /// Total number of tokens used (prompt + completion)
+    /// </summary>
+    public int TotalTokens => PromptTokens + CompletionTokens;
+
+    /// <summary>
+    /// Model name used for this response (e.g., "gpt-4", "llama3.2:3b")
+    /// </summary>
+    public string Model { get; set; } = string.Empty;
 }
 

@@ -1,4 +1,5 @@
 using IntelliPM.Domain.Interfaces;
+using IntelliPM.Domain.Enums;
 using System.Text.Json;
 
 namespace IntelliPM.Domain.Entities;
@@ -48,9 +49,24 @@ public class AIDecisionLog : IAggregateRoot
     public int? ApprovedByUserId { get; set; }
     public DateTimeOffset? ApprovedAt { get; set; }
     public string? ApprovalNotes { get; set; }
+    
+    // Rejection tracking
+    public int? RejectedByUserId { get; set; }
+    public DateTimeOffset? RejectedAt { get; set; }
+    
+    // Approval deadline (decisions expire after 48h if not approved)
+    public DateTimeOffset? ApprovalDeadline { get; set; }
 
     // Outcome tracking
-    public string Status { get; set; } = "Pending"; // "Pending", "Applied", "Rejected", "Overridden"
+    public AIDecisionStatus Status { get; set; } = AIDecisionStatus.Pending;
+    
+    // Legacy string status for backward compatibility (stored in DB as string, mapped to enum)
+    [Obsolete("Use Status enum property instead")]
+    public string StatusString 
+    { 
+        get => Status.ToString(); 
+        set => Status = Enum.TryParse<AIDecisionStatus>(value, true, out var parsed) ? parsed : AIDecisionStatus.Pending;
+    }
     public bool WasApplied { get; set; } = false;
     public DateTimeOffset? AppliedAt { get; set; }
     public string? ActualOutcome { get; set; } // What actually happened after decision
@@ -69,6 +85,7 @@ public class AIDecisionLog : IAggregateRoot
     // Navigation properties
     public User RequestedByUser { get; set; } = null!;
     public User? ApprovedByUser { get; set; }
+    public User? RejectedByUser { get; set; }
 
     // Helper methods for JSON serialization
     public List<AlternativeDecision> GetAlternativesConsidered()
@@ -107,16 +124,75 @@ public class AIDecisionLog : IAggregateRoot
         ApprovedByUserId = approvedByUserId;
         ApprovedAt = DateTimeOffset.UtcNow;
         ApprovalNotes = notes;
-        Status = Domain.Constants.AIDecisionConstants.Statuses.Applied;
+        Status = AIDecisionStatus.Approved;
+        
+        // Clear rejection fields if previously rejected
+        RejectedByUserId = null;
+        RejectedAt = null;
     }
 
     public void RejectDecision(int rejectedByUserId, string? notes = null)
     {
         ApprovedByHuman = false;
-        ApprovedByUserId = rejectedByUserId;
-        ApprovedAt = DateTimeOffset.UtcNow;
+        RejectedByUserId = rejectedByUserId;
+        RejectedAt = DateTimeOffset.UtcNow;
         ApprovalNotes = notes;
-        Status = Domain.Constants.AIDecisionConstants.Statuses.Rejected;
+        Status = AIDecisionStatus.Rejected;
+        
+        // Clear approval fields if previously approved
+        ApprovedByUserId = null;
+        ApprovedAt = null;
+    }
+    
+    /// <summary>
+    /// Marks the decision as applied/executed.
+    /// </summary>
+    public void MarkAsApplied()
+    {
+        Status = AIDecisionStatus.Applied;
+        WasApplied = true;
+        AppliedAt = DateTimeOffset.UtcNow;
+    }
+    
+    /// <summary>
+    /// Marks the decision as expired (past approval deadline).
+    /// </summary>
+    public void MarkAsExpired()
+    {
+        Status = AIDecisionStatus.Expired;
+    }
+    
+    /// <summary>
+    /// Checks if the decision has expired (past approval deadline).
+    /// </summary>
+    public bool IsExpired()
+    {
+        if (!ApprovalDeadline.HasValue)
+            return false;
+            
+        return DateTimeOffset.UtcNow > ApprovalDeadline.Value;
+    }
+    
+    /// <summary>
+    /// Checks if the decision can be executed (approved and not expired).
+    /// </summary>
+    public bool CanBeExecuted()
+    {
+        if (!RequiresHumanApproval)
+            return true; // No approval required
+            
+        if (IsExpired())
+            return false; // Expired
+            
+        return Status == AIDecisionStatus.Approved;
+    }
+    
+    /// <summary>
+    /// Sets the approval deadline to 48 hours from now.
+    /// </summary>
+    public void SetApprovalDeadline()
+    {
+        ApprovalDeadline = DateTimeOffset.UtcNow.AddHours(48);
     }
 }
 

@@ -6,6 +6,7 @@ using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Authorization;
 using IntelliPM.Application.Interfaces;
 using IntelliPM.Application.Projects.Queries;
+using IntelliPM.Application.Services;
 using System.Text.Json;
 
 namespace IntelliPM.Application.Tasks.Commands;
@@ -15,12 +16,18 @@ public class ChangeTaskStatusCommandHandler : IRequestHandler<ChangeTaskStatusCo
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICacheService _cache;
     private readonly IMediator _mediator;
+    private readonly WorkflowTransitionValidator _workflowValidator;
 
-    public ChangeTaskStatusCommandHandler(IUnitOfWork unitOfWork, ICacheService cache, IMediator mediator)
+    public ChangeTaskStatusCommandHandler(
+        IUnitOfWork unitOfWork, 
+        ICacheService cache, 
+        IMediator mediator,
+        WorkflowTransitionValidator workflowValidator)
     {
         _unitOfWork = unitOfWork;
         _cache = cache;
         _mediator = mediator;
+        _workflowValidator = workflowValidator;
     }
 
     public async Task<ChangeTaskStatusResponse> Handle(ChangeTaskStatusCommand request, CancellationToken cancellationToken)
@@ -44,6 +51,23 @@ public class ChangeTaskStatusCommandHandler : IRequestHandler<ChangeTaskStatusCo
             throw new ArgumentException($"Invalid status: {request.NewStatus}. Must be one of: {string.Join(", ", validStatuses)}");
 
         var oldStatus = task.Status;
+
+        // Validate workflow transition
+        var validationResult = await _workflowValidator.ValidateTransitionAsync(
+            entityType: "Task",
+            fromStatus: oldStatus,
+            toStatus: request.NewStatus,
+            userRole: userRole.Value,
+            entityId: task.Id,
+            userId: request.UpdatedBy,
+            projectId: task.ProjectId,
+            checkConditions: null, // Can be extended to check conditions like "QAApproval" for Done->Released
+            cancellationToken: cancellationToken);
+
+        if (!validationResult.IsAllowed)
+        {
+            throw new UnauthorizedException($"Workflow transition not allowed: {validationResult.Reason}");
+        }
         task.Status = request.NewStatus;
         task.UpdatedAt = DateTimeOffset.UtcNow;
         task.UpdatedById = request.UpdatedBy;

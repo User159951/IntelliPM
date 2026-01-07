@@ -1,7 +1,10 @@
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Authorization;
 using IntelliPM.Application.Features.Releases.DTOs;
+using IntelliPM.Application.Projects.Queries;
 using IntelliPM.Domain.Entities;
+using IntelliPM.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -10,21 +13,25 @@ namespace IntelliPM.Application.Features.Releases.Commands;
 
 /// <summary>
 /// Handler for DeployReleaseCommand.
-/// Deploys a release after validating quality gates.
+/// Deploys a release after validating quality gates and QA approval.
+/// Requires QA approval before deployment can proceed.
 /// </summary>
 public class DeployReleaseCommandHandler : IRequestHandler<DeployReleaseCommand, ReleaseDto>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IMediator _mediator;
     private readonly ILogger<DeployReleaseCommandHandler> _logger;
 
     public DeployReleaseCommandHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
+        IMediator mediator,
         ILogger<DeployReleaseCommandHandler> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -42,6 +49,7 @@ public class DeployReleaseCommandHandler : IRequestHandler<DeployReleaseCommand,
             .Query()
             .Include(r => r.CreatedBy)
             .Include(r => r.QualityGates)
+                .ThenInclude(qg => qg.CheckedByUser)
             .Include(r => r.Sprints)
             .FirstOrDefaultAsync(r => r.Id == request.Id && r.OrganizationId == organizationId, cancellationToken);
 
@@ -50,21 +58,86 @@ public class DeployReleaseCommandHandler : IRequestHandler<DeployReleaseCommand,
             throw new NotFoundException($"Release with ID {request.Id} not found");
         }
 
+        // Permission check - ProductOwner or ScrumMaster can deploy
+        var userRole = await _mediator.Send(new GetUserRoleInProjectQuery(release.ProjectId, userId), cancellationToken);
+        if (userRole == null)
+            throw new UnauthorizedException("You are not a member of this project");
+        if (!ProjectPermissions.CanManageSprints(userRole.Value)) // ProductOwner or ScrumMaster
+            throw new UnauthorizedException($"Only ProductOwner or ScrumMaster can deploy releases. Your role: {userRole.Value}");
+
         // Check if release can be deployed
         if (!release.CanDeploy())
         {
             throw new InvalidOperationException($"Release must be in ReadyForDeployment status to be deployed. Current status: {release.Status}");
         }
 
-        // Validate quality gates
+        // Validate blocking quality gates first (most restrictive)
+        var blockingGates = release.QualityGates
+            .Where(qg => qg.IsBlocking && qg.Status != QualityGateStatus.Passed && qg.Status != QualityGateStatus.Skipped)
+            .ToList();
+
+        if (blockingGates.Any())
+        {
+            var gateNames = string.Join(", ", blockingGates.Select(qg => qg.Type.ToString()));
+            throw new QualityGateNotPassedException(
+                $"Cannot deploy: {blockingGates.Count} blocking quality gate(s) not passed: {gateNames}",
+                blockingGates.Select(qg => qg.Type.ToString()));
+        }
+
+        // Validate required quality gates (for backward compatibility)
         if (!release.AreQualityGatesPassed())
         {
             var failedGates = release.QualityGates
-                .Where(qg => qg.IsRequired && qg.Status != Domain.Enums.QualityGateStatus.Passed && qg.Status != Domain.Enums.QualityGateStatus.Skipped)
+                .Where(qg => qg.IsRequired && qg.Status != QualityGateStatus.Passed && qg.Status != QualityGateStatus.Skipped)
                 .ToList();
 
             var gateNames = string.Join(", ", failedGates.Select(qg => qg.Type.ToString()));
-            throw new ValidationException($"Cannot deploy: {failedGates.Count} required quality gate(s) not passed: {gateNames}");
+            throw new QualityGateNotPassedException(
+                $"Cannot deploy: {failedGates.Count} required quality gate(s) not passed: {gateNames}",
+                failedGates.Select(qg => qg.Type.ToString()));
+        }
+
+        // QA Approval Check: Verify that at least one quality gate has been validated by a QA/Tester
+        var qaValidatedGates = release.QualityGates
+            .Where(qg => qg.CheckedByUserId.HasValue && qg.Status == QualityGateStatus.Passed)
+            .ToList();
+
+        if (qaValidatedGates.Any())
+        {
+            // Check if the user who validated is a Tester/QA
+            var validatedByUserIds = qaValidatedGates.Select(qg => qg.CheckedByUserId!.Value).Distinct().ToList();
+            var memberRepo = _unitOfWork.Repository<ProjectMember>();
+            
+            var qaValidators = await memberRepo.Query()
+                .Where(m => m.ProjectId == release.ProjectId && 
+                           validatedByUserIds.Contains(m.UserId) && 
+                           m.Role == ProjectRole.Tester)
+                .Select(m => m.UserId)
+                .ToListAsync(cancellationToken);
+
+            if (!qaValidators.Any())
+            {
+                throw new ValidationException("Release cannot be deployed: Quality gates must be validated by a Tester/QA before deployment. No QA approval found.");
+            }
+        }
+        else
+        {
+            // If no gates have been manually validated, check if there are any required manual approval gates
+            var manualApprovalGates = release.QualityGates
+                .Where(qg => qg.Type == QualityGateType.ManualApproval && qg.IsRequired)
+                .ToList();
+
+            if (manualApprovalGates.Any())
+            {
+                var unapprovedGates = manualApprovalGates
+                    .Where(qg => qg.Status != QualityGateStatus.Passed)
+                    .ToList();
+
+                if (unapprovedGates.Any())
+                {
+                    throw new ValidationException($"Release cannot be deployed: {unapprovedGates.Count} required manual approval quality gate(s) must be approved by QA before deployment.");
+                }
+            }
         }
 
         // Deploy release using domain method

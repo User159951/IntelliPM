@@ -461,11 +461,12 @@ using (var scope = app.Services.CreateScope())
         // NOTE: Demo seed data has been disabled so that only real data appears.
         // However, we always need to seed permissions and role permissions for RBAC to work.
 
-        // Seed permissions and role permissions (required for RBAC)
-        var dataSeeder = scope.ServiceProvider.GetRequiredService<IntelliPM.Infrastructure.Persistence.DataSeeder>();
-        await dataSeeder.SeedPermissionsAsync();
-        await dataSeeder.SeedRolePermissionsAsync();
-        logger.LogInformation("Permissions and role permissions seeded");
+        // Seed all RBAC data using the comprehensive versioned seed system
+        // This includes: permissions, role-permissions, workflow rules, and AI decision policies
+        await IntelliPM.Infrastructure.Persistence.DataSeeder.SeedAllRBACDataAsync(
+            appContext,
+            logger);
+        logger.LogInformation("RBAC data seeding completed");
 
         // Seed default organization (idempotent - safe to run on every startup)
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IntelliPM.Infrastructure.Identity.PasswordHasher>();

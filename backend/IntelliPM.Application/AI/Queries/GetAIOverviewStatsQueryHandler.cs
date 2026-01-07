@@ -3,6 +3,7 @@ using IntelliPM.Application.AI.DTOs;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Constants;
+using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -56,9 +57,9 @@ public class GetAIOverviewStatsQueryHandler : IRequestHandler<GetAIOverviewStats
         var totalDecisionsLast30Days = decisionsLast30Days.Count;
 
         // Status breakdown
-        var pendingApprovals = decisionsLast30Days.Count(d => d.Status == AIDecisionConstants.Statuses.PendingApproval);
-        var approvedDecisions = decisionsLast30Days.Count(d => d.Status == AIDecisionConstants.Statuses.Applied);
-        var rejectedDecisions = decisionsLast30Days.Count(d => d.Status == AIDecisionConstants.Statuses.Rejected);
+        var pendingApprovals = decisionsLast30Days.Count(d => d.Status == AIDecisionStatus.Pending);
+        var approvedDecisions = decisionsLast30Days.Count(d => d.Status == AIDecisionStatus.Applied);
+        var rejectedDecisions = decisionsLast30Days.Count(d => d.Status == AIDecisionStatus.Rejected);
 
         // Average confidence score
         var averageConfidenceScore = decisionsLast30Days.Any()

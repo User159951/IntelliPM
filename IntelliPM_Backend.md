@@ -1,6 +1,6 @@
 # IntelliPM Backend Documentation
 
-**Version:** 2.15.0  
+**Version:** 2.16.0  
 **Last Updated:** January 7, 2025 (Comprehensive Codebase Scan)  
 **Technology Stack:** .NET 8.0, ASP.NET Core, Entity Framework Core, SQL Server, PostgreSQL, Semantic Kernel
 
@@ -193,7 +193,7 @@ IntelliPM.Domain/
 │   ├── QualityGate.cs            # Quality gate entity
 │   ├── TaskDependency.cs         # Task dependency entity
 │   └── OrganizationPermissionPolicy.cs # Organization permission policy entity
-├── Events/                        # Domain events (23 events)
+├── Events/                        # Domain events (23 events including IDomainEvent interface)
 │   ├── IDomainEvent.cs           # Domain event interface
 │   ├── CommentAddedEvent.cs      # Event when comment is added
 │   ├── CommentUpdatedEvent.cs    # Event when comment is updated
@@ -243,11 +243,11 @@ IntelliPM.Domain/
 ```
 IntelliPM.Application/
 ├── [Feature]/                     # Feature-based organization
-│   ├── Commands/                  # Write operations
+│   ├── Commands/                  # Write operations (98 Commands total)
 │   │   ├── [Feature]Command.cs
 │   │   ├── [Feature]CommandHandler.cs
 │   │   └── [Feature]CommandValidator.cs
-│   └── Queries/                   # Read operations
+│   └── Queries/                   # Read operations (79 Queries total)
 │       ├── [Feature]Query.cs
 │       └── [Feature]QueryHandler.cs
 ├── Admin/                         # Admin commands
@@ -350,7 +350,7 @@ IntelliPM.Infrastructure/
 
 ```
 IntelliPM.API/
-├── Controllers/                   # API controllers (43 controllers total: 26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
+├── Controllers/                   # API controllers (43 controllers total: 27 standard + 12 admin + 2 superadmin + 1 DEBUG-only TestController + 1 BaseApiController)
 │   ├── BaseApiController.cs      # Base controller
 │   ├── ProjectsController.cs
 │   ├── TasksController.cs
@@ -377,7 +377,7 @@ IntelliPM.API/
 │   ├── HealthApiController.cs    # API smoke tests (no versioning)
 │   ├── TestController.cs         # DEBUG-only: Conditioned with #if DEBUG
 │   ├── ~~AdminHashGeneratorController.cs~~ (REMOVED - Security vulnerability)
-│   ├── Admin/                     # Admin controllers (14 controllers)
+│   ├── Admin/                     # Admin controllers (12 controllers)
 │   │   ├── UsersController.cs
 │   │   ├── FeatureFlagsController.cs
 │   │   ├── DashboardController.cs
@@ -877,6 +877,8 @@ Entities implementing `IAggregateRoot`:
 
 ### 4.5 Domain Events
 
+**Total Domain Events:** 23 (22 event records + 1 IDomainEvent interface)
+
 #### 4.5.1 IDomainEvent Interface
 
 ```csharp
@@ -1222,8 +1224,8 @@ public class OrganizationInvitation
 
 The application layer uses CQRS (Command Query Responsibility Segregation) pattern:
 
-- **Commands**: Write operations (Create, Update, Delete) - **Total: 98 Commands**
-- **Queries**: Read operations (Get, List, Search) - **Total: 79 Queries**
+- **Commands**: Write operations (Create, Update, Delete) - **Total: 98 Commands** ✅ Verified
+- **Queries**: Read operations (Get, List, Search) - **Total: 79 Queries** ✅ Verified
 
 ### 5.2 Command Pattern
 
@@ -5468,7 +5470,7 @@ This section documents the actual API endpoints available in the backend compare
 
 #### 21.1.1 Controllers Summary
 
-**Total Controllers:** 43 controllers (26 standard + 14 admin + 2 superadmin + 1 DEBUG-only TestController)
+**Total Controllers:** 43 controllers (27 standard + 12 admin + 2 superadmin + 1 DEBUG-only TestController + 1 BaseApiController)
 
 | Controller | Route Pattern | Endpoints | Status | Notes |
 |------------|---------------|-----------|--------|
@@ -5614,13 +5616,20 @@ This section documents the actual API endpoints available in the backend compare
 
 ## Changelog
 
-### Version 2.15.0 (January 7, 2025) - Comprehensive Codebase Scan
+### Version 2.16.0 (January 7, 2025) - Comprehensive Codebase Scan
 - ✅ **Documentation Update**: Comprehensive codebase scan and verification
-  - Verified all controller counts: 43 controllers (42 actual + BaseApiController)
-  - Verified all command counts: 98 Commands (CQRS)
-  - Verified all query counts: 79 Queries (CQRS)
-  - Verified all entity counts: 44 Domain Entities
-  - All counts verified against actual codebase files
+  - Verified all controller counts: 43 controllers total ✅
+    - 27 standard controllers (root Controllers/ folder)
+    - 12 admin controllers (Admin/ folder)
+    - 2 superadmin controllers (SuperAdmin/ folder)
+    - 1 DEBUG-only TestController (#if DEBUG)
+    - 1 BaseApiController (base class, not counted in endpoint totals)
+    - Note: FeatureFlagsController exists in both root (public read) and Admin/ folder (admin CRUD)
+  - Verified all command counts: 98 Commands (CQRS) ✅
+  - Verified all query counts: 79 Queries (CQRS) ✅
+  - Verified all entity counts: 44 Domain Entities ✅
+  - Verified all domain events: 23 events (22 event records + IDomainEvent interface) ✅
+  - All counts verified against actual codebase files using PowerShell commands
   - Updated "Last Updated" date to reflect comprehensive scan
 
 ### Version 2.15.0 (January 7, 2025)

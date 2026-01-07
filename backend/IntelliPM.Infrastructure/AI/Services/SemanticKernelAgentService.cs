@@ -14,6 +14,7 @@ using IntelliPM.Domain.Constants;
 using IntelliPM.Infrastructure.Persistence;
 using IntelliPM.Infrastructure.AI.Plugins;
 using IntelliPM.Domain.Entities;
+using IntelliPM.Infrastructure.AI.Helpers;
 
 namespace IntelliPM.Infrastructure.AI.Services;
 
@@ -159,6 +160,9 @@ Format your response in markdown with clear sections.";
             
             stopwatch.Stop();
             
+            // Extract token usage from Semantic Kernel response
+            var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
+            
             // Track which tools were called
             var toolsCalled = new List<string>();
             foreach (var item in chatHistory)
@@ -182,9 +186,10 @@ Format your response in markdown with clear sections.";
             await _dbContext.SaveChangesAsync(cancellationToken);
             
             _logger.LogInformation(
-                "✅ Agent: Task improvement completed in {Ms}ms. Tools called: {Tools}",
+                "✅ Agent: Task improvement completed in {Ms}ms. Tools called: {Tools}, Tokens: {Tokens}",
                 stopwatch.ElapsedMilliseconds,
-                executionLog.ToolsCalled ?? "none"
+                executionLog.ToolsCalled ?? "none",
+                totalTokens
             );
             
             return new AgentResponse
@@ -196,6 +201,9 @@ Format your response in markdown with clear sections.";
                 ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
                 ToolsCalled = toolsCalled,
                 Timestamp = DateTimeOffset.UtcNow,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                Model = "llama3.2:3b",
                 Metadata = new Dictionary<string, object>
                 {
                     ["AgentType"] = "TaskImprover",
@@ -328,6 +336,9 @@ End with:
             
             stopwatch.Stop();
             
+            // Extract token usage from Semantic Kernel response
+            var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
+            
             executionLog.Status = "Success";
             executionLog.AgentResponse = response.Content ?? "No analysis generated";
             executionLog.ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds;
@@ -336,9 +347,10 @@ End with:
             await _dbContext.SaveChangesAsync(cancellationToken);
             
             _logger.LogInformation(
-                "✅ Agent: Risk analysis completed in {Ms}ms for project {ProjectId}",
+                "✅ Agent: Risk analysis completed in {Ms}ms for project {ProjectId}, Tokens: {Tokens}",
                 stopwatch.ElapsedMilliseconds,
-                projectId
+                projectId,
+                totalTokens
             );
             
             return new AgentResponse
@@ -350,6 +362,9 @@ End with:
                 ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
                 ToolsCalled = new List<string> { "LLM-Analysis" },
                 Timestamp = DateTimeOffset.UtcNow,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                Model = "llama3.2:3b",
                 Metadata = new Dictionary<string, object>
                 {
                     ["ProjectId"] = projectId,
@@ -504,8 +519,11 @@ Use the tools to analyze backlog, team capacity, and sprint capacity, then sugge
             stopwatch.Stop();
             var responseContent = response.Content ?? "No sprint plan generated";
             
-            _logger.LogInformation("🤖 Agent: Sprint plan suggested for Sprint {SprintId} in {ElapsedMs}ms", 
-                sprintId, stopwatch.ElapsedMilliseconds);
+            // Extract token usage from Semantic Kernel response
+            var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
+            
+            _logger.LogInformation("🤖 Agent: Sprint plan suggested for Sprint {SprintId} in {ElapsedMs}ms, Tokens: {Tokens}", 
+                sprintId, stopwatch.ElapsedMilliseconds, totalTokens);
             
             // 6. Logger l'exécution
             executionLog.Status = "Success";
@@ -522,7 +540,10 @@ Use the tools to analyze backlog, team capacity, and sprint capacity, then sugge
                 RequiresApproval = true, // Sprint planning suggestions require approval
                 ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
                 ExecutionCostUsd = 0.0m,
-                Timestamp = DateTimeOffset.UtcNow
+                Timestamp = DateTimeOffset.UtcNow,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                Model = "llama3.2:3b"
             };
         }
         catch (NotFoundException)
@@ -692,8 +713,11 @@ Provide a comprehensive dependency analysis with recommendations.";
             stopwatch.Stop();
             var responseContent = response.Content ?? "No dependency analysis generated";
             
-            _logger.LogInformation("🤖 Agent: Task dependency analysis completed for Project {ProjectId} in {ElapsedMs}ms", 
-                projectId, stopwatch.ElapsedMilliseconds);
+            // Extract token usage from Semantic Kernel response
+            var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
+            
+            _logger.LogInformation("🤖 Agent: Task dependency analysis completed for Project {ProjectId} in {ElapsedMs}ms, Tokens: {Tokens}", 
+                projectId, stopwatch.ElapsedMilliseconds, totalTokens);
             
             // 6. Logger l'exécution
             executionLog.Status = "Success";
@@ -710,7 +734,10 @@ Provide a comprehensive dependency analysis with recommendations.";
                 RequiresApproval = false, // Analysis doesn't require approval
                 ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
                 ExecutionCostUsd = 0.0m,
-                Timestamp = DateTimeOffset.UtcNow
+                Timestamp = DateTimeOffset.UtcNow,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                Model = "llama3.2:3b"
             };
         }
         catch (NotFoundException)
@@ -886,12 +913,15 @@ Return only valid JSON in the specified format.";
             stopwatch.Stop();
             var retrospective = response.Content ?? "No retrospective generated";
             
+            // Extract token usage from Semantic Kernel response
+            var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
+            
             // 8. Sauvegarder la rétrospective dans la DB
             sprint.RetrospectiveNotes = retrospective;
             await _dbContext.SaveChangesAsync(cancellationToken);
             
-            _logger.LogInformation("🤖 Agent: Sprint retrospective generated for Sprint {SprintId} in {ElapsedMs}ms", 
-                sprintId, stopwatch.ElapsedMilliseconds);
+            _logger.LogInformation("🤖 Agent: Sprint retrospective generated for Sprint {SprintId} in {ElapsedMs}ms, Tokens: {Tokens}", 
+                sprintId, stopwatch.ElapsedMilliseconds, totalTokens);
             
             // 9. Logger l'exécution
             executionLog.Status = "Success";
@@ -908,7 +938,10 @@ Return only valid JSON in the specified format.";
                 RequiresApproval = false, // Retrospective doesn't require approval
                 ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
                 ExecutionCostUsd = 0.0m,
-                Timestamp = DateTimeOffset.UtcNow
+                Timestamp = DateTimeOffset.UtcNow,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                Model = "llama3.2:3b"
             };
         }
         catch (NotFoundException)

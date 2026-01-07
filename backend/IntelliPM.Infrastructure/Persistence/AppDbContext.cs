@@ -69,11 +69,16 @@ public class AppDbContext : DbContext
     public DbSet<Milestone> Milestones { get; set; }
     public DbSet<Release> Releases { get; set; }
     public DbSet<QualityGate> QualityGates { get; set; }
+    public DbSet<WorkflowTransitionRule> WorkflowTransitionRules { get; set; }
+    public DbSet<WorkflowTransitionAuditLog> WorkflowTransitionAuditLogs { get; set; }
         public DbSet<UserAIQuotaOverride> UserAIQuotaOverrides { get; set; }
         public DbSet<UserAIUsageCounter> UserAIUsageCounters { get; set; }
         public DbSet<OrganizationAIQuota> OrganizationAIQuotas { get; set; }
         public DbSet<UserAIQuota> UserAIQuotas { get; set; }
         public DbSet<OrganizationPermissionPolicy> OrganizationPermissionPolicies { get; set; }
+        public DbSet<AIDecisionApprovalPolicy> AIDecisionApprovalPolicies { get; set; }
+        public DbSet<RBACPolicyVersion> RBACPolicyVersions { get; set; }
+        public DbSet<SeedHistory> SeedHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -445,6 +450,11 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new MilestoneConfiguration());
         modelBuilder.ApplyConfiguration(new ReleaseConfiguration());
         modelBuilder.ApplyConfiguration(new QualityGateConfiguration());
+        modelBuilder.ApplyConfiguration(new AIDecisionApprovalPolicyConfiguration());
+        modelBuilder.ApplyConfiguration(new WorkflowTransitionRuleConfiguration());
+        modelBuilder.ApplyConfiguration(new WorkflowTransitionAuditLogConfiguration());
+        modelBuilder.ApplyConfiguration(new RBACPolicyVersionConfiguration());
+        modelBuilder.ApplyConfiguration(new SeedHistoryConfiguration());
 
         // OrganizationInvitation configuration
         modelBuilder.Entity<OrganizationInvitation>(entity =>

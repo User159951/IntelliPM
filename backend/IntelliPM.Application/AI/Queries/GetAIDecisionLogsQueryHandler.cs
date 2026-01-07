@@ -87,7 +87,7 @@ public class GetAIDecisionLogsQueryHandler : IRequestHandler<GetAIDecisionLogsQu
                 d.Question,
                 d.Decision,
                 d.ConfidenceScore,
-                d.Status,
+                d.Status.ToString(),
                 d.RequiresHumanApproval,
                 d.ApprovedByHuman,
                 d.CreatedAt,

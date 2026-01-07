@@ -13,6 +13,7 @@ using IntelliPM.Infrastructure.LLM;
 using IntelliPM.Infrastructure.AI.Services;
 using IntelliPM.Infrastructure.Services;
 using IntelliPM.Infrastructure.BackgroundServices;
+using IntelliPM.Infrastructure.Persistence.Seeding;
 
 namespace IntelliPM.Infrastructure;
 
@@ -115,11 +116,13 @@ public static class DependencyInjection
         // Seeders
         services.AddScoped<DataSeeder>();
         services.AddScoped<MultiOrgDataSeeder>();
+        services.AddScoped<SeedVersionManager>();
 
         // Background Services
         services.AddHostedService<OutboxProcessor>();
         services.AddHostedService<MilestoneStatusUpdater>();
         services.AddHostedService<ScheduledQuotaProcessor>();
+        services.AddHostedService<AIDecisionExpirationService>();
 
 
         return services;

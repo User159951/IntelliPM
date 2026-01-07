@@ -6,6 +6,7 @@ public enum ProjectRole
     ScrumMaster,
     Developer,
     Tester,
-    Viewer
+    Viewer,
+    Manager
 }
 

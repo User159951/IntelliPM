@@ -3,6 +3,7 @@ using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Interfaces;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Constants;
+using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -16,15 +17,18 @@ public class AIDecisionLogger : IAIDecisionLogger
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AIDecisionLogger> _logger;
     private readonly IAIPricingService _pricingService;
+    private readonly ICorrelationIdService _correlationIdService;
 
     public AIDecisionLogger(
         IUnitOfWork unitOfWork,
         ILogger<AIDecisionLogger> logger,
-        IAIPricingService pricingService)
+        IAIPricingService pricingService,
+        ICorrelationIdService correlationIdService)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
         _pricingService = pricingService;
+        _correlationIdService = correlationIdService;
     }
 
     public async System.Threading.Tasks.Task<int?> LogDecisionAsync(
@@ -50,10 +54,14 @@ public class AIDecisionLogger : IAIDecisionLogger
         int executionTimeMs = 0,
         bool isSuccess = true,
         string? errorMessage = null,
+        string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            // Get correlation ID if not provided
+            var finalCorrelationId = correlationId ?? _correlationIdService.GetCorrelationId() ?? Guid.NewGuid().ToString();
+            
             // Use projectId as entityId if not specified
             var finalEntityId = entityId ?? projectId ?? 0;
             
@@ -84,6 +92,9 @@ public class AIDecisionLogger : IAIDecisionLogger
             // Serialize metadata if provided
             var metadataJson = metadata != null ? JsonSerializer.Serialize(metadata) : "{}";
 
+            // Determine if approval is required (can be enhanced with policy checks)
+            var requiresApproval = confidenceScore < AIDecisionConstants.MinConfidenceScore;
+
             // Create decision log entry
             var decisionLog = new AIDecisionLog
             {
@@ -105,15 +116,24 @@ public class AIDecisionLogger : IAIDecisionLogger
                 InputData = inputData ?? metadataJson,
                 OutputData = outputData ?? reasoning,
                 RequestedByUserId = userId,
-                RequiresHumanApproval = false,
-                Status = isSuccess ? AIDecisionConstants.Statuses.Applied : AIDecisionConstants.Statuses.Pending, // Failed executions remain pending
-                WasApplied = isSuccess, // Only mark as applied if successful
-                AppliedAt = isSuccess ? DateTimeOffset.UtcNow : null,
+                RequiresHumanApproval = requiresApproval,
+                Status = isSuccess && !requiresApproval 
+                    ? AIDecisionStatus.Applied 
+                    : AIDecisionStatus.Pending, // Failed executions or approvals required remain pending
+                WasApplied = isSuccess && !requiresApproval, // Only mark as applied if successful and no approval needed
+                AppliedAt = isSuccess && !requiresApproval ? DateTimeOffset.UtcNow : null,
                 CreatedAt = DateTimeOffset.UtcNow,
                 ExecutionTimeMs = executionTimeMs,
                 IsSuccess = isSuccess,
-                ErrorMessage = errorMessage
+                ErrorMessage = errorMessage,
+                CorrelationId = finalCorrelationId
             };
+
+            // Set approval deadline if approval is required
+            if (requiresApproval)
+            {
+                decisionLog.SetApprovalDeadline();
+            }
 
             // Add to repository
             var decisionLogRepo = _unitOfWork.Repository<AIDecisionLog>();
@@ -123,17 +143,18 @@ public class AIDecisionLogger : IAIDecisionLogger
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Logged AI decision: AgentType={AgentType}, DecisionType={DecisionType}, EntityId={EntityId}, Confidence={Confidence}, DecisionLogId={DecisionLogId}",
-                agentType, decisionType, finalEntityId, confidenceScore, decisionLog.Id);
+                "AI Decision logged: {AgentType} {DecisionType} for Org {OrganizationId} | CorrelationId: {CorrelationId} | DecisionLogId: {DecisionLogId}",
+                agentType, decisionType, organizationId, finalCorrelationId, decisionLog.Id);
 
             return decisionLog.Id;
         }
         catch (Exception ex)
         {
             // Log error but don't throw - logging should not break the agent execution
+            var errorCorrelationId = correlationId ?? _correlationIdService.GetCorrelationId() ?? Guid.NewGuid().ToString();
             _logger.LogError(ex,
-                "Failed to log AI decision: AgentType={AgentType}, DecisionType={DecisionType}, ProjectId={ProjectId}",
-                agentType, decisionType, projectId);
+                "Failed to log AI decision: AgentType={AgentType}, DecisionType={DecisionType}, ProjectId={ProjectId} | CorrelationId: {CorrelationId}",
+                agentType, decisionType, projectId, errorCorrelationId);
             return null;
         }
     }

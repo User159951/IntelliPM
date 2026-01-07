@@ -6,6 +6,7 @@ using IntelliPM.Application.Services;
 using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace IntelliPM.Application.Agents.Commands;
@@ -17,23 +18,32 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
     private readonly IAIDecisionLogger _decisionLogger;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAIAvailabilityService _availabilityService;
+    private readonly ICorrelationIdService _correlationIdService;
+    private readonly ILogger<RunManagerAgentCommandHandler> _logger;
 
     public RunManagerAgentCommandHandler(
         ManagerAgent managerAgent,
         IUnitOfWork unitOfWork,
         IAIDecisionLogger decisionLogger,
         ICurrentUserService currentUserService,
-        IAIAvailabilityService availabilityService)
+        IAIAvailabilityService availabilityService,
+        ICorrelationIdService correlationIdService,
+        ILogger<RunManagerAgentCommandHandler> logger)
     {
         _managerAgent = managerAgent;
         _unitOfWork = unitOfWork;
         _decisionLogger = decisionLogger;
         _currentUserService = currentUserService;
         _availabilityService = availabilityService;
+        _correlationIdService = correlationIdService;
+        _logger = logger;
     }
 
     public async Task<ManagerAgentOutput> Handle(RunManagerAgentCommand request, CancellationToken cancellationToken)
     {
+        // Get correlation ID for tracing
+        var correlationId = _correlationIdService.GetCorrelationId() ?? Guid.NewGuid().ToString();
+        
         // Check quota before execution
         var organizationId = _currentUserService.GetOrganizationId();
         if (organizationId > 0)
@@ -47,6 +57,10 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
         var orgId = organizationId;
         int? linkedDecisionId = null;
         int tokensUsed = 0;
+        
+        _logger.LogInformation(
+            "Starting {AgentType} execution | Project: {ProjectId} | CorrelationId: {CorrelationId}",
+            "ManagerAgent", request.ProjectId, correlationId);
         
         // Calculate KPIs
         var sprintRepo = _unitOfWork.Repository<Sprint>();
@@ -135,6 +149,10 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
                 var estimatedTokens = (inputDataJson.Length + decisionJson.Length + result.ExecutiveSummary.Length) / 4;
                 tokensUsed = estimatedTokens;
                 
+                _logger.LogInformation(
+                    "Completed {AgentType} execution | Tokens: {TokensUsed} | Duration: {DurationMs}ms | CorrelationId: {CorrelationId}",
+                    "ManagerAgent", tokensUsed, stopwatch.ElapsedMilliseconds, correlationId);
+                
                 linkedDecisionId = await _decisionLogger.LogDecisionAsync(
                     agentType: AIDecisionConstants.AgentTypes.ManagerAgent,
                     decisionType: AIDecisionConstants.DecisionTypes.ExecutiveSummary,
@@ -152,12 +170,13 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
                     outputData: decisionJson,
                     tokensUsed: estimatedTokens,
                     executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                    correlationId: correlationId,
                     cancellationToken: cancellationToken);
 
                 // Record quota usage after successful execution
                 var quotaRepo = _unitOfWork.Repository<AIQuota>();
                 var quota = await quotaRepo.Query()
-                    .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive && q.TierName != "Disabled", cancellationToken);
+                    .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive, cancellationToken);
 
                 if (quota != null)
                 {
@@ -200,6 +219,10 @@ public class RunManagerAgentCommandHandler : IRequestHandler<RunManagerAgentComm
         catch (Exception ex)
         {
             stopwatch.Stop();
+            
+            _logger.LogError(ex,
+                "Failed {AgentType} execution | Error: {ErrorMessage} | CorrelationId: {CorrelationId}",
+                "ManagerAgent", ex.Message, correlationId);
             
             // Create AgentExecutionLog entry for failed execution
             var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();

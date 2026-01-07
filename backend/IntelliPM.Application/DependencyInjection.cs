@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<ITaskDependencyValidator, TaskDependencyValidator>();
         services.AddScoped<IMilestoneValidator, MilestoneValidator>();
         services.AddScoped<IReleaseNotesGenerator, ReleaseNotesGenerator>();
+        services.AddScoped<WorkflowTransitionValidator>();
         services.AddScoped<IQualityGateChecker, QualityGateChecker>();
         services.AddScoped<IAgentOutputParser, AgentOutputParser>();
 

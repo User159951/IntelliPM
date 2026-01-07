@@ -3,6 +3,7 @@ using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Interfaces;
 using IntelliPM.Domain.Entities;
+using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -135,7 +136,7 @@ public class DisableAIForOrgCommandHandler : IRequestHandler<DisableAIForOrgComm
             InputData = JsonSerializer.Serialize(new { OrganizationId = request.OrganizationId }),
             OutputData = JsonSerializer.Serialize(new { Disabled = true, Reason = request.Reason }),
             RequestedByUserId = currentUserId,
-            Status = Domain.Constants.AIDecisionConstants.Statuses.Applied,
+            Status = AIDecisionStatus.Applied,
             WasApplied = true,
             AppliedAt = DateTimeOffset.UtcNow,
             CreatedAt = DateTimeOffset.UtcNow,

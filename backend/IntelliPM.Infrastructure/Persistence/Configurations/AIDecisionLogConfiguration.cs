@@ -1,4 +1,5 @@
 using IntelliPM.Domain.Entities;
+using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,6 +11,11 @@ namespace IntelliPM.Infrastructure.Persistence.Configurations;
 /// </summary>
 public class AIDecisionLogConfiguration : IEntityTypeConfiguration<AIDecisionLog>
 {
+    private static AIDecisionStatus ParseStatus(string value)
+    {
+        return Enum.TryParse<AIDecisionStatus>(value, true, out var parsed) ? parsed : AIDecisionStatus.Pending;
+    }
+
     public void Configure(EntityTypeBuilder<AIDecisionLog> builder)
     {
         builder.ToTable("AIDecisionLogs");
@@ -44,9 +50,18 @@ public class AIDecisionLogConfiguration : IEntityTypeConfiguration<AIDecisionLog
             .HasDatabaseName("IX_AIDecisionLogs_EntityType_EntityId");
 
         // Index for pending approvals (filtered index for performance)
-        builder.HasIndex(a => new { a.RequiresHumanApproval, a.ApprovedByHuman, a.CreatedAt })
-            .HasFilter("[RequiresHumanApproval] = 1 AND [ApprovedByHuman] IS NULL")
+        builder.HasIndex(a => new { a.RequiresHumanApproval, a.Status, a.CreatedAt })
+            .HasFilter("[RequiresHumanApproval] = 1 AND [Status] = 0")
             .HasDatabaseName("IX_AIDecisionLogs_PendingApprovals");
+
+        // Index for approval deadline (for expiration queries)
+        builder.HasIndex(a => new { a.ApprovalDeadline, a.Status })
+            .HasFilter("[ApprovalDeadline] IS NOT NULL AND [Status] = 0")
+            .HasDatabaseName("IX_AIDecisionLogs_ApprovalDeadline_Status");
+
+        // Index for rejected decisions
+        builder.HasIndex(a => a.RejectedByUserId)
+            .HasDatabaseName("IX_AIDecisionLogs_RejectedByUserId");
 
         // Index for organization decisions with date
         builder.HasIndex(a => new { a.OrganizationId, a.CreatedAt })
@@ -112,10 +127,14 @@ public class AIDecisionLogConfiguration : IEntityTypeConfiguration<AIDecisionLog
             .HasColumnType("nvarchar(max)")
             .HasDefaultValue("[]");
 
+        // Status enum stored as string in database
         builder.Property(a => a.Status)
             .IsRequired()
+            .HasConversion(
+                v => v.ToString(),
+                v => ParseStatus(v))
             .HasMaxLength(50)
-            .HasDefaultValue("Pending");
+            .HasDefaultValue(AIDecisionStatus.Pending);
 
         // Decimal precision for confidence score (0.0000 to 1.0000)
         builder.Property(a => a.ConfidenceScore)
@@ -141,6 +160,11 @@ public class AIDecisionLogConfiguration : IEntityTypeConfiguration<AIDecisionLog
         builder.HasOne(a => a.ApprovedByUser)
             .WithMany()
             .HasForeignKey(a => a.ApprovedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(a => a.RejectedByUser)
+            .WithMany()
+            .HasForeignKey(a => a.RejectedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

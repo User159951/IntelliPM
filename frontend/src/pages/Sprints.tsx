@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sprintsApi } from '@/api/sprints';
 import { projectsApi } from '@/api/projects';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
+import { usePermissionsWithProject } from '@/hooks/usePermissions';
+import { PermissionGuard } from '@/components/guards/PermissionGuard';
 import { Button } from '@/components/ui/button';
 import { PermissionButton } from '@/components/ui/permission-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +47,7 @@ export default function Sprints() {
   const projectId = selectedProjectId || projectsData?.items?.[0]?.id;
 
   const permissions = useProjectPermissions(projectId || 0);
+  const { can } = usePermissionsWithProject(projectId);
 
   const { data: sprintsData, isLoading } = useQuery({
     queryKey: ['sprints', projectId],
@@ -132,17 +135,18 @@ export default function Sprints() {
               ))}
             </SelectContent>
           </Select>
-          {permissions.canManageSprints && (
+          <PermissionGuard 
+            requiredPermission="sprints.create" 
+            projectId={projectId || undefined}
+            fallback={null}
+            showNotification={false}
+          >
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <PermissionButton
-                  hasPermission={permissions.canManageSprints && !!projectId}
-                  permissionName="sprints.manage"
-                  disabledReason={!projectId ? 'Select a project first' : undefined}
-                >
+                <Button disabled={!projectId}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Sprint
-                </PermissionButton>
+                </Button>
               </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <form onSubmit={handleSubmit}>
@@ -221,7 +225,7 @@ export default function Sprints() {
               </form>
             </DialogContent>
           </Dialog>
-          )}
+          </PermissionGuard>
         </div>
       </div>
 
@@ -240,12 +244,17 @@ export default function Sprints() {
           <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium">No sprints yet</h3>
           <p className="text-muted-foreground mb-4">Create your first sprint to get started</p>
-          {permissions.canManageSprints && (
+          <PermissionGuard 
+            requiredPermission="sprints.create" 
+            projectId={projectId || undefined}
+            fallback={null}
+            showNotification={false}
+          >
             <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create Sprint
             </Button>
-          )}
+          </PermissionGuard>
         </Card>
       ) : (
         <div className="space-y-6">
@@ -267,8 +276,13 @@ export default function Sprints() {
                       <span>Capacity: {sprint.capacity} pts</span>
                   </CardDescription>
                 </div>
-                {permissions.canManageSprints && (
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <PermissionGuard 
+                    requiredPermission="sprints.edit" 
+                    projectId={projectId || undefined}
+                    fallback={null}
+                    showNotification={false}
+                  >
                     {sprint.status !== 'Completed' && (
                       <Button
                         size="sm"
@@ -279,6 +293,13 @@ export default function Sprints() {
                         Add Tasks
                       </Button>
                     )}
+                  </PermissionGuard>
+                  <PermissionGuard 
+                    requiredPermission="sprints.manage" 
+                    projectId={projectId || undefined}
+                    fallback={null}
+                    showNotification={false}
+                  >
                     {sprint.status === 'Planned' && (
                       <Button
                         size="sm"
@@ -298,8 +319,8 @@ export default function Sprints() {
                         Complete
                       </Button>
                     )}
-                  </div>
-                )}
+                  </PermissionGuard>
+                </div>
               </CardHeader>
               {sprint.goal && (
                 <CardContent>

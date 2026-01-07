@@ -17,6 +17,7 @@ import { DefectDetailSheet } from '@/components/defects/DefectDetailSheet';
 import { useDebounce } from '@/hooks/use-debounce';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PermissionGuard } from '@/components/guards/PermissionGuard';
 
 const severityColors: Record<DefectSeverity, string> = {
   Low: 'bg-green-500/10 text-green-500 border-green-500/20',
@@ -154,10 +155,17 @@ export default function Defects() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
-                  <Button disabled={!projectId} onClick={() => setIsCreateDialogOpen(true)}>
-                    <Bug className="mr-2 h-4 w-4" />
-                    Report Defect
-                  </Button>
+                  <PermissionGuard 
+                    requiredPermission="defects.create" 
+                    projectId={projectId || undefined}
+                    fallback={null}
+                    showNotification={false}
+                  >
+                    <Button disabled={!projectId} onClick={() => setIsCreateDialogOpen(true)}>
+                      <Bug className="mr-2 h-4 w-4" />
+                      Report Defect
+                    </Button>
+                  </PermissionGuard>
                 </span>
               </TooltipTrigger>
               {!projectId && (

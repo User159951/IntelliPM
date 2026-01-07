@@ -7,6 +7,7 @@ using IntelliPM.Application.Services;
 using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace IntelliPM.Application.Agents.Commands;
@@ -18,23 +19,32 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
     private readonly IAIDecisionLogger _decisionLogger;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAIAvailabilityService _availabilityService;
+    private readonly ICorrelationIdService _correlationIdService;
+    private readonly ILogger<RunQAAgentCommandHandler> _logger;
 
     public RunQAAgentCommandHandler(
         QAAgent qaAgent, 
         IUnitOfWork unitOfWork,
         IAIDecisionLogger decisionLogger,
         ICurrentUserService currentUserService,
-        IAIAvailabilityService availabilityService)
+        IAIAvailabilityService availabilityService,
+        ICorrelationIdService correlationIdService,
+        ILogger<RunQAAgentCommandHandler> logger)
     {
         _qaAgent = qaAgent;
         _unitOfWork = unitOfWork;
         _decisionLogger = decisionLogger;
         _currentUserService = currentUserService;
         _availabilityService = availabilityService;
+        _correlationIdService = correlationIdService;
+        _logger = logger;
     }
 
     public async Task<QAAgentOutput> Handle(RunQAAgentCommand request, CancellationToken cancellationToken)
     {
+        // Get correlation ID for tracing
+        var correlationId = _correlationIdService.GetCorrelationId() ?? Guid.NewGuid().ToString();
+        
         // Check quota before execution
         var organizationId = _currentUserService.GetOrganizationId();
         if (organizationId > 0)
@@ -52,6 +62,10 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
         string? errorMessage = null;
         List<string>? recentDefects = null;
         Dictionary<string, int>? defectStats = null;
+        
+        _logger.LogInformation(
+            "Starting {AgentType} execution | Project: {ProjectId} | CorrelationId: {CorrelationId}",
+            "QAAgent", request.ProjectId, correlationId);
 
         try
         {
@@ -117,6 +131,17 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
 
             var inputDataJson = JsonSerializer.Serialize(new { recentDefects, defectStats });
             
+            // Estimate token usage (ILlmClient doesn't provide actual token counts)
+            var (promptTokens, completionTokens, totalTokens) = TokenEstimationHelper.EstimateTokenUsage(
+                inputDataJson + result.DefectAnalysis, // Approximate prompt
+                result.DefectAnalysis // Completion
+            );
+            tokensUsed = totalTokens;
+            
+            _logger.LogInformation(
+                "Completed {AgentType} execution | Tokens: {TokensUsed} | Duration: {DurationMs}ms | CorrelationId: {CorrelationId}",
+                "QAAgent", tokensUsed, stopwatch.ElapsedMilliseconds, correlationId);
+            
             linkedDecisionId = await _decisionLogger.LogDecisionAsync(
                 agentType: AIDecisionConstants.AgentTypes.QAAgent,
                 decisionType: AIDecisionConstants.DecisionTypes.QualityAnalysis,
@@ -132,34 +157,29 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
                 decision: decisionJson,
                 inputData: inputDataJson,
                 outputData: decisionJson,
+                tokensUsed: totalTokens,
+                promptTokens: promptTokens,
+                completionTokens: completionTokens,
                 executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                correlationId: correlationId,
                 cancellationToken: cancellationToken);
 
             // Record quota usage after successful execution
-            // Get cost from the decision log that was just created
-            if (linkedDecisionId.HasValue)
+            var quotaRepo = _unitOfWork.Repository<AIQuota>();
+            var quota = await quotaRepo.Query()
+                .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive, cancellationToken);
+
+            if (quota != null)
             {
-                var decisionLogRepo = _unitOfWork.Repository<AIDecisionLog>();
-                var decisionLog = await decisionLogRepo.GetByIdAsync(linkedDecisionId.Value, cancellationToken);
+                var cost = totalTokens * AIQuotaConstants.CostPerToken;
 
-                if (decisionLog != null)
-                {
-                    var quotaRepo = _unitOfWork.Repository<AIQuota>();
-                    var quota = await quotaRepo.Query()
-                        .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive && q.TierName != "Disabled", cancellationToken);
+                quota.RecordUsage(
+                    tokens: totalTokens,
+                    agentType: AIDecisionConstants.AgentTypes.QAAgent,
+                    decisionType: AIDecisionConstants.DecisionTypes.QualityAnalysis,
+                    cost: cost);
 
-                    if (quota != null)
-                    {
-                        tokensUsed = decisionLog.TokensUsed;
-                        quota.RecordUsage(
-                            tokens: decisionLog.TokensUsed,
-                            agentType: AIDecisionConstants.AgentTypes.QAAgent,
-                            decisionType: AIDecisionConstants.DecisionTypes.QualityAnalysis,
-                            cost: decisionLog.CostAccumulated);
-
-                        await _unitOfWork.SaveChangesAsync(cancellationToken);
-                    }
-                }
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
         }
 
@@ -212,6 +232,10 @@ public class RunQAAgentCommandHandler : IRequestHandler<RunQAAgentCommand, QAAge
         {
             stopwatch.Stop();
             errorMessage = ex.Message;
+            
+            _logger.LogError(ex,
+                "Failed {AgentType} execution | Error: {ErrorMessage} | CorrelationId: {CorrelationId}",
+                "QAAgent", ex.Message, correlationId);
             
             // Create AgentExecutionLog entry for failed execution
             var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();

@@ -492,9 +492,32 @@ We welcome contributions! Please follow these steps:
 
 Comprehensive documentation is available in the `docs/` directory:
 
+### Core Documentation
 - **[Backend Documentation](docs/IntelliPM%20Documentation/IntelliPM_Backend.md)**: Complete backend API and architecture guide
 - **[Frontend Documentation](docs/IntelliPM%20Documentation/IntelliPM_Frontend.md)**: Frontend development guide
 - **[Architecture Decision Records](docs/adr/)**: ADRs for key architectural decisions
+
+### User Guides
+- **[Roles and Permissions Guide](docs/RolesAndPermissions.md)**: Complete guide to all 8 roles, permissions, and access control
+- **[Workflow Guide](docs/WorkflowGuide.md)**: Task, sprint, and release workflow documentation with role requirements
+- **[AI Governance Guide](docs/AIGovernanceGuide.md)**: How AI decisions work, approval processes, and quota management
+
+### Developer Resources
+- **[Developer Onboarding Guide](docs/DeveloperOnboarding.md)**: Setup guide, architecture overview, and how to add permissions
+- **[Permission Matrix](Docs/PermissionMatrix.md)**: Quick reference for role permissions
+- **[Architecture Diagram](docs/ArchitectureDiagram.md)**: Permission flow and system architecture visualization
+
+### Quick Reference
+
+#### Roles Overview
+- **Global Roles**: User, Admin, SuperAdmin (organization-wide)
+- **Project Roles**: ProductOwner, ScrumMaster, Developer, Tester, Viewer, Manager (project-specific)
+
+#### Common Permission Examples
+- **As a Developer**: Can create tasks but cannot start sprints
+- **As a ScrumMaster**: Can start sprints but cannot approve releases
+- **As a Tester**: Can approve releases but cannot deploy them
+- **As a ProductOwner**: Can manage projects but cannot start sprints (ScrumMaster exclusive)
 
 ---
 
@@ -542,12 +565,27 @@ See [Troubleshooting Guide](docs/IntelliPM%20Documentation/IntelliPM_Backend.md#
 ## 🔐 Security
 
 - **Authentication**: JWT tokens stored in HTTP-only cookies
-- **Authorization**: Role-based access control (RBAC)
+- **Authorization**: Role-based access control (RBAC) with 8 distinct roles
 - **Multi-Tenancy**: Organization-based data isolation
 - **Input Validation**: FluentValidation on backend, Zod on frontend
 - **Security Headers**: Comprehensive security headers middleware
 - **CORS**: Configurable CORS policy
 - **Rate Limiting**: Built-in rate limiting for API endpoints
+
+### Roles and Permissions
+
+IntelliPM implements a comprehensive role-based access control system:
+
+- **Global Roles** (3): User, Admin, SuperAdmin - Organization-wide permissions
+- **Project Roles** (6): ProductOwner, ScrumMaster, Developer, Tester, Viewer, Manager - Project-specific permissions
+
+**Key Features**:
+- Exclusive permissions (e.g., only ScrumMaster can start sprints)
+- Workflow-based role requirements (e.g., QA approval required for releases)
+- Permission inheritance (ProductOwner inherits ScrumMaster permissions)
+- Strict enforcement at API and UI levels
+
+See [Roles and Permissions Guide](docs/RolesAndPermissions.md) for complete details.
 
 ---
 

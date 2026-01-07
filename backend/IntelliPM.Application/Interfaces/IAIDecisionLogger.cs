@@ -30,6 +30,7 @@ public interface IAIDecisionLogger
     /// <param name="executionTimeMs">Execution time in milliseconds</param>
     /// <param name="isSuccess">Whether the execution was successful (default: true)</param>
     /// <param name="errorMessage">Error message if execution failed (default: null)</param>
+    /// <param name="correlationId">Request correlation ID for distributed tracing (default: null, will be retrieved from context if available)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Task representing the async operation. Returns the ID of the created AIDecisionLog, or null if logging failed.</returns>
     System.Threading.Tasks.Task<int?> LogDecisionAsync(
@@ -55,6 +56,7 @@ public interface IAIDecisionLogger
         int executionTimeMs = 0,
         bool isSuccess = true,
         string? errorMessage = null,
+        string? correlationId = null,
         CancellationToken cancellationToken = default);
 }
 

@@ -1,6 +1,8 @@
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Authorization;
 using IntelliPM.Application.Features.Milestones.DTOs;
+using IntelliPM.Application.Projects.Queries;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
 using IntelliPM.Domain.Events;
@@ -38,9 +40,10 @@ public class CompleteMilestoneCommandHandler : IRequestHandler<CompleteMilestone
 
     public async System.Threading.Tasks.Task<MilestoneDto> Handle(CompleteMilestoneCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.GetUserId();
         var organizationId = _currentUserService.GetOrganizationId();
 
-        if (organizationId == 0)
+        if (userId == 0 || organizationId == 0)
         {
             throw new UnauthorizedException("User must be authenticated");
         }
@@ -55,6 +58,13 @@ public class CompleteMilestoneCommandHandler : IRequestHandler<CompleteMilestone
         {
             throw new NotFoundException($"Milestone with ID {request.Id} not found");
         }
+
+        // Permission check - ProductOwner, ScrumMaster, or Manager can validate milestones
+        var userRole = await _mediator.Send(new GetUserRoleInProjectQuery(milestone.ProjectId, userId), cancellationToken);
+        if (userRole == null)
+            throw new UnauthorizedException("You are not a member of this project");
+        if (!ProjectPermissions.CanValidateMilestone(userRole.Value))
+            throw new UnauthorizedException($"Only ProductOwner, ScrumMaster, or Manager can validate milestones. Your role: {userRole.Value}");
 
         // Validate completion
         var completedAt = request.CompletedAt ?? DateTimeOffset.UtcNow;
@@ -78,9 +88,10 @@ public class CompleteMilestoneCommandHandler : IRequestHandler<CompleteMilestone
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Milestone {MilestoneId} marked as completed by user {UserId}",
+            "Milestone {MilestoneId} marked as completed by user {UserId} (Role: {Role})",
             milestone.Id,
-            _currentUserService.GetUserId());
+            userId,
+            userRole.Value);
 
         // Publish domain event
         var completedEvent = new MilestoneCompletedEvent

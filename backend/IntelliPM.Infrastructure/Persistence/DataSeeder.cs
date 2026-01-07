@@ -1,6 +1,7 @@
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
 using IntelliPM.Infrastructure.Identity;
+using IntelliPM.Infrastructure.Persistence.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -11,12 +12,14 @@ public class DataSeeder
     private readonly AppDbContext _context;
     private readonly PasswordHasher _passwordHasher;
     private readonly ILogger<DataSeeder> _logger;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public DataSeeder(AppDbContext context, PasswordHasher passwordHasher, ILogger<DataSeeder> logger)
+    public DataSeeder(AppDbContext context, PasswordHasher passwordHasher, ILogger<DataSeeder> logger, ILoggerFactory loggerFactory)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _logger = logger;
+        _loggerFactory = loggerFactory;
     }
 
     public async System.Threading.Tasks.Task SeedAsync()
@@ -425,9 +428,12 @@ public class DataSeeder
             _context.GlobalSettings.AddRange(globalSettings);
             await _context.SaveChangesAsync();
 
-            // Seed Permissions and RolePermissions
+            // Seed Permissions and RolePermissions using new versioned system
             await SeedPermissionsAsync();
             await SeedRolePermissionsAsync();
+
+            // Seed Workflow Transition Rules
+            await SeedWorkflowTransitionRulesAsync();
 
             _logger.LogInformation("Database seeded successfully!");
         }
@@ -438,7 +444,27 @@ public class DataSeeder
         }
     }
 
+    /// <summary>
+    /// Seeds permissions using the new versioned seed system.
+    /// This method is kept for backward compatibility but delegates to PermissionsSeed.
+    /// </summary>
     public async System.Threading.Tasks.Task SeedPermissionsAsync()
+    {
+        var versionManager = new SeedVersionManager(_context, _loggerFactory.CreateLogger<SeedVersionManager>());
+        await versionManager.ApplySeedAsync(
+            PermissionsSeed.SeedName,
+            PermissionsSeed.Version,
+            async () => await PermissionsSeed.SeedAsync(_context, _logger),
+            "Seeds all system permissions"
+        );
+    }
+
+    /// <summary>
+    /// Legacy permissions seeding method (kept for reference).
+    /// New code should use PermissionsSeed.SeedAsync().
+    /// </summary>
+    [Obsolete("Use PermissionsSeed.SeedAsync() instead")]
+    private async System.Threading.Tasks.Task SeedPermissionsLegacyAsync()
     {
         _logger.LogInformation("Seeding permissions...");
 
@@ -678,6 +704,13 @@ public class DataSeeder
                 Category = "Milestones",
                 CreatedAt = DateTimeOffset.UtcNow
             },
+            new Permission
+            {
+                Name = "milestones.validate",
+                Description = "Validate and complete milestones (ProductOwner, ScrumMaster, Manager)",
+                Category = "Milestones",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
             // Releases
             new Permission
             {
@@ -728,6 +761,20 @@ public class DataSeeder
                 Category = "Releases",
                 CreatedAt = DateTimeOffset.UtcNow
             },
+            new Permission
+            {
+                Name = "releases.approve",
+                Description = "Approve releases for deployment (EXCLUSIVE to Tester/QA)",
+                Category = "Releases",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "quality-gates.validate",
+                Description = "Validate quality gates (EXCLUSIVE to Tester/QA)",
+                Category = "Quality Gates",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
             // Sprints
             new Permission
             {
@@ -761,6 +808,20 @@ public class DataSeeder
             {
                 Name = "sprints.manage",
                 Description = "Manage sprints (start, complete, assign tasks)",
+                Category = "Sprints",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "sprints.start",
+                Description = "Start sprints (EXCLUSIVE to ScrumMaster)",
+                Category = "Sprints",
+                CreatedAt = DateTimeOffset.UtcNow
+            },
+            new Permission
+            {
+                Name = "sprints.close",
+                Description = "Close sprints (EXCLUSIVE to ScrumMaster)",
                 Category = "Sprints",
                 CreatedAt = DateTimeOffset.UtcNow
             },
@@ -910,125 +971,19 @@ public class DataSeeder
         }
     }
 
+    /// <summary>
+    /// Seeds role permissions using the new versioned seed system.
+    /// This method is kept for backward compatibility but delegates to RolePermissionsSeed.
+    /// </summary>
     public async System.Threading.Tasks.Task SeedRolePermissionsAsync()
     {
-        _logger.LogInformation("Seeding role permissions...");
-
-        // Get all permissions
-        var allPermissions = await _context.Permissions.ToListAsync();
-        var permissionsDict = allPermissions.ToDictionary(p => p.Name, p => p.Id);
-
-        // Get existing role permissions to avoid duplicates
-        var existingRolePermissions = await _context.RolePermissions
-            .Select(rp => new { rp.Role, rp.PermissionId })
-            .ToListAsync();
-
-        var rolePermissions = new List<RolePermission>();
-
-        // SuperAdmin Role: ALL permissions (same as Admin)
-        foreach (var permission in allPermissions)
-        {
-            // Only add if it doesn't already exist
-            if (!existingRolePermissions.Any(erp => erp.Role == GlobalRole.SuperAdmin && erp.PermissionId == permission.Id))
-            {
-                rolePermissions.Add(new RolePermission
-                {
-                    Role = GlobalRole.SuperAdmin,
-                    PermissionId = permission.Id,
-                    CreatedAt = DateTimeOffset.UtcNow
-                });
-            }
-        }
-
-        // Admin Role: ALL permissions
-        foreach (var permission in allPermissions)
-        {
-            // Only add if it doesn't already exist
-            if (!existingRolePermissions.Any(erp => erp.Role == GlobalRole.Admin && erp.PermissionId == permission.Id))
-            {
-                rolePermissions.Add(new RolePermission
-                {
-                    Role = GlobalRole.Admin,
-                    PermissionId = permission.Id,
-                    CreatedAt = DateTimeOffset.UtcNow
-                });
-            }
-        }
-
-        // User Role: Limited permissions
-        var userPermissions = new[]
-        {
-            "projects.view",
-            "projects.create",
-            "projects.edit",
-            "projects.members.invite",
-            "tasks.view",
-            "tasks.create",
-            "tasks.update",
-            "tasks.edit",
-            "tasks.assign",
-            "tasks.comment",
-            "tasks.dependencies.create",
-            "tasks.dependencies.delete",
-            "milestones.view",
-            "milestones.create",
-            "sprints.view",
-            "sprints.create",
-            "sprints.manage",
-            "defects.view",
-            "defects.create",
-            "defects.edit",
-            "backlog.view",
-            "backlog.create",
-            "backlog.edit",
-            "teams.view",
-            "teams.create",
-            "teams.edit",
-            "teams.view.availability",
-            "users.view",
-            // Releases permissions (basic view permission for all users)
-            // Note: ProjectRole-specific permissions (ProductOwner, ScrumMaster, etc.) are handled
-            // in application code, not in database RolePermission table which only supports GlobalRole
-            "releases.view",
-            // Activity, Search, Metrics, Insights permissions
-            "activity.view",
-            "search.use",
-            "metrics.view",
-            "insights.view",
-            // AI permissions
-            "ai.use"
-        };
-
-        foreach (var permissionName in userPermissions)
-        {
-            if (permissionsDict.TryGetValue(permissionName, out var permissionId))
-            {
-                // Only add if it doesn't already exist
-                if (!existingRolePermissions.Any(erp => erp.Role == GlobalRole.User && erp.PermissionId == permissionId))
-                {
-                    rolePermissions.Add(new RolePermission
-                    {
-                        Role = GlobalRole.User,
-                        PermissionId = permissionId,
-                        CreatedAt = DateTimeOffset.UtcNow
-                    });
-                }
-            }
-        }
-
-        if (rolePermissions.Any())
-        {
-            _context.RolePermissions.AddRange(rolePermissions);
-            await _context.SaveChangesAsync();
-            var superAdminCount = rolePermissions.Count(rp => rp.Role == GlobalRole.SuperAdmin);
-            var adminCount = rolePermissions.Count(rp => rp.Role == GlobalRole.Admin);
-            var userCount = rolePermissions.Count(rp => rp.Role == GlobalRole.User);
-            _logger.LogInformation($"Seeded {rolePermissions.Count} new role permissions (SuperAdmin: {superAdminCount}, Admin: {adminCount}, User: {userCount})");
-        }
-        else
-        {
-            _logger.LogInformation("All role permissions already exist");
-        }
+        var versionManager = new SeedVersionManager(_context, _loggerFactory.CreateLogger<SeedVersionManager>());
+        await versionManager.ApplySeedAsync(
+            RolePermissionsSeed.SeedName,
+            RolePermissionsSeed.Version,
+            async () => await RolePermissionsSeed.SeedAsync(_context, _logger),
+            "Seeds role-permission mappings"
+        );
     }
 
     /// <summary>
@@ -1302,6 +1257,231 @@ public class DataSeeder
         catch (Exception ex)
         {
             logger.LogError(ex, "Error seeding OrganizationAIQuota");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Seeds default workflow transition rules for Tasks, Sprints, and Releases.
+    /// </summary>
+    public async System.Threading.Tasks.Task SeedWorkflowTransitionRulesAsync()
+    {
+        _logger.LogInformation("Seeding workflow transition rules...");
+
+        // Check if rules already exist
+        if (await _context.WorkflowTransitionRules.AnyAsync())
+        {
+            _logger.LogInformation("Workflow transition rules already exist");
+            return;
+        }
+
+        var rules = new List<WorkflowTransitionRule>();
+
+        // Task workflow rules
+        // Todo -> InProgress: Developer, ScrumMaster, ProductOwner
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Task",
+            FromStatus = "Todo",
+            ToStatus = "InProgress",
+            Description = "Start working on a task",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "Developer", "ScrumMaster", "ProductOwner" });
+
+        // InProgress -> InReview: Developer, ScrumMaster, ProductOwner
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Task",
+            FromStatus = "InProgress",
+            ToStatus = "InReview",
+            Description = "Submit task for review",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "Developer", "ScrumMaster", "ProductOwner" });
+
+        // InReview -> Done: Tester, ScrumMaster, ProductOwner (requires QA approval)
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Task",
+            FromStatus = "InReview",
+            ToStatus = "Done",
+            Description = "Complete task after review (requires Tester approval)",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "Tester", "ScrumMaster", "ProductOwner" });
+        rules.Last().SetRequiredConditions(new List<string> { "QAApproval" });
+
+        // InProgress -> Done: Tester, ScrumMaster, ProductOwner (allows skipping review)
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Task",
+            FromStatus = "InProgress",
+            ToStatus = "Done",
+            Description = "Complete task directly (requires Tester approval)",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "Tester", "ScrumMaster", "ProductOwner" });
+        rules.Last().SetRequiredConditions(new List<string> { "QAApproval" });
+
+        // Any -> Blocked: Developer, ScrumMaster, ProductOwner
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Task",
+            FromStatus = "Todo",
+            ToStatus = "Blocked",
+            Description = "Block a task",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "Developer", "ScrumMaster", "ProductOwner" });
+
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Task",
+            FromStatus = "InProgress",
+            ToStatus = "Blocked",
+            Description = "Block a task",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "Developer", "ScrumMaster", "ProductOwner" });
+
+        // Blocked -> Todo/InProgress: Developer, ScrumMaster, ProductOwner
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Task",
+            FromStatus = "Blocked",
+            ToStatus = "Todo",
+            Description = "Unblock a task",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "Developer", "ScrumMaster", "ProductOwner" });
+
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Task",
+            FromStatus = "Blocked",
+            ToStatus = "InProgress",
+            Description = "Unblock and resume a task",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "Developer", "ScrumMaster", "ProductOwner" });
+
+        // Sprint workflow rules
+        // Active -> Completed: Only ScrumMaster
+        rules.Add(new WorkflowTransitionRule
+        {
+            EntityType = "Sprint",
+            FromStatus = "Active",
+            ToStatus = "Completed",
+            Description = "Complete a sprint (exclusive to ScrumMaster)",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        rules.Last().SetAllowedRoles(new List<string> { "ScrumMaster" });
+
+        // Release workflow rules (status transitions are handled via ReleaseStatus enum)
+        // ReadyForDeployment -> Deployed: ProductOwner, ScrumMaster (with blocking gates check)
+        // Note: Release transitions are validated in DeployReleaseCommandHandler
+
+        _context.WorkflowTransitionRules.AddRange(rules);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation($"Seeded {rules.Count} workflow transition rules");
+    }
+
+    /// <summary>
+    /// Seeds all RBAC and workflow data using the versioned seed system.
+    /// This method should be called on application startup to ensure all seed data is applied.
+    /// </summary>
+    public static async System.Threading.Tasks.Task SeedAllRBACDataAsync(
+        AppDbContext context,
+        ILogger logger)
+    {
+        try
+        {
+            logger.LogInformation("Starting comprehensive RBAC data seeding...");
+
+            var versionManager = new SeedVersionManager(context, logger);
+
+            // Ensure SeedHistories table exists (for first-time seeding)
+            try
+            {
+                await context.Database.EnsureCreatedAsync();
+            }
+            catch
+            {
+                // Table might already exist, ignore
+            }
+
+            // 1. Seed Permissions
+            await versionManager.ApplySeedAsync(
+                PermissionsSeed.SeedName,
+                PermissionsSeed.Version,
+                async () => await PermissionsSeed.SeedAsync(context, logger),
+                "Seeds all system permissions (100+ permissions)"
+            );
+
+            // 2. Seed Role Permissions
+            await versionManager.ApplySeedAsync(
+                RolePermissionsSeed.SeedName,
+                RolePermissionsSeed.Version,
+                async () => await RolePermissionsSeed.SeedAsync(context, logger),
+                "Seeds role-permission mappings (permission matrix)"
+            );
+
+            // 3. Log Role Definitions (no DB seeding needed)
+            await RolesSeed.LogRoleDefinitionsAsync(logger);
+
+            // 4. Seed Workflow Rules
+            await versionManager.ApplySeedAsync(
+                WorkflowRulesSeed.SeedName,
+                WorkflowRulesSeed.Version,
+                async () => await WorkflowRulesSeed.SeedAsync(context, logger),
+                "Seeds default workflow transition rules for tasks, sprints, milestones, and releases"
+            );
+
+            // 5. Seed AI Decision Policies
+            await versionManager.ApplySeedAsync(
+                AIDecisionPolicySeed.SeedName,
+                AIDecisionPolicySeed.Version,
+                async () => await AIDecisionPolicySeed.SeedAsync(context, logger),
+                "Seeds default AI decision approval policies"
+            );
+
+            // 6. Create initial RBAC policy version snapshot
+            var activeVersion = await versionManager.GetActivePolicyVersionAsync();
+            if (activeVersion == null)
+            {
+                await versionManager.CreatePolicyVersionAsync(
+                    "1.0",
+                    "Initial RBAC policy version with all default permissions and role mappings",
+                    null,
+                    "Created automatically during initial seeding"
+                );
+            }
+
+            logger.LogInformation("Comprehensive RBAC data seeding completed successfully");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error seeding RBAC data");
             throw;
         }
     }

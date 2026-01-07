@@ -33,12 +33,12 @@ public class StartSprintCommandHandler : IRequestHandler<StartSprintCommand, Sta
         if (sprint == null)
             throw new InvalidOperationException($"Sprint with ID {request.SprintId} not found");
 
-        // Permission check
+        // Permission check - EXCLUSIVE to ScrumMaster
         var userRole = await _mediator.Send(new GetUserRoleInProjectQuery(sprint.ProjectId, request.UpdatedBy), cancellationToken);
         if (userRole == null)
             throw new UnauthorizedException("You are not a member of this project");
-        if (!ProjectPermissions.CanManageSprints(userRole.Value))
-            throw new UnauthorizedException("You don't have permission to start sprints in this project");
+        if (!ProjectPermissions.CanStartSprint(userRole.Value))
+            throw new UnauthorizedException("Only ScrumMaster can start sprints. Your role: " + userRole.Value);
 
         // Check current status
         if (sprint.Status == "Active")

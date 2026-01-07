@@ -38,6 +38,14 @@ public class QualityGate : IAggregateRoot
     public bool IsRequired { get; set; } = true;
 
     /// <summary>
+    /// Indicates if this quality gate is blocking (must pass before deployment).
+    /// If true and the gate fails, deployment is blocked.
+    /// If false, the gate can fail but deployment can still proceed (with warning).
+    /// Default: true (blocking by default for safety).
+    /// </summary>
+    public bool IsBlocking { get; set; } = true;
+
+    /// <summary>
     /// Optional threshold value for this gate (e.g., 80 for 80% code coverage).
     /// </summary>
     public decimal? Threshold { get; set; }

@@ -1,6 +1,7 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Domain.Entities;
+using IntelliPM.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text;
@@ -62,7 +63,7 @@ public class ExportAIDecisionsQueryHandler : IRequestHandler<ExportAIDecisionsQu
                           $"{EscapeCsv(decision.Question)}," +
                           $"{EscapeCsv(decision.Decision)}," +
                           $"{decision.ConfidenceScore}," +
-                          $"{EscapeCsv(decision.Status)}," +
+                          $"{EscapeCsv(decision.Status.ToString())}," +
                           $"{decision.RequiresHumanApproval}," +
                           $"{decision.ApprovedByHuman}," +
                           $"{decision.TokensUsed}," +

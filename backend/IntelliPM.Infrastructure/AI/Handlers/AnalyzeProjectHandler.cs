@@ -7,6 +7,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using IntelliPM.Application.Agents.Commands;
 using IntelliPM.Application.DTOs.Agent;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Services;
 using IntelliPM.Infrastructure.AI.Plugins;
 using IntelliPM.Infrastructure.AI.Helpers;
 using IntelliPM.Infrastructure.Persistence;
@@ -24,19 +25,22 @@ public class AnalyzeProjectHandler : IRequestHandler<AnalyzeProjectCommand, Agen
     private readonly AppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly ICorrelationIdService _correlationIdService;
+    private readonly IAIAvailabilityService _availabilityService;
 
     public AnalyzeProjectHandler(
         Kernel kernel,
         ILogger<AnalyzeProjectHandler> logger,
         AppDbContext context,
         ICurrentUserService currentUserService,
-        ICorrelationIdService correlationIdService)
+        ICorrelationIdService correlationIdService,
+        IAIAvailabilityService availabilityService)
     {
         _kernel = kernel;
         _logger = logger;
         _context = context;
         _currentUserService = currentUserService;
         _correlationIdService = correlationIdService;
+        _availabilityService = availabilityService;
     }
 
     public async Task<AgentResponse> Handle(AnalyzeProjectCommand request, CancellationToken cancellationToken)
@@ -45,6 +49,13 @@ public class AnalyzeProjectHandler : IRequestHandler<AnalyzeProjectCommand, Agen
 
         try
         {
+            // Check AI quota before execution
+            var organizationId = _currentUserService.GetOrganizationId();
+            if (organizationId > 0)
+            {
+                await _availabilityService.CheckQuotaAsync(organizationId, "Requests", cancellationToken);
+            }
+
             // Register plugin with current context (tools for the agent)
             var plugin = new ProjectInsightPlugin(_context);
             _kernel.Plugins.AddFromObject(plugin, "ProjectInsightPlugin");
@@ -88,7 +99,6 @@ Be specific and use bullet points.");
 
             // Log agent execution
             var userId = _currentUserService.GetUserId();
-            var organizationId = _currentUserService.GetOrganizationId();
             var correlationId = _correlationIdService.GetCorrelationId();
             var log = new Domain.Entities.AgentExecutionLog
             {
@@ -126,7 +136,10 @@ Be specific and use bullet points.");
                 ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
                 ExecutionCostUsd = 0.0m,
                 RequiresApproval = false,
-                Timestamp = DateTimeOffset.UtcNow
+                Timestamp = DateTimeOffset.UtcNow,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                Model = "llama3.2:3b"
             };
         }
         catch (OperationCanceledException)

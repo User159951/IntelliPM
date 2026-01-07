@@ -3,6 +3,7 @@ using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Authorization;
 using IntelliPM.Application.Projects.Queries;
+using IntelliPM.Application.Services;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Events;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +15,16 @@ public class CompleteSprintCommandHandler : IRequestHandler<CompleteSprintComman
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMediator _mediator;
+    private readonly WorkflowTransitionValidator _workflowValidator;
 
-    public CompleteSprintCommandHandler(IUnitOfWork unitOfWork, IMediator mediator)
+    public CompleteSprintCommandHandler(
+        IUnitOfWork unitOfWork, 
+        IMediator mediator,
+        WorkflowTransitionValidator workflowValidator)
     {
         _unitOfWork = unitOfWork;
         _mediator = mediator;
+        _workflowValidator = workflowValidator;
     }
 
     public async Task<CompleteSprintResponse> Handle(CompleteSprintCommand request, CancellationToken cancellationToken)
@@ -33,12 +39,12 @@ public class CompleteSprintCommandHandler : IRequestHandler<CompleteSprintComman
         if (sprint == null)
             throw new InvalidOperationException($"Sprint with ID {request.SprintId} not found");
 
-        // Permission check
+        // Permission check - EXCLUSIVE to ScrumMaster
         var userRole = await _mediator.Send(new GetUserRoleInProjectQuery(sprint.ProjectId, request.UpdatedBy), cancellationToken);
         if (userRole == null)
             throw new UnauthorizedException("You are not a member of this project");
-        if (!ProjectPermissions.CanManageSprints(userRole.Value))
-            throw new UnauthorizedException("You don't have permission to complete sprints in this project");
+        if (!ProjectPermissions.CanCloseSprint(userRole.Value))
+            throw new UnauthorizedException("Only ScrumMaster can close sprints. Your role: " + userRole.Value);
 
         // Check current status
         if (sprint.Status == "Completed")
@@ -46,6 +52,23 @@ public class CompleteSprintCommandHandler : IRequestHandler<CompleteSprintComman
 
         if (sprint.Status == "Planned")
             throw new InvalidOperationException($"Cannot complete a sprint that hasn't been started");
+
+        // Validate workflow transition
+        var validationResult = await _workflowValidator.ValidateTransitionAsync(
+            entityType: "Sprint",
+            fromStatus: sprint.Status,
+            toStatus: "Completed",
+            userRole: userRole.Value,
+            entityId: sprint.Id,
+            userId: request.UpdatedBy,
+            projectId: sprint.ProjectId,
+            checkConditions: null,
+            cancellationToken: cancellationToken);
+
+        if (!validationResult.IsAllowed)
+        {
+            throw new UnauthorizedException($"Workflow transition not allowed: {validationResult.Reason}");
+        }
 
         // Get task statistics
         var taskRepo = _unitOfWork.Repository<ProjectTask>();

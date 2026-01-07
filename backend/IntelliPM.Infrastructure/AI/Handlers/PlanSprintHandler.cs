@@ -7,6 +7,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using IntelliPM.Application.Agents.Commands;
 using IntelliPM.Application.DTOs.Agent;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Services;
 using IntelliPM.Infrastructure.AI.Plugins;
 using IntelliPM.Infrastructure.AI.Helpers;
 using IntelliPM.Infrastructure.Persistence;
@@ -23,19 +24,22 @@ public class PlanSprintHandler : IRequestHandler<PlanSprintCommand, AgentRespons
     private readonly AppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly ICorrelationIdService _correlationIdService;
+    private readonly IAIAvailabilityService _availabilityService;
 
     public PlanSprintHandler(
         Kernel kernel,
         ILogger<PlanSprintHandler> logger,
         AppDbContext context,
         ICurrentUserService currentUserService,
-        ICorrelationIdService correlationIdService)
+        ICorrelationIdService correlationIdService,
+        IAIAvailabilityService availabilityService)
     {
         _kernel = kernel;
         _logger = logger;
         _context = context;
         _currentUserService = currentUserService;
         _correlationIdService = correlationIdService;
+        _availabilityService = availabilityService;
     }
 
     public async Task<AgentResponse> Handle(PlanSprintCommand request, CancellationToken cancellationToken)
@@ -44,6 +48,13 @@ public class PlanSprintHandler : IRequestHandler<PlanSprintCommand, AgentRespons
 
         try
         {
+            // Check AI quota before execution
+            var organizationId = _currentUserService.GetOrganizationId();
+            if (organizationId > 0)
+            {
+                await _availabilityService.CheckQuotaAsync(organizationId, "Requests", cancellationToken);
+            }
+
             var plugin = new SprintPlanningPlugin(_context);
             _kernel.Plugins.AddFromObject(plugin, "SprintPlanningPlugin");
 
@@ -90,7 +101,6 @@ Return clear bullet points and sections. Treat this as a proposal that still req
             var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
 
             var userId = _currentUserService.GetUserId();
-            var organizationId = _currentUserService.GetOrganizationId();
             var correlationId = _correlationIdService.GetCorrelationId();
             var log = new Domain.Entities.AgentExecutionLog
             {
@@ -117,7 +127,10 @@ Return clear bullet points and sections. Treat this as a proposal that still req
                 ExecutionCostUsd = 0.0m,
                 // Sprint planning suggestions should be approved before execution
                 RequiresApproval = true,
-                Timestamp = DateTimeOffset.UtcNow
+                Timestamp = DateTimeOffset.UtcNow,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                Model = "llama3.2:3b"
             };
         }
         catch (OperationCanceledException)

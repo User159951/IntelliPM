@@ -7,6 +7,7 @@ using IntelliPM.Application.Services;
 using IntelliPM.Domain.Constants;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace IntelliPM.Application.Agents.Commands;
@@ -18,23 +19,32 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
     private readonly IAIDecisionLogger _decisionLogger;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAIAvailabilityService _availabilityService;
+    private readonly ICorrelationIdService _correlationIdService;
+    private readonly ILogger<RunDeliveryAgentCommandHandler> _logger;
 
     public RunDeliveryAgentCommandHandler(
         DeliveryAgent deliveryAgent,
         IUnitOfWork unitOfWork,
         IAIDecisionLogger decisionLogger,
         ICurrentUserService currentUserService,
-        IAIAvailabilityService availabilityService)
+        IAIAvailabilityService availabilityService,
+        ICorrelationIdService correlationIdService,
+        ILogger<RunDeliveryAgentCommandHandler> logger)
     {
         _deliveryAgent = deliveryAgent;
         _unitOfWork = unitOfWork;
         _decisionLogger = decisionLogger;
         _currentUserService = currentUserService;
         _availabilityService = availabilityService;
+        _correlationIdService = correlationIdService;
+        _logger = logger;
     }
 
     public async Task<DeliveryAgentOutput> Handle(RunDeliveryAgentCommand request, CancellationToken cancellationToken)
     {
+        // Get correlation ID for tracing
+        var correlationId = _correlationIdService.GetCorrelationId() ?? Guid.NewGuid().ToString();
+        
         // Check quota before execution
         var organizationId = _currentUserService.GetOrganizationId();
         if (organizationId > 0)
@@ -48,6 +58,10 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
         var orgId = organizationId;
         int? linkedDecisionId = null;
         int tokensUsed = 0;
+        
+        _logger.LogInformation(
+            "Starting {AgentType} execution | Project: {ProjectId} | CorrelationId: {CorrelationId}",
+            "DeliveryAgent", request.ProjectId, correlationId);
         
         // Get active sprint progress
         var sprintRepo = _unitOfWork.Repository<Sprint>();
@@ -129,6 +143,10 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
                     result.RiskAssessment // Completion
                 );
                 tokensUsed = totalTokens;
+                
+                _logger.LogInformation(
+                    "Completed {AgentType} execution | Tokens: {TokensUsed} | Duration: {DurationMs}ms | CorrelationId: {CorrelationId}",
+                    "DeliveryAgent", tokensUsed, stopwatch.ElapsedMilliseconds, correlationId);
 
                 linkedDecisionId = await _decisionLogger.LogDecisionAsync(
                     agentType: AIDecisionConstants.AgentTypes.DeliveryAgent,
@@ -149,12 +167,13 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
                     promptTokens: promptTokens,
                     completionTokens: completionTokens,
                     executionTimeMs: (int)stopwatch.ElapsedMilliseconds,
+                    correlationId: correlationId,
                     cancellationToken: cancellationToken);
 
                 // Record quota usage after successful execution
                 var quotaRepo = _unitOfWork.Repository<AIQuota>();
                 var quota = await quotaRepo.Query()
-                    .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive && q.TierName != "Disabled", cancellationToken);
+                    .FirstOrDefaultAsync(q => q.OrganizationId == orgId && q.IsActive, cancellationToken);
 
                 if (quota != null)
                 {
@@ -197,6 +216,10 @@ public class RunDeliveryAgentCommandHandler : IRequestHandler<RunDeliveryAgentCo
         catch (Exception ex)
         {
             stopwatch.Stop();
+            
+            _logger.LogError(ex,
+                "Failed {AgentType} execution | Error: {ErrorMessage} | CorrelationId: {CorrelationId}",
+                "DeliveryAgent", ex.Message, correlationId);
             
             // Create AgentExecutionLog entry for failed execution
             var executionLogRepo = _unitOfWork.Repository<AgentExecutionLog>();
