@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,7 @@ import { Trash2, Plus, AlertCircle } from 'lucide-react';
 import { dependenciesApi } from '@/api/dependencies';
 import type { TaskDependencyDto } from '@/types/dependencies';
 import { useAuth } from '@/contexts/AuthContext';
-import { MySwal, showError } from '@/lib/sweetalert';
+import { MySwal } from '@/lib/sweetalert';
 import { AddDependencyDialog } from './AddDependencyDialog';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +26,6 @@ interface TaskDependenciesListProps {
 export function TaskDependenciesList({ taskId, projectId }: TaskDependenciesListProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   // Check if user has permission to delete dependencies
@@ -119,7 +117,6 @@ export function TaskDependenciesList({ taskId, projectId }: TaskDependenciesList
 
   const DependencyItem = ({ dependency, isOutgoing }: { dependency: TaskDependencyDto; isOutgoing: boolean }) => {
     const otherTaskTitle = isOutgoing ? dependency.dependentTaskTitle : dependency.sourceTaskTitle;
-    const otherTaskId = isOutgoing ? dependency.dependentTaskId : dependency.sourceTaskId;
 
     return (
       <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
@@ -127,7 +124,6 @@ export function TaskDependenciesList({ taskId, projectId }: TaskDependenciesList
           <button
             onClick={() => {
               // TODO: Open task detail or navigate to task
-              // Navigate to task: otherTaskId
             }}
             className="text-sm font-medium text-left hover:underline truncate"
           >

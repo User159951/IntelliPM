@@ -122,7 +122,7 @@ export function QAAgentResults({ output }: QAAgentResultsProps) {
       {output.patterns.length > 10 ? (
         <VirtualizedList
           items={output.patterns}
-          renderItem={(pattern, index) => (
+          renderItem={(pattern) => (
             <div className="mb-4">
               <PatternCard pattern={pattern} />
             </div>

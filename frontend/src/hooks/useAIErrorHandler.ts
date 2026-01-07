@@ -165,7 +165,7 @@ export function useAIErrorHandler(options: AIErrorHandlerOptions = {}) {
    */
   const executeWithErrorHandling = useCallback(async <T,>(
     operation: () => Promise<T>,
-    estimatedTimeMs?: number
+    _estimatedTimeMs?: number
   ): Promise<T> => {
     // Clear any existing timeout
     if (timeoutRef.current) {

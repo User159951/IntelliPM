@@ -99,13 +99,6 @@ export default function NotificationBell() {
       }
       return failureCount < 3;
     },
-    // Disable query on 401 errors to prevent repeated failed requests
-    onError: (error) => {
-      if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
-        // Query will be automatically disabled when isAuthenticated becomes false
-        // This is just to prevent unnecessary retries
-      }
-    },
   });
 
   const notifications = (notificationsData as GetNotificationsResponse)?.notifications ?? [];
@@ -126,16 +119,9 @@ export default function NotificationBell() {
       }
       return failureCount < 3;
     },
-    // Disable query on 401 errors to prevent repeated failed requests
-    onError: (error) => {
-      if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
-        // Query will be automatically disabled when isAuthenticated becomes false
-        // This is just to prevent unnecessary retries
-      }
-    },
   });
 
-  const unreadCount = unreadData?.unreadCount ?? 0;
+  const unreadCount = (unreadData as { unreadCount?: number })?.unreadCount ?? 0;
 
   // Mark notification as read mutation
   const markAsReadMutation = useMutation({

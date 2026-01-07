@@ -1,7 +1,6 @@
 import { apiClient } from './client';
-import { commentsApi, type Comment } from './comments';
 import { attachmentsApi, type Attachment } from './attachments';
-import type { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus, TaskComment, TaskAttachment, TaskActivity } from '@/types';
+import type { Task, CreateTaskRequest, UpdateTaskRequest, TaskStatus, TaskAttachment, TaskActivity } from '@/types';
 
 interface TaskFilters {
   status?: TaskStatus;
@@ -79,10 +78,10 @@ export const tasksApi = {
    * const { activities } = await activityApi.getRecent(50, projectId);
    * const taskActivities = activities.filter(a => a.entityType === 'Task' && a.entityId === taskId);
    * 
-   * @param taskId - Task ID (not used, method always returns empty array)
+   * @param _taskId - Task ID (not used, method always returns empty array)
    * @returns Empty activities array
    */
-  getActivity: async (taskId: number): Promise<{ activities: TaskActivity[] }> => {
+  getActivity: async (_taskId: number): Promise<{ activities: TaskActivity[] }> => {
     // Note: This method is deprecated. Use activityApi.getRecent(limit, projectId) and filter by entityId client-side.
     // The Activity API does not support entity-specific filtering.
     return { activities: [] };

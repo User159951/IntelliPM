@@ -533,12 +533,12 @@ export function TaskDetailSheet({
                   <div key={comment.id} className="flex gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>
-                        {comment.userName[0].toUpperCase()}
+                        {comment.authorName[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{comment.userName}</span>
+                        <span className="text-sm font-medium">{comment.authorName}</span>
                         <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                         </span>

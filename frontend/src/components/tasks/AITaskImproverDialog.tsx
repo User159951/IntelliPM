@@ -90,7 +90,6 @@ export function AITaskImproverDialog({
   const [improvedTask, setImprovedTask] = useState<ImprovedTask | null>(null);
   const [editedTask, setEditedTask] = useState<ImprovedTask | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { isRequestInFlight } = useRequestDeduplication();
   const [canRetry, setCanRetry] = useState(false);
   const [retryAfter, setRetryAfter] = useState<number | undefined>(undefined);
 

@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { memberPermissionsApi, type MemberPermissionDto, type UpdateMemberPermissionRequest } from '@/api/memberPermissions';
 import { organizationPermissionPolicyApi } from '@/api/organizationPermissionPolicy';
 import { permissionsApi } from '@/api/permissions';
-import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,7 +41,6 @@ import { cn } from '@/lib/utils';
 
 export default function AdminMemberPermissions() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
