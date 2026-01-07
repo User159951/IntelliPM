@@ -102,12 +102,19 @@ export default function QuotaDetails() {
   const breakdownByAgent = useMemo(() => {
     if (!breakdownData?.byAgent) return [];
     
+    interface AgentBreakdown {
+      agentType?: string;
+      requests?: number;
+      tokens?: number;
+      decisions?: number;
+    }
+    
     // Convert object/dictionary to array
     const byAgentArray = Array.isArray(breakdownData.byAgent) 
       ? breakdownData.byAgent 
-      : Object.values(breakdownData.byAgent);
+      : Object.values(breakdownData.byAgent) as AgentBreakdown[];
     
-    return byAgentArray.map((agent: any) => ({
+    return byAgentArray.map((agent: AgentBreakdown) => ({
       agentType: agent.agentType?.replace('Agent', '').trim() || agent.agentType || 'Unknown',
       requests: agent.requests || 0,
       tokens: (agent.tokens || 0) / 1000, // Convert to thousands for better display

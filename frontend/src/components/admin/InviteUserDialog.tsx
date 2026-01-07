@@ -20,7 +20,12 @@ import {
 } from '@/components/ui/select';
 import { showToast, showError } from '@/lib/sweetalert';
 import { Loader2, Copy, Check } from 'lucide-react';
-import { usersApi } from '@/api/users';
+import { usersApi, type InviteOrganizationUserResponse } from '@/api/users';
+
+interface InviteUserResponseWithEmailStatus extends InviteOrganizationUserResponse {
+  emailSent?: boolean;
+  emailFailed?: boolean;
+}
 
 interface InviteUserDialogProps {
   open: boolean;
@@ -60,7 +65,8 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
       
       // Check if response indicates email failure
       // Note: Backend may not return email status, so we check for email-related errors
-      const emailFailed = (data as any).emailSent === false || (data as any).emailFailed === true;
+      const responseWithEmailStatus = data as InviteUserResponseWithEmailStatus;
+      const emailFailed = responseWithEmailStatus.emailSent === false || responseWithEmailStatus.emailFailed === true;
       setEmailFailed(emailFailed);
       
       if (emailFailed) {
