@@ -157,7 +157,7 @@ export default function Defects() {
                 <span>
                   <PermissionGuard 
                     requiredPermission="defects.create" 
-                    projectId={projectId || undefined}
+                    projectId={projectIdNum || undefined}
                     fallback={null}
                     showNotification={false}
                   >

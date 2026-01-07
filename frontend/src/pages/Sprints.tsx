@@ -2,11 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sprintsApi } from '@/api/sprints';
 import { projectsApi } from '@/api/projects';
-import { useProjectPermissions } from '@/hooks/useProjectPermissions';
-import { usePermissionsWithProject } from '@/hooks/usePermissions';
 import { PermissionGuard } from '@/components/guards/PermissionGuard';
 import { Button } from '@/components/ui/button';
-import { PermissionButton } from '@/components/ui/permission-button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,9 +42,6 @@ export default function Sprints() {
   });
 
   const projectId = selectedProjectId || projectsData?.items?.[0]?.id;
-
-  const permissions = useProjectPermissions(projectId || 0);
-  const { can } = usePermissionsWithProject(projectId);
 
   const { data: sprintsData, isLoading } = useQuery({
     queryKey: ['sprints', projectId],
