@@ -21,6 +21,7 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
     private readonly ICurrentUserService _currentUserService;
     private readonly OrganizationScopingService _scopingService;
     private readonly IEmailService _emailService;
+    private readonly ISettingsService _settingsService;
     private readonly ILogger<UpdateAIQuotaCommandHandler> _logger;
 
     public UpdateAIQuotaCommandHandler(
@@ -28,12 +29,14 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
         ICurrentUserService currentUserService,
         OrganizationScopingService scopingService,
         IEmailService emailService,
+        ISettingsService settingsService,
         ILogger<UpdateAIQuotaCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
         _scopingService = scopingService;
         _emailService = emailService;
+        _settingsService = settingsService;
         _logger = logger;
     }
 
@@ -66,6 +69,12 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
             .GetByIdAsync(request.OrganizationId, ct)
             ?? throw new NotFoundException($"Organization {request.OrganizationId} not found");
 
+        // Get quota template by tier name
+        var template = await _unitOfWork.Repository<AIQuotaTemplate>()
+            .Query()
+            .FirstOrDefaultAsync(t => t.TierName == request.TierName && t.IsActive && t.DeletedAt == null, ct)
+            ?? throw new NotFoundException($"Active quota template with tier name '{request.TierName}' not found");
+
         AIQuota quota;
 
         if (request.ApplyImmediately)
@@ -77,28 +86,23 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
                 currentQuota.UpdatedAt = DateTimeOffset.UtcNow;
             }
 
-            // Get tier defaults
-            var tierLimits = AIQuotaConstants.DefaultLimits.GetValueOrDefault(
-                request.TierName,
-                AIQuotaConstants.DefaultLimits[AIQuotaConstants.Tiers.Free]
-            );
-
-            // Create new quota with custom values or tier defaults
+            // Create new quota with custom values or template defaults
             quota = new AIQuota
             {
                 OrganizationId = request.OrganizationId,
-                TierName = request.TierName,
+                TemplateId = template.Id,
+                TierName = template.TierName,
                 IsActive = true,
                 PeriodStartDate = DateTimeOffset.UtcNow,
-                PeriodEndDate = DateTimeOffset.UtcNow.AddDays(AIQuotaConstants.QuotaPeriodDays),
-                MaxTokensPerPeriod = request.MaxTokensPerPeriod ?? tierLimits.MaxTokensPerPeriod,
-                MaxRequestsPerPeriod = request.MaxRequestsPerPeriod ?? tierLimits.MaxRequestsPerPeriod,
-                MaxDecisionsPerPeriod = request.MaxDecisionsPerPeriod ?? tierLimits.MaxDecisionsPerPeriod,
-                MaxCostPerPeriod = request.MaxCostPerPeriod ?? tierLimits.MaxCostPerPeriod,
-                AllowOverage = request.AllowOverage ?? tierLimits.AllowOverage,
-                OverageRate = request.OverageRate ?? tierLimits.OverageRate,
+                PeriodEndDate = DateTimeOffset.UtcNow.AddDays(await GetQuotaPeriodDaysAsync(request.OrganizationId, ct)),
+                MaxTokensPerPeriod = request.MaxTokensPerPeriod ?? template.MaxTokensPerPeriod,
+                MaxRequestsPerPeriod = request.MaxRequestsPerPeriod ?? template.MaxRequestsPerPeriod,
+                MaxDecisionsPerPeriod = request.MaxDecisionsPerPeriod ?? template.MaxDecisionsPerPeriod,
+                MaxCostPerPeriod = request.MaxCostPerPeriod ?? template.MaxCostPerPeriod,
+                AllowOverage = request.AllowOverage ?? template.AllowOverage,
+                OverageRate = request.OverageRate ?? template.OverageRate,
                 EnforceQuota = request.EnforceQuota ?? true,
-                AlertThresholdPercentage = AIQuotaConstants.DefaultAlertThreshold,
+                AlertThresholdPercentage = template.DefaultAlertThresholdPercentage,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -128,29 +132,24 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
                 throw new ValidationException("ScheduledDate must be in the future");
             }
 
-            // Get tier defaults
-            var tierLimits = AIQuotaConstants.DefaultLimits.GetValueOrDefault(
-                request.TierName,
-                AIQuotaConstants.DefaultLimits[AIQuotaConstants.Tiers.Free]
-            );
-
             // Create scheduled quota (inactive until EffectiveDate)
             quota = new AIQuota
             {
                 OrganizationId = request.OrganizationId,
-                TierName = request.TierName,
+                TemplateId = template.Id,
+                TierName = template.TierName,
                 IsActive = false, // Will be activated by background service at EffectiveDate
                 EffectiveDate = effectiveDate,
                 PeriodStartDate = effectiveDate, // Period starts when quota becomes active
-                PeriodEndDate = effectiveDate.AddDays(AIQuotaConstants.QuotaPeriodDays),
-                MaxTokensPerPeriod = request.MaxTokensPerPeriod ?? tierLimits.MaxTokensPerPeriod,
-                MaxRequestsPerPeriod = request.MaxRequestsPerPeriod ?? tierLimits.MaxRequestsPerPeriod,
-                MaxDecisionsPerPeriod = request.MaxDecisionsPerPeriod ?? tierLimits.MaxDecisionsPerPeriod,
-                MaxCostPerPeriod = request.MaxCostPerPeriod ?? tierLimits.MaxCostPerPeriod,
-                AllowOverage = request.AllowOverage ?? tierLimits.AllowOverage,
-                OverageRate = request.OverageRate ?? tierLimits.OverageRate,
+                PeriodEndDate = effectiveDate.AddDays(await GetQuotaPeriodDaysAsync(request.OrganizationId, ct)),
+                MaxTokensPerPeriod = request.MaxTokensPerPeriod ?? template.MaxTokensPerPeriod,
+                MaxRequestsPerPeriod = request.MaxRequestsPerPeriod ?? template.MaxRequestsPerPeriod,
+                MaxDecisionsPerPeriod = request.MaxDecisionsPerPeriod ?? template.MaxDecisionsPerPeriod,
+                MaxCostPerPeriod = request.MaxCostPerPeriod ?? template.MaxCostPerPeriod,
+                AllowOverage = request.AllowOverage ?? template.AllowOverage,
+                OverageRate = request.OverageRate ?? template.OverageRate,
                 EnforceQuota = request.EnforceQuota ?? true,
-                AlertThresholdPercentage = AIQuotaConstants.DefaultAlertThreshold,
+                AlertThresholdPercentage = template.DefaultAlertThresholdPercentage,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
@@ -254,6 +253,18 @@ public class UpdateAIQuotaCommandHandler : IRequestHandler<UpdateAIQuotaCommand,
                 quotaStatus.DaysRemaining
             )
         );
+    }
+
+    private async Task<int> GetQuotaPeriodDaysAsync(int organizationId, CancellationToken ct)
+    {
+        return await _settingsService.GetSettingIntAsync(organizationId, "AIQuota.QuotaPeriodDays", ct)
+            ?? AIQuotaConstants.QuotaPeriodDays; // Fallback to constant
+    }
+
+    private async Task<decimal> GetDefaultAlertThresholdAsync(int organizationId, CancellationToken ct)
+    {
+        return await _settingsService.GetSettingDecimalAsync(organizationId, "AIQuota.DefaultAlertThreshold", ct)
+            ?? AIQuotaConstants.DefaultAlertThreshold; // Fallback to constant
     }
 }
 

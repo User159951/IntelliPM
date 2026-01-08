@@ -90,9 +90,14 @@ public class HealthController : ControllerBase
         }
     }
 
+#if DEBUG
     /// <summary>
+    /// ⚠️ WARNING: DEBUG-ONLY ENDPOINT ⚠️
+    /// 
     /// DEV-ONLY: SMTP connection diagnostics endpoint.
     /// Tests SMTP connectivity without sending an email.
+    /// 
+    /// This endpoint is ONLY available in DEBUG builds and will be COMPLETELY DISABLED in Release builds.
     /// </summary>
     [HttpGet("smtp")]
     public async Task<IActionResult> TestSmtpConnection(CancellationToken ct)
@@ -206,8 +211,12 @@ public class HealthController : ControllerBase
     }
 
     /// <summary>
+    /// ⚠️ WARNING: DEBUG-ONLY ENDPOINT ⚠️
+    /// 
     /// DEV-ONLY: Send a test email via SMTP.
     /// Uses IEmailService to send a welcome email to the specified address.
+    /// 
+    /// This endpoint is ONLY available in DEBUG builds and will be COMPLETELY DISABLED in Release builds.
     /// </summary>
     [HttpPost("smtp/send-test")]
     public async Task<IActionResult> SendTestEmail([FromBody] SendTestEmailRequest request, CancellationToken ct)
@@ -291,6 +300,7 @@ public class HealthController : ControllerBase
     {
         public string To { get; set; } = string.Empty;
     }
+#endif
 
 }
 

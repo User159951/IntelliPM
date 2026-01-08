@@ -74,10 +74,25 @@ public class DisableAIForOrgCommandHandler : IRequestHandler<DisableAIForOrgComm
             activeQuota.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
+        // Get or create a "Disabled" template for disabled quotas
+        // Note: In a production system, you might want to ensure this template exists via migration
+        var disabledTemplate = await _unitOfWork.Repository<AIQuotaTemplate>()
+            .Query()
+            .FirstOrDefaultAsync(t => t.TierName == "Disabled" && t.DeletedAt == null, ct);
+
+        // If disabled template doesn't exist, use Free template as fallback (with 0 limits)
+        // This should not happen if templates are properly seeded, but handle gracefully
+        var templateId = disabledTemplate?.Id ?? 
+            (await _unitOfWork.Repository<AIQuotaTemplate>()
+                .Query()
+                .FirstOrDefaultAsync(t => t.TierName == "Free" && t.IsActive && t.DeletedAt == null, ct))?.Id 
+            ?? throw new NotFoundException("No quota templates found. Please ensure templates are seeded.");
+
         // Create a disabled quota entry as marker
         var disabledQuota = new AIQuota
         {
             OrganizationId = request.OrganizationId,
+            TemplateId = templateId,
             TierName = "Disabled",
             IsActive = true,
             EnforceQuota = true,

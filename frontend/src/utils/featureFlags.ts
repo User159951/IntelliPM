@@ -3,25 +3,35 @@ import type { FeatureFlagsRecord } from '@/types/featureFlags';
 /**
  * Check if a specific feature flag is enabled.
  * 
+ * IMPORTANT: This function does NOT return default values.
+ * If a flag doesn't exist in the flags record, it returns false.
+ * All flags must come from the API - no hardcoded defaults.
+ * 
  * @param flagName - Name of the feature flag to check
  * @param flags - Record of feature flags (flag name -> enabled state)
- * @returns true if the flag is enabled, false otherwise
+ * @returns true if the flag is enabled, false if disabled or not found
  * 
  * @example
  * ```ts
  * const flags = { EnableAIInsights: true, EnableAdvancedMetrics: false };
  * const isEnabled = checkFeatureFlag('EnableAIInsights', flags);
  * // Returns: true
+ * 
+ * const notFound = checkFeatureFlag('NonExistentFlag', flags);
+ * // Returns: false (flag doesn't exist - no default value)
  * ```
  */
 export function checkFeatureFlag(
   flagName: string,
   flags: FeatureFlagsRecord
 ): boolean {
+  // If flags is not a valid object, return false (no assumptions)
   if (!flags || typeof flags !== 'object') {
     return false;
   }
 
+  // Only return true if flag explicitly exists and is set to true
+  // If flag doesn't exist in record, return false (no hardcoded defaults)
   return flags[flagName] === true;
 }
 

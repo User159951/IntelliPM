@@ -1,9 +1,10 @@
 import { apiClient } from './client';
+import type { NotificationType } from '@/types/generated/enums';
 
 // Aligned with backend NotificationDto
 export interface Notification {
   id: number;
-  type: string;
+  type: NotificationType;
   message: string;
   entityType?: string | null;
   entityId?: number | null;

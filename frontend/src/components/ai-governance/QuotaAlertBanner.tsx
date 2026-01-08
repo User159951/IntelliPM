@@ -20,6 +20,9 @@ export function QuotaAlertBanner({ organizationId: propOrgId }: QuotaAlertBanner
     queryFn: () => aiGovernanceApi.getQuotaStatus(organizationId),
     enabled: organizationId > 0,
     refetchInterval: 60000, // Refresh every 60 seconds
+    retry: 3, // Retry up to 3 times on failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff: 1s, 2s, 4s (max 30s)
+    staleTime: 30000, // Consider data stale after 30 seconds
   });
 
   if (!quota || (!quota.isAlertThreshold && !quota.isDisabled)) {

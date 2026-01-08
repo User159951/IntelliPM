@@ -1,5 +1,11 @@
-// Auth types
-export type GlobalRole = 'User' | 'Admin' | 'SuperAdmin';
+// Auth types - now imported from generated types
+export type { GlobalRole } from './generated/enums';
+
+// Notification types - now imported from generated types
+export type { NotificationType, NotificationFrequency } from './generated/enums';
+
+// AI Decision types - now imported from generated types
+export type { AIDecisionType, AIAgentType, AIDecisionStatus } from './generated/enums';
 
 export interface LoginRequest {
   username: string;
@@ -41,10 +47,8 @@ export interface User {
   roles?: string[];
 }
 
-// Project types
-export type ProjectStatus = 'Active' | 'OnHold' | 'Completed' | 'Archived';
-export type ProjectType = 'Scrum' | 'Kanban' | 'Waterfall';
-export type ProjectRole = 'ProductOwner' | 'ScrumMaster' | 'Developer' | 'Tester' | 'Viewer';
+// Project types - now imported from generated types
+export type { ProjectStatus, ProjectType, ProjectRole } from './generated/enums';
 
 export interface ProjectMember {
   id: number;
@@ -99,8 +103,8 @@ export interface UpdateProjectRequest {
   sprintDurationDays?: number;
 }
 
-// Sprint types
-export type SprintStatus = 'Planned' | 'Active' | 'Completed';
+// Sprint types - now imported from generated types
+export type { SprintStatus } from './generated/enums';
 
 export interface Sprint {
   id: number;
@@ -123,9 +127,8 @@ export interface CreateSprintRequest {
   goal?: string;
 }
 
-// Task types
-export type TaskStatus = 'Todo' | 'InProgress' | 'Blocked' | 'Done';
-export type TaskPriority = 'Low' | 'Medium' | 'High' | 'Critical';
+// Task types - now imported from generated types
+export type { TaskStatus, TaskPriority } from './generated/enums';
 
 export interface Task {
   id: number;
@@ -257,9 +260,8 @@ export interface CreateStoryRequest {
   acceptanceCriteria?: string;
 }
 
-// Defect types
-export type DefectSeverity = 'Low' | 'Medium' | 'High' | 'Critical';
-export type DefectStatus = 'Open' | 'InProgress' | 'Resolved' | 'Closed';
+// Defect types - now imported from generated types
+export type { DefectSeverity, DefectStatus } from './generated/enums';
 
 export interface Defect {
   id: number;

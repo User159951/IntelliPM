@@ -8,6 +8,49 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
+
+  <!-- Build configuration: Ensure DEBUG controllers are excluded in Release builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Build-time check: Fail if DEBUG code is detected in Release builds -->
+  <Target Name="CheckDebugCodeInRelease" BeforeTargets="CoreCompile" Condition="'$(Configuration)' == 'Release'">
+    <!-- Verify TestController is properly wrapped with #if DEBUG -->
+    <ItemGroup>
+      <TestControllerFiles Include="**\TestController.cs" />
+    </ItemGroup>
+    <PropertyGroup>
+      <TestControllerFile>@(TestControllerFiles)</TestControllerFile>
+      <TestControllerExists Condition="Exists('$(TestControllerFile)')">true</TestControllerExists>
+    </PropertyGroup>
+    
+    <!-- Read TestController file to verify it has #if DEBUG -->
+    <ReadLinesFromFile File="$(TestControllerFile)" Condition="'$(TestControllerExists)' == 'true'">
+      <Output TaskParameter="Lines" ItemName="TestControllerLines" />
+    </ReadLinesFromFile>
+    
+    <!-- Check if file contains #if DEBUG directive -->
+    <PropertyGroup Condition="'$(TestControllerExists)' == 'true'">
+      <TestControllerText>@(TestControllerLines)</TestControllerText>
+      <HasDebugDirective Condition="$(TestControllerText.Contains('#if DEBUG'))">true</HasDebugDirective>
+      <MissingDebugDirective Condition="'$(HasDebugDirective)' != 'true'">true</MissingDebugDirective>
+    </PropertyGroup>
+    
+    <Error 
+      Condition="'$(MissingDebugDirective)' == 'true' AND '$(TestControllerExists)' == 'true'"
+      Text="SECURITY VIOLATION: TestController.cs is not wrapped with #if DEBUG preprocessor directive. This is required for Release builds. File: $(TestControllerFile)" />
+    
+    <!-- Log success if properly wrapped -->
+    <Message 
+      Condition="'$(HasDebugDirective)' == 'true' AND '$(TestControllerExists)' == 'true'"
+      Text="✓ TestController.cs is properly wrapped with #if DEBUG - safe for Release build" 
+      Importance="high" />
+  </Target>
   
   <ItemGroup>
     <InternalsVisibleTo Include="IntelliPM.Tests" />

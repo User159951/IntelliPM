@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { featureFlagService } from '@/services/featureFlagService';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { featureFlagsApi } from '@/api/featureFlags';
 import { useAuth } from './AuthContext';
 import type { FeatureFlagsContextType, FeatureFlagsRecord } from '@/types/featureFlags';
 import { flagsToRecord } from '@/utils/featureFlags';
@@ -17,29 +18,23 @@ interface FeatureFlagsProviderProps {
    * Children components
    */
   children: React.ReactNode;
-
-  /**
-   * Cache TTL in milliseconds (default: 5 minutes)
-   * Can be overridden via VITE_FEATURE_FLAGS_CACHE_TTL environment variable
-   */
-  cacheTtl?: number;
-
-  /**
-   * Auto-refresh interval in milliseconds (default: 5 minutes)
-   * Set to 0 to disable auto-refresh
-   */
-  autoRefreshInterval?: number;
 }
+
+/**
+ * React Query key for feature flags
+ */
+export const FEATURE_FLAGS_QUERY_KEY = 'feature-flags';
 
 /**
  * FeatureFlagsProvider component that fetches and provides feature flags to all children.
  * 
  * Features:
- * - Fetches all flags on mount
- * - Auto-refreshes flags at specified interval
+ * - Fetches all flags on mount using React Query
  * - Provides flags via context for global access
  * - Handles loading and error states
  * - Supports organization-specific flags
+ * - Uses React Query cache with stale time
+ * - No hardcoded defaults - all flags come from API
  * 
  * @example
  * ```tsx
@@ -50,115 +45,69 @@ interface FeatureFlagsProviderProps {
  */
 export const FeatureFlagsProvider: React.FC<FeatureFlagsProviderProps> = ({
   children,
-  cacheTtl: _cacheTtl,
-  autoRefreshInterval,
 }) => {
   const { user, isAuthenticated } = useAuth();
-  const [flags, setFlags] = useState<FeatureFlagsRecord>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
+  const queryClient = useQueryClient();
 
-  // Get auto-refresh interval from prop (default: 5 minutes)
-  // Note: cacheTtl prop is available for future use but not currently implemented
-  const refreshIntervalMs = autoRefreshInterval ?? 5 * 60 * 1000;
+  // Get organization ID from user
+  const organizationId = useMemo(() => {
+    return user?.organizationId?.toString();
+  }, [user?.organizationId]);
 
-  /**
-   * Fetch all feature flags for the current organization
-   */
-  const fetchFlags = useCallback(async () => {
-    if (!isAuthenticated || !user) {
-      setFlags({});
-      setIsLoading(false);
-      return;
+  // Fetch feature flags using React Query
+  const {
+    data: flagsArray,
+    isLoading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: [FEATURE_FLAGS_QUERY_KEY, organizationId],
+    queryFn: () => featureFlagsApi.getAllFlags(organizationId),
+    enabled: isAuthenticated && !!user, // Only fetch when authenticated
+    staleTime: 1000 * 60 * 5, // 5 minutes - flags are considered fresh for 5 minutes
+    retry: 1, // Retry once on failure
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnReconnect: true, // Refetch when network reconnects
+  });
+
+  // Convert flags array to record format
+  const flags: FeatureFlagsRecord = useMemo(() => {
+    if (!flagsArray) {
+      return {}; // Return empty object if no flags loaded yet
     }
+    return flagsToRecord(flagsArray);
+  }, [flagsArray]);
 
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Get organization ID from user
-      const organizationId = user.organizationId?.toString();
-
-      // Fetch all flags
-      const allFlags = await featureFlagService.getAllFlags(organizationId);
-
-      // Convert to record format
-      const flagsRecord = flagsToRecord(allFlags);
-
-      if (isMountedRef.current) {
-        setFlags(flagsRecord);
-        setIsLoading(false);
-      }
-    } catch (err) {
-      if (isMountedRef.current) {
-        const error = err instanceof Error ? err : new Error('Failed to fetch feature flags');
-        
-        // Don't set error state for 401 errors - API client will handle token refresh or redirect
-        // If token refresh fails, auth context will be updated and isAuthenticated will become false
-        if (error.message.includes('Unauthorized') || error.message.includes('401')) {
-          setIsLoading(false);
-          // Don't set error - let the API client handle authentication
-          // The query will be disabled automatically when isAuthenticated becomes false
-          return;
-        }
-        
-        setError(error);
-        setIsLoading(false);
-      }
+  // Convert query error to Error object
+  const error = useMemo(() => {
+    if (!queryError) {
+      return null;
     }
-  }, [user, isAuthenticated]);
+    if (queryError instanceof Error) {
+      return queryError;
+    }
+    return new Error('Failed to fetch feature flags');
+  }, [queryError]);
 
   /**
    * Refresh flags manually
    */
   const refresh = useCallback(async () => {
-    // Clear service cache before refreshing
-    featureFlagService.clearCache();
-    await fetchFlags();
-  }, [fetchFlags]);
+    await queryClient.invalidateQueries({ queryKey: [FEATURE_FLAGS_QUERY_KEY] });
+    await refetch();
+  }, [queryClient, refetch]);
 
   /**
    * Check if a specific feature flag is enabled
+   * Returns false if flag doesn't exist (no hardcoded defaults)
    */
   const isEnabled = useCallback(
     (flagName: string): boolean => {
+      // No hardcoded defaults - flag must exist in API response
       return flags[flagName] === true;
     },
     [flags]
   );
-
-  // Fetch flags on mount and when user/organization changes
-  useEffect(() => {
-    fetchFlags();
-  }, [fetchFlags]);
-
-  // Set up auto-refresh interval
-  useEffect(() => {
-    if (refreshIntervalMs > 0 && isAuthenticated) {
-      refreshIntervalRef.current = setInterval(() => {
-        fetchFlags();
-      }, refreshIntervalMs);
-
-      return () => {
-        if (refreshIntervalRef.current) {
-          clearInterval(refreshIntervalRef.current);
-        }
-      };
-    }
-    return undefined;
-  }, [refreshIntervalMs, isAuthenticated, fetchFlags]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-      }
-    };
-  }, []);
 
   const contextValue: FeatureFlagsContextType = {
     flags,

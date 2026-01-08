@@ -38,6 +38,8 @@ import {
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
+import { useTaskStatuses, useTaskPriorities } from '@/hooks/useLookups';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TaskDetailSheetProps {
   task: Task | null;
@@ -62,6 +64,8 @@ export function TaskDetailSheet({
   const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { statuses, isLoading: isLoadingStatuses } = useTaskStatuses();
+  const { priorities, isLoading: isLoadingPriorities } = useTaskPriorities();
 
   // Local state for editable fields
   const [localTask, setLocalTask] = useState<Task | null>(null);
@@ -583,51 +587,61 @@ export function TaskDetailSheet({
             {/* Status */}
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select
-                value={localTask.status}
-                onValueChange={(value: TaskStatus) => {
-                  if (localTask && !permissions.isViewer) {
-                    tasksApi.changeStatus(localTask.id, value).then(() => {
-                      queryClient.invalidateQueries({ queryKey: ['task', localTask.id] });
-                      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
-                      onTaskUpdated?.();
-                    }).catch(() => {
-                      showError('Failed to update status');
-                    });
-                  }
-                }}
-                disabled={permissions.isViewer}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todo">Todo</SelectItem>
-                  <SelectItem value="InProgress">In Progress</SelectItem>
-                  <SelectItem value="Blocked">Blocked</SelectItem>
-                  <SelectItem value="Done">Done</SelectItem>
-                </SelectContent>
-              </Select>
+              {isLoadingStatuses ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select
+                  value={localTask.status}
+                  onValueChange={(value: TaskStatus) => {
+                    if (localTask && !permissions.isViewer) {
+                      tasksApi.changeStatus(localTask.id, value).then(() => {
+                        queryClient.invalidateQueries({ queryKey: ['task', localTask.id] });
+                        queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+                        onTaskUpdated?.();
+                      }).catch(() => {
+                        showError('Failed to update status');
+                      });
+                    }
+                  }}
+                  disabled={permissions.isViewer}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Priority */}
             <div className="space-y-2">
               <Label>Priority</Label>
-              <Select
-                value={localTask.priority}
-                onValueChange={(value: TaskPriority) => handleFieldChange('priority', value)}
-                disabled={permissions.isViewer}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Critical">Critical</SelectItem>
-                </SelectContent>
-              </Select>
+              {isLoadingPriorities ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select
+                  value={localTask.priority}
+                  onValueChange={(value: TaskPriority) => handleFieldChange('priority', value)}
+                  disabled={permissions.isViewer}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {priorities.map((priority) => (
+                      <SelectItem key={priority.value} value={priority.value}>
+                        {priority.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Assignee */}

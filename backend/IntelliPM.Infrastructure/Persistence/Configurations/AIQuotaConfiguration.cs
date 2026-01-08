@@ -52,10 +52,12 @@ public class AIQuotaConfiguration : IEntityTypeConfiguration<AIQuota>
         builder.Property(q => q.OrganizationId)
             .IsRequired();
 
+        builder.Property(q => q.TemplateId)
+            .IsRequired();
+
         builder.Property(q => q.TierName)
             .IsRequired()
-            .HasMaxLength(50)
-            .HasDefaultValue("Free");
+            .HasMaxLength(50);
 
         builder.Property(q => q.IsActive)
             .IsRequired()
@@ -96,7 +98,16 @@ public class AIQuotaConfiguration : IEntityTypeConfiguration<AIQuota>
         builder.HasOne(q => q.Organization)
             .WithMany()
             .HasForeignKey(q => q.OrganizationId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(q => q.Template)
+            .WithMany(t => t.Quotas)
+            .HasForeignKey(q => q.TemplateId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Index for template queries
+        builder.HasIndex(q => q.TemplateId)
+            .HasDatabaseName("IX_AIQuotas_TemplateId");
     }
 }
 

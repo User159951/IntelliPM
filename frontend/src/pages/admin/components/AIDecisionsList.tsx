@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { aiGovernanceApi } from '@/api/aiGovernance';
+import type { AIDecisionType, AIAgentType } from '@/types/generated/enums';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,12 +37,18 @@ function EmptyState({
 
 export function AIDecisionsList() {
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({
-    organizationId: undefined as number | undefined,
+  const [filters, setFilters] = useState<{
+    organizationId?: number;
+    decisionType: 'all' | AIDecisionType;
+    agentType: 'all' | AIAgentType;
+    startDate?: string;
+    endDate?: string;
+  }>({
+    organizationId: undefined,
     decisionType: 'all',
     agentType: 'all',
-    startDate: undefined as string | undefined,
-    endDate: undefined as string | undefined,
+    startDate: undefined,
+    endDate: undefined,
   });
 
   const { data, isLoading } = useQuery({

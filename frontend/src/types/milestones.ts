@@ -1,17 +1,5 @@
-export enum MilestoneType {
-  Release = 0,
-  Sprint = 1,
-  Deadline = 2,
-  Custom = 3,
-}
-
-export enum MilestoneStatus {
-  Pending = 0,
-  InProgress = 1,
-  Completed = 2,
-  Missed = 3,
-  Cancelled = 4,
-}
+// Enum types now imported from generated types
+export type { MilestoneType, MilestoneStatus } from './generated/enums';
 
 export interface MilestoneDto {
   id: number;

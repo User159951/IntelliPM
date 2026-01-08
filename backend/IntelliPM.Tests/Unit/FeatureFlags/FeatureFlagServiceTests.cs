@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Infrastructure.Persistence;
@@ -143,16 +144,14 @@ public class FeatureFlagServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task IsEnabled_Should_Return_False_For_NonExistent_Flag()
+    public async Task IsEnabled_Should_Throw_Exception_For_NonExistent_Flag()
     {
         // Arrange
         var orgId = 1;
 
-        // Act
-        var isEnabled = await _featureFlagService.IsEnabledAsync("NonExistentFlag", orgId);
-
-        // Assert
-        isEnabled.Should().BeFalse();
+        // Act & Assert
+        await Assert.ThrowsAsync<FeatureFlagNotFoundException>(
+            () => _featureFlagService.IsEnabledAsync("NonExistentFlag", orgId));
     }
 
     [Fact]
@@ -210,16 +209,14 @@ public class FeatureFlagServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAsync_Should_Return_Null_For_NonExistent_Flag()
+    public async Task GetAsync_Should_Throw_Exception_For_NonExistent_Flag()
     {
         // Arrange
         var orgId = 1;
 
-        // Act
-        var flag = await _featureFlagService.GetAsync("NonExistentFlag", orgId);
-
-        // Assert
-        flag.Should().BeNull();
+        // Act & Assert
+        await Assert.ThrowsAsync<FeatureFlagNotFoundException>(
+            () => _featureFlagService.GetAsync("NonExistentFlag", orgId));
     }
 
     [Fact]
@@ -228,43 +225,39 @@ public class FeatureFlagServiceTests : IDisposable
         // Arrange
         var org1Id = 1;
         var org2Id = 2;
-        var org3Id = 3; // Non-existent org
+        var org3Id = 3; // Non-existent org (but flag exists globally)
 
         // Act
         var isEnabledOrg1 = await _featureFlagService.IsEnabledAsync("EnableAI", org1Id);
         var isEnabledOrg2 = await _featureFlagService.IsEnabledAsync("EnableAI", org2Id);
         var isEnabledOrg3 = await _featureFlagService.IsEnabledAsync("EnableAI", org3Id);
 
-        // Assert - All should return true (global flag)
+        // Assert - All should return true (global flag applies to all orgs)
         isEnabledOrg1.Should().BeTrue();
         isEnabledOrg2.Should().BeTrue();
         isEnabledOrg3.Should().BeTrue();
     }
 
     [Fact]
-    public async Task IsEnabled_Should_Return_False_For_Empty_Flag_Name()
+    public async Task IsEnabled_Should_Throw_Exception_For_Empty_Flag_Name()
     {
         // Arrange
         var orgId = 1;
 
-        // Act
-        var isEnabled = await _featureFlagService.IsEnabledAsync("", orgId);
-
-        // Assert
-        isEnabled.Should().BeFalse();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => _featureFlagService.IsEnabledAsync("", orgId));
     }
 
     [Fact]
-    public async Task IsEnabled_Should_Return_False_For_Null_Flag_Name()
+    public async Task IsEnabled_Should_Throw_Exception_For_Null_Flag_Name()
     {
         // Arrange
         var orgId = 1;
 
-        // Act
-        var isEnabled = await _featureFlagService.IsEnabledAsync(null!, orgId);
-
-        // Assert
-        isEnabled.Should().BeFalse();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => _featureFlagService.IsEnabledAsync(null!, orgId));
     }
 
     [Fact]
@@ -317,9 +310,9 @@ public class FeatureFlagServiceTests : IDisposable
         // Act
         var flag = await _featureFlagService.GetAsync("EnableCustomTheme", org3Id);
 
-        // Assert - Should return global flag
+        // Assert - Should return global flag (fallback behavior)
         flag.Should().NotBeNull();
-        flag!.OrganizationId.Should().BeNull(); // Global flag
+        flag.OrganizationId.Should().BeNull(); // Global flag
         flag.IsEnabled.Should().BeFalse(); // Global flag is disabled
     }
 

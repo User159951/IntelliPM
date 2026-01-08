@@ -32,12 +32,12 @@ public class SettingsController : BaseApiController
     /// <summary>
     /// Get all global settings (admin only)
     /// </summary>
-    [HttpGet]
+    [HttpGet("global")]
     [RequirePermission("admin.settings.update")] // Admin only
     [ProducesResponseType(typeof(Dictionary<string, string>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAllSettings(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetGlobalSettings(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -149,6 +149,52 @@ public class SettingsController : BaseApiController
                 statusCode: StatusCodes.Status500InternalServerError
             );
         }
+    }
+
+    /// <summary>
+    /// Get all organization settings for the current user's organization
+    /// </summary>
+    [HttpGet("organization")]
+    [ProducesResponseType(typeof(Dictionary<string, string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrganizationSettings(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var organizationId = _currentUserService.GetOrganizationId();
+            if (organizationId == 0)
+            {
+                return Forbid();
+            }
+
+            var category = Request.Query.ContainsKey("category") ? Request.Query["category"].ToString() : null;
+            var query = new GetOrganizationSettingsQuery(organizationId, category);
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving organization settings");
+            return Problem(
+                title: "Error retrieving organization settings",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Get all settings (backward compatibility - redirects to global)
+    /// </summary>
+    [HttpGet]
+    [RequirePermission("admin.settings.update")] // Admin only
+    [ProducesResponseType(typeof(Dictionary<string, string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetAllSettings(CancellationToken cancellationToken = default)
+    {
+        return await GetGlobalSettings(cancellationToken);
     }
 }
 

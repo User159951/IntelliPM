@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Regenerate types from OpenAPI spec before commit
+echo "Regenerating types from OpenAPI spec..."
+npm run generate:types
+
+# Stage the generated types files
+git add src/types/generated/api.ts src/types/generated/enums.ts

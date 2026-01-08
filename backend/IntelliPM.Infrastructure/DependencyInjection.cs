@@ -100,6 +100,12 @@ public static class DependencyInjection
         // Cache Service
         services.AddSingleton<ICacheService, CacheService>();
 
+        // Memory Cache (if not already added)
+        services.AddMemoryCache();
+
+        // Settings Service
+        services.AddScoped<IntelliPM.Application.Common.Interfaces.ISettingsService, SettingsService>();
+
         // Feature Flag Service
         services.AddScoped<IFeatureFlagService, FeatureFlagService>();
 

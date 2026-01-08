@@ -32,6 +32,7 @@ import {
 import { showSuccess, showError } from "@/lib/sweetalert";
 import { Loader2 } from 'lucide-react';
 import type { ProjectRole } from '@/types';
+import { ProjectRole as ProjectRoleType } from '@/types/generated/enums';
 
 interface InviteMemberModalProps {
   projectId: number;
@@ -40,9 +41,18 @@ interface InviteMemberModalProps {
   onSuccess: () => void;
 }
 
+// Create zod enum from ProjectRole type
+const projectRoleEnum = z.enum([
+  'ProductOwner',
+  'ScrumMaster', 
+  'Developer',
+  'Tester',
+  'Viewer'
+] as [ProjectRoleType, ...ProjectRoleType[]]);
+
 const inviteMemberSchema = z.object({
   email: z.string().email('Invalid email'),
-  role: z.enum(['ProductOwner', 'ScrumMaster', 'Developer', 'Tester', 'Viewer']),
+  role: projectRoleEnum,
 });
 
 type InviteMemberFormValues = z.infer<typeof inviteMemberSchema>;

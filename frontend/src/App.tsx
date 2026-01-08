@@ -5,6 +5,8 @@ import * as Sentry from "@sentry/react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { FeatureFlagsProvider } from "./contexts/FeatureFlagsContext";
+import { PermissionProvider } from "./contexts/PermissionContext";
+import { FeatureFlagsGuard } from "./components/guards/FeatureFlagsGuard";
 import { MainLayout } from "./components/layout/MainLayout";
 import { RequireAdminGuard } from "./components/guards/RequireAdminGuard";
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -71,8 +73,9 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <FeatureFlagsProvider>
-            <TooltipProvider>
+          <PermissionProvider>
+            <FeatureFlagsProvider>
+              <TooltipProvider>
             <BrowserRouter
               future={{
                 v7_startTransition: true,
@@ -80,7 +83,7 @@ const App = () => (
               }}
             >
               <Routes>
-                {/* Public routes */}
+                {/* Public routes - don't require feature flags */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -88,8 +91,14 @@ const App = () => (
                 <Route path="/invite/accept/:token" element={<AcceptInvite />} />
                 <Route path="/terms" element={<Terms />} />
 
-                {/* Protected routes */}
-                <Route element={<MainLayout />}>
+                {/* Protected routes - require feature flags to be loaded */}
+                <Route
+                  element={
+                    <FeatureFlagsGuard>
+                      <MainLayout />
+                    </FeatureFlagsGuard>
+                  }
+                >
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/projects" element={<Projects />} />
@@ -116,13 +125,15 @@ const App = () => (
                   <Route path="/settings/ai-quota" element={<QuotaDetails />} />
                 </Route>
 
-                {/* Admin routes */}
+                {/* Admin routes - require feature flags to be loaded */}
                 <Route
                   path="/admin"
                   element={
-                    <RequireAdminGuard>
-                      <AdminLayout />
-                    </RequireAdminGuard>
+                    <FeatureFlagsGuard>
+                      <RequireAdminGuard>
+                        <AdminLayout />
+                      </RequireAdminGuard>
+                    </FeatureFlagsGuard>
                   }
                 >
                   <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -178,8 +189,9 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-          </TooltipProvider>
-          </FeatureFlagsProvider>
+              </TooltipProvider>
+            </FeatureFlagsProvider>
+          </PermissionProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

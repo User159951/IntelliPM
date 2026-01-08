@@ -1412,13 +1412,14 @@ public class DataSeeder
     /// </summary>
     public static async System.Threading.Tasks.Task SeedAllRBACDataAsync(
         AppDbContext context,
-        ILogger logger)
+        ILoggerFactory loggerFactory)
     {
+        var logger = loggerFactory.CreateLogger<DataSeeder>();
         try
         {
             logger.LogInformation("Starting comprehensive RBAC data seeding...");
 
-            var versionManager = new SeedVersionManager(context, logger);
+            var versionManager = new SeedVersionManager(context, loggerFactory.CreateLogger<SeedVersionManager>());
 
             // Ensure SeedHistories table exists (for first-time seeding)
             try

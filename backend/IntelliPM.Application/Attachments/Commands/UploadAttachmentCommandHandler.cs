@@ -18,15 +18,18 @@ public class UploadAttachmentCommandHandler : IRequestHandler<UploadAttachmentCo
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IFileStorageService _fileStorageService;
+    private readonly ISettingsService _settingsService;
     private readonly ILogger<UploadAttachmentCommandHandler> _logger;
 
     public UploadAttachmentCommandHandler(
         IUnitOfWork unitOfWork,
         IFileStorageService fileStorageService,
+        ISettingsService settingsService,
         ILogger<UploadAttachmentCommandHandler> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
+        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -38,11 +41,18 @@ public class UploadAttachmentCommandHandler : IRequestHandler<UploadAttachmentCo
             throw new ValidationException("File is required");
         }
 
+        // Get max file size from settings (with fallback to constant default)
+        var maxFileSizeBytes = await _settingsService.GetSettingLongAsync(
+            request.OrganizationId, 
+            "Attachment.MaxFileSizeBytes", 
+            cancellationToken) 
+            ?? AttachmentConstants.MaxFileSizeBytes; // Fallback to constant if not found
+
         // Validate file size
-        if (request.File.Length > AttachmentConstants.MaxFileSizeBytes)
+        if (request.File.Length > maxFileSizeBytes)
         {
             throw new ValidationException(
-                $"File size exceeds maximum allowed size of {AttachmentConstants.MaxFileSizeBytes / (1024 * 1024)} MB");
+                $"File size exceeds maximum allowed size of {maxFileSizeBytes / (1024 * 1024)} MB");
         }
 
         // Validate file extension

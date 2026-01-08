@@ -17,11 +17,13 @@ import {
   Plus,
   User,
   GripVertical,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Task, TaskStatus, TaskPriority } from '@/types';
 import BlockedBadge from './BlockedBadge';
 import { useProjectTaskDependencies } from '@/hooks/useProjectTaskDependencies';
+import { useTaskStatuses, useTaskPriorities, getLookupItem } from '@/hooks/useLookups';
 
 /**
  * Extended Task interface for TaskBoard component.
@@ -64,7 +66,7 @@ export interface TaskBoardProps {
   /** Whether user can edit tasks */
   canEditTasks?: boolean;
   /** Handler for adding new task */
-  onAddTask?: (status: 'Todo' | 'InProgress' | 'Done') => void;
+  onAddTask?: (status: TaskStatus) => void;
   /** Additional CSS classes */
   className?: string;
 }
@@ -73,7 +75,7 @@ export interface TaskBoardProps {
  * Column configuration for Kanban board.
  */
 interface ColumnConfig {
-  key: 'Todo' | 'InProgress' | 'Done';
+  key: TaskStatus;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   headerBg: string;
@@ -81,7 +83,25 @@ interface ColumnConfig {
   borderColor: string;
 }
 
-const columns: ColumnConfig[] = [
+/**
+ * Icon mapping for status icons from API
+ */
+const iconMap: Record<string, LucideIcon> = {
+  Circle,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  'circle': Circle,
+  'clock': Clock,
+  'check-circle': CheckCircle2,
+  'check-circle-2': CheckCircle2,
+  'x-circle': XCircle,
+};
+
+/**
+ * Fallback column configuration when API data is not available
+ */
+const fallbackColumns: ColumnConfig[] = [
   {
     key: 'Todo',
     label: 'To Do',
@@ -109,9 +129,9 @@ const columns: ColumnConfig[] = [
 ];
 
 /**
- * Priority colors for task cards.
+ * Fallback priority colors for task cards when API data is not available.
  */
-const priorityColors: Record<TaskPriority, string> = {
+const fallbackPriorityColors: Record<TaskPriority, string> = {
   Low: 'border-l-slate-400',
   Medium: 'border-l-yellow-400',
   High: 'border-l-orange-400',
@@ -162,6 +182,74 @@ export default function TaskBoard({
 
   // Fetch blocking info for all tasks in project (batch optimization)
   const { blockingMap } = useProjectTaskDependencies(projectId ?? 0);
+
+  // Fetch status lookups from API
+  const { statuses, isLoading: isLoadingStatuses } = useTaskStatuses();
+  const { priorities } = useTaskPriorities();
+
+  // Build priority color map from API data
+  const priorityColors = useMemo(() => {
+    const colorMap: Record<string, string> = {};
+    priorities.forEach((priority) => {
+      // Use metadata borderColor if available, otherwise fallback
+      const borderColor = priority.metadata?.borderColor || fallbackPriorityColors[priority.value as TaskPriority];
+      colorMap[priority.value] = borderColor || fallbackPriorityColors[priority.value as TaskPriority] || 'border-l-slate-400';
+    });
+    return colorMap;
+  }, [priorities]);
+
+  // Build columns from API data or fallback
+  const columns = useMemo<ColumnConfig[]>(() => {
+    // Filter statuses to only include Todo, InProgress, Done (exclude Blocked for board view)
+    const boardStatuses = statuses.filter((s) => 
+      s.value === 'Todo' || s.value === 'InProgress' || s.value === 'Done'
+    );
+
+    if (boardStatuses.length > 0) {
+      return boardStatuses.map((status) => {
+        const metadata = status.metadata || {};
+        const iconName = metadata.icon || 'Circle';
+        const Icon = iconMap[iconName] || Circle;
+
+        // Extract color classes from metadata or use defaults
+        const headerBg = metadata.bgColor 
+          ? `${metadata.bgColor}/10` 
+          : status.value === 'Todo' 
+            ? 'bg-blue-500/10'
+            : status.value === 'InProgress'
+              ? 'bg-amber-500/10'
+              : 'bg-green-500/10';
+        
+        const headerText = metadata.textColor 
+          ? metadata.textColor.replace('text-', 'text-').replace('dark:', 'dark:')
+          : status.value === 'Todo'
+            ? 'text-blue-600 dark:text-blue-400'
+            : status.value === 'InProgress'
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-green-600 dark:text-green-400';
+
+        const borderColor = metadata.borderColor
+          ? `${metadata.borderColor}/20`
+          : status.value === 'Todo'
+            ? 'border-blue-500/20'
+            : status.value === 'InProgress'
+              ? 'border-amber-500/20'
+              : 'border-green-500/20';
+
+        return {
+          key: status.value as TaskStatus,
+          label: status.label,
+          icon: Icon,
+          headerBg,
+          headerText,
+          borderColor,
+        };
+      });
+    }
+
+    // Fallback to hardcoded columns if API data not available
+    return fallbackColumns;
+  }, [statuses]);
 
   // Sync local state with props
   useEffect(() => {
@@ -242,21 +330,22 @@ export default function TaskBoard({
 
   // Group tasks by status
   const tasksByStatus = useMemo(() => {
-    const grouped = {
-      Todo: [] as (TaskBoardTask | Task)[],
-      InProgress: [] as (TaskBoardTask | Task)[],
-      Done: [] as (TaskBoardTask | Task)[],
-    };
+    const grouped: Record<string, (TaskBoardTask | Task)[]> = {};
+
+    // Initialize groups for all column statuses
+    columns.forEach((column) => {
+      grouped[column.key] = [];
+    });
 
     filteredTasks.forEach((task) => {
       const status = task.status;
-      if (status === 'Todo' || status === 'InProgress' || status === 'Done') {
+      if (grouped[status]) {
         grouped[status].push(task);
       }
     });
 
     return grouped;
-  }, [filteredTasks]);
+  }, [filteredTasks, columns]);
 
   return (
     <TooltipProvider>
@@ -295,19 +384,35 @@ export default function TaskBoard({
             role="region"
             aria-label="Task board"
           >
-            {columns.map((column) => (
-              <TaskColumn
-                key={column.key}
-                column={column}
-                tasks={tasksByStatus[column.key]}
-                isLoading={isLoading}
-                onTaskClick={onTaskClick}
-                canEdit={canEditTasks}
-                onAddTask={onAddTask}
-                isDragDisabled={!canEditTasks || isMobile}
-                blockingMap={blockingMap}
-              />
-            ))}
+            {isLoadingStatuses ? (
+              // Show loading skeletons for columns
+              <>
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex flex-col flex-1 min-w-0 rounded-lg border bg-card">
+                    <Skeleton className="h-16 m-4" />
+                    <div className="px-2 py-2 space-y-2">
+                      {[...Array(2)].map((_, j) => (
+                        <Skeleton key={j} className="h-24 w-full" />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              columns.map((column) => (
+                <TaskColumn
+                  key={column.key}
+                  column={column}
+                  tasks={tasksByStatus[column.key] || []}
+                  isLoading={isLoading}
+                  onTaskClick={onTaskClick}
+                  canEdit={canEditTasks}
+                  onAddTask={onAddTask}
+                  isDragDisabled={!canEditTasks || isMobile}
+                  blockingMap={blockingMap}
+                />
+              ))
+            )}
           </div>
         </DragDropContext>
       </div>
@@ -324,7 +429,7 @@ interface TaskColumnProps {
   isLoading: boolean;
   onTaskClick?: (taskId: number) => void;
   canEdit: boolean;
-  onAddTask?: (status: 'Todo' | 'InProgress' | 'Done') => void;
+  onAddTask?: (status: TaskStatus) => void;
   isDragDisabled: boolean;
   blockingMap: Map<number, { isBlocked: boolean; blockedByCount: number; blockingTasks: Array<{ taskId: number; title: string; status: string }> }>;
 }
@@ -419,9 +524,7 @@ function TaskColumn({
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <Icon className={cn('h-12 w-12 mb-3 opacity-50', column.headerText)} />
                   <p className="text-sm text-muted-foreground">
-                    {column.key === 'Todo' && 'No tasks to do'}
-                    {column.key === 'InProgress' && 'No tasks in progress'}
-                    {column.key === 'Done' && 'No completed tasks'}
+                    No tasks in {column.label.toLowerCase()}
                   </p>
                 </div>
               ) : (
@@ -506,7 +609,7 @@ function TaskCard({ task, index, onClick, isDragDisabled, blockingInfo }: TaskCa
           {...provided.draggableProps}
           className={cn(
             'bg-card rounded-lg border mb-2 shadow-sm transition-all border-l-4',
-            priorityColors[task.priority],
+            priorityColors[task.priority] || fallbackPriorityColors[task.priority],
             isBlocked && 'border-l-red-500 border-l-4',
             snapshot.isDragging && 'shadow-lg rotate-2 opacity-90'
           )}

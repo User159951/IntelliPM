@@ -259,6 +259,8 @@ class FeatureFlagService {
     const fetchPromise = (async () => {
       try {
         const flag = await this.fetchFlagFromAPI(flagName, organizationId);
+        // No hardcoded defaults - flag must exist in API response
+        // If flag is null, it doesn't exist, so return false (not a default, but absence)
         const isEnabled = flag?.isEnabled ?? false;
 
         // Cache the result
@@ -266,8 +268,9 @@ class FeatureFlagService {
 
         return isEnabled;
       } catch (error) {
-        // Fail-safe: return false on error
-        return false;
+        // On error, throw instead of returning false (no assumptions)
+        // This ensures callers know the API failed
+        throw error;
       } finally {
         // Remove from pending fetches
         this.pendingFetches.delete(key);
@@ -383,11 +386,9 @@ class FeatureFlagService {
           throw error;
         }
         
-        // For other errors, log and return empty array (fail-safe)
-        if (import.meta.env.DEV) {
-          // Error fetching all flags (fail-safe)
-        }
-        return [];
+        // For other errors, throw instead of returning empty array (no assumptions)
+        // This ensures callers know the API failed
+        throw error;
       } finally {
         // Remove from pending fetches
         this.pendingAllFlagsFetches.delete(cacheKey);

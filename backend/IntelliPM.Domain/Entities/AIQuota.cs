@@ -12,8 +12,19 @@ public class AIQuota : IAggregateRoot
     public int Id { get; set; }
     public int OrganizationId { get; set; }
 
-    // Quota tier
-    public string TierName { get; set; } = "Free"; // "Free", "Pro", "Enterprise", "Custom"
+    // Quota template reference
+    /// <summary>
+    /// Foreign key to AIQuotaTemplate that defines the tier and default limits.
+    /// Required - all quotas must reference a valid template.
+    /// </summary>
+    public int TemplateId { get; set; }
+
+    // Quota tier (denormalized from template for querying/filtering)
+    /// <summary>
+    /// Tier name (denormalized from Template.TierName for querying).
+    /// Kept for backward compatibility and querying convenience.
+    /// </summary>
+    public string TierName { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
 
     // Scheduled quota support
@@ -51,6 +62,9 @@ public class AIQuota : IAggregateRoot
     public string? QuotaExceededReason { get; set; }
 
     // Alerts
+    /// <summary>
+    /// Alert threshold percentage (defaults from template if not overridden).
+    /// </summary>
     public decimal AlertThresholdPercentage { get; set; } = 80m; // Alert at 80%
     public bool AlertSent { get; set; } = false;
     public DateTimeOffset? AlertSentAt { get; set; }
@@ -72,6 +86,7 @@ public class AIQuota : IAggregateRoot
 
     // Navigation properties
     public Organization Organization { get; set; } = null!;
+    public AIQuotaTemplate Template { get; set; } = null!;
 
     // Helper methods for JSON serialization
     public Dictionary<string, AgentUsage> GetUsageByAgent()

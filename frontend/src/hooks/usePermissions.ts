@@ -1,7 +1,8 @@
 import { useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { memberService } from '@/api/memberService';
+import { usePermissionContext } from '@/contexts/PermissionContext';
+import { permissionsApi } from '@/api/permissions';
 import type { GlobalRole, ProjectRole } from '@/types';
 
 /**
@@ -12,6 +13,7 @@ export type Permission = string;
 
 /**
  * Permission constants for consistent permission checking across the application
+ * These are just constants for reference - actual permissions come from the API
  */
 export const PERMISSIONS = {
   // User management permissions
@@ -140,7 +142,7 @@ export interface UsePermissionsReturn {
   canViewAdminPanel: boolean;
 
   /**
-   * Loading state - true when fetching user or project role data
+   * Loading state - true when fetching permissions from API
    */
   isLoading: boolean;
 
@@ -151,136 +153,10 @@ export interface UsePermissionsReturn {
 }
 
 /**
- * Maps project role to permission strings
- * @param role - Project role
- * @returns Array of permission strings
- */
-function getProjectRolePermissions(role: ProjectRole | null | undefined): Permission[] {
-  if (!role) {
-    return [];
-  }
-
-  const permissions: Permission[] = [];
-
-  switch (role) {
-    case 'ProductOwner':
-      // ProductOwner has all project permissions
-      permissions.push(
-        'projects.view',
-        'projects.edit',
-        'projects.delete',
-        'projects.members.invite',
-        'projects.members.remove',
-        'projects.members.changeRole',
-        'tasks.create',
-        'tasks.edit',
-        'tasks.delete',
-        'tasks.view',
-        'tasks.assign',
-        'tasks.comment',
-        'sprints.create',
-        'sprints.edit',
-        'sprints.delete',
-        'sprints.manage',
-        'defects.create',
-        'defects.edit',
-        'defects.delete',
-        'defects.view',
-        'backlog.create',
-        'backlog.edit',
-        'backlog.delete',
-        'backlog.view'
-      );
-      break;
-
-    case 'ScrumMaster':
-      // ScrumMaster has most permissions except delete project and change roles
-      permissions.push(
-        'projects.view',
-        'projects.edit',
-        'projects.members.invite',
-        'projects.members.remove',
-        'tasks.create',
-        'tasks.edit',
-        'tasks.delete',
-        'tasks.view',
-        'tasks.assign',
-        'tasks.comment',
-        'sprints.create',
-        'sprints.edit',
-        'sprints.delete',
-        'sprints.manage',
-        'defects.create',
-        'defects.edit',
-        'defects.view',
-        'backlog.view'
-      );
-      break;
-
-    case 'Developer':
-    case 'Tester':
-      // Developer and Tester have member-level permissions
-      permissions.push(
-        'projects.view',
-        'tasks.create',
-        'tasks.edit',
-        'tasks.view',
-        'tasks.assign',
-        'tasks.comment',
-        'defects.create',
-        'defects.edit',
-        'defects.view',
-        'backlog.view'
-      );
-      break;
-
-    case 'Viewer':
-      // Viewer has read-only permissions
-      permissions.push(
-        'projects.view',
-        'tasks.view',
-        'defects.view',
-        'backlog.view',
-        'sprints.view'
-      );
-      break;
-  }
-
-  return permissions;
-}
-
-/**
- * Maps role string to ProjectRole enum value
- * Supports both actual roles and simplified role names
- */
-function normalizeProjectRole(role: 'Owner' | 'Member' | 'Viewer' | ProjectRole): ProjectRole | null {
-  switch (role) {
-    case 'Owner':
-    case 'ProductOwner':
-      return 'ProductOwner';
-    case 'Member':
-    case 'ScrumMaster':
-    case 'Developer':
-    case 'Tester':
-      // For 'Member', we check if user has any of these roles
-      // Return the role as-is for member-level roles
-      return role as ProjectRole;
-    case 'Viewer':
-      return 'Viewer';
-    default:
-      return null;
-  }
-}
-
-/**
  * Custom hook for global permission checking
  * 
- * Provides methods to check user permissions based on:
- * - Global role (Admin/User)
- * - Explicit permissions from user.permissions array
- * 
- * Admins have all permissions automatically. Regular users have permissions
- * based on their role and explicit permissions from the backend.
+ * Provides methods to check user permissions based on API-returned permissions.
+ * All permissions are fetched from the API endpoint: GET /api/v1/permissions/me
  * 
  * @example
  * ```tsx
@@ -319,78 +195,28 @@ function normalizeProjectRole(role: 'Owner' | 'Member' | 'Viewer' | ProjectRole)
  */
 export function usePermissions(): UsePermissionsReturn {
   const { user, isLoading: authLoading } = useAuth();
+  const permissionContext = usePermissionContext();
 
-  /**
-   * Calculate all permissions for the current user
-   */
-  const allPermissions = useMemo((): Permission[] => {
-    if (!user) {
+  // Fetch permissions from API
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+  } = useQuery({
+    queryKey: ['permissions', 'me'],
+    queryFn: () => permissionsApi.getMyPermissions(),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // Get permissions array from API response
+  const permissions = useMemo((): Permission[] => {
+    if (!permissionsData) {
       return [];
     }
-
-    const permissions: Permission[] = [];
-
-    // Admin has all permissions
-    if (user.globalRole === 'Admin') {
-      // Add all possible permissions for admin
-      permissions.push(
-        PERMISSIONS.USERS_MANAGE,
-        PERMISSIONS.USERS_CREATE,
-        PERMISSIONS.USERS_UPDATE,
-        PERMISSIONS.USERS_DELETE,
-        PERMISSIONS.USERS_VIEW,
-        PERMISSIONS.ADMIN_PANEL_VIEW,
-        PERMISSIONS.ADMIN_SETTINGS_UPDATE,
-        PERMISSIONS.ADMIN_PERMISSIONS_UPDATE,
-        PERMISSIONS.PROJECTS_CREATE,
-        PERMISSIONS.PROJECTS_VIEW,
-        PERMISSIONS.PROJECTS_EDIT,
-        PERMISSIONS.PROJECTS_DELETE,
-        PERMISSIONS.PROJECTS_MEMBERS_INVITE,
-        PERMISSIONS.PROJECTS_MEMBERS_REMOVE,
-        PERMISSIONS.PROJECTS_MEMBERS_CHANGE_ROLE,
-        PERMISSIONS.TASKS_CREATE,
-        PERMISSIONS.TASKS_EDIT,
-        PERMISSIONS.TASKS_DELETE,
-        PERMISSIONS.TASKS_VIEW,
-        PERMISSIONS.TASKS_ASSIGN,
-        PERMISSIONS.TASKS_COMMENT,
-        PERMISSIONS.SPRINTS_CREATE,
-        PERMISSIONS.SPRINTS_EDIT,
-        PERMISSIONS.SPRINTS_DELETE,
-        PERMISSIONS.SPRINTS_MANAGE,
-        PERMISSIONS.SPRINTS_VIEW,
-        PERMISSIONS.DEFECTS_CREATE,
-        PERMISSIONS.DEFECTS_EDIT,
-        PERMISSIONS.DEFECTS_DELETE,
-        PERMISSIONS.DEFECTS_VIEW,
-        PERMISSIONS.BACKLOG_CREATE,
-        PERMISSIONS.BACKLOG_EDIT,
-        PERMISSIONS.BACKLOG_DELETE,
-        PERMISSIONS.BACKLOG_VIEW
-      );
-    } else {
-      // Regular users have basic read-only permissions by default
-      permissions.push(
-        PERMISSIONS.PROJECTS_VIEW,
-        PERMISSIONS.TASKS_VIEW,
-        PERMISSIONS.DEFECTS_VIEW,
-        PERMISSIONS.BACKLOG_VIEW,
-        PERMISSIONS.SPRINTS_VIEW
-      );
-
-      // Regular users can create projects by default (unless restricted by backend)
-      // This can be controlled by backend settings (e.g., ProjectCreation.AllowedRoles)
-      permissions.push(PERMISSIONS.PROJECTS_CREATE);
-
-      // Add permissions from user.permissions array (if backend provides explicit permissions)
-      if (user.permissions && Array.isArray(user.permissions)) {
-        permissions.push(...user.permissions);
-      }
-    }
-
-    return [...new Set(permissions)]; // Remove duplicates
-  }, [user]);
+    return permissionsData.permissions || [];
+  }, [permissionsData]);
 
   /**
    * Check if user has a specific permission
@@ -401,27 +227,22 @@ export function usePermissions(): UsePermissionsReturn {
         return false;
       }
 
-      // Admin has all permissions
-      if (user.globalRole === 'Admin') {
-        return true;
-      }
-
-      // Check explicit permissions
-      return allPermissions.includes(permission);
+      // Check permissions from API
+      return permissions.includes(permission);
     },
-    [user, allPermissions]
+    [user, permissions]
   );
 
   /**
    * Check if user has any of the specified permissions
    */
   const canAny = useCallback(
-    (permissions: Permission[]): boolean => {
-      if (!user || permissions.length === 0) {
+    (permissionList: Permission[]): boolean => {
+      if (!user || permissionList.length === 0) {
         return false;
       }
 
-      return permissions.some((permission) => can(permission));
+      return permissionList.some((permission) => can(permission));
     },
     [user, can]
   );
@@ -430,18 +251,19 @@ export function usePermissions(): UsePermissionsReturn {
    * Check if user has all of the specified permissions
    */
   const canAll = useCallback(
-    (permissions: Permission[]): boolean => {
-      if (!user || permissions.length === 0) {
+    (permissionList: Permission[]): boolean => {
+      if (!user || permissionList.length === 0) {
         return false;
       }
 
-      return permissions.every((permission) => can(permission));
+      return permissionList.every((permission) => can(permission));
     },
     [user, can]
   );
 
   /**
    * Check if user has a specific role (case-insensitive)
+   * Note: This checks global role only. For project roles, use hasProjectRole.
    */
   const hasRole = useCallback(
     (role: string): boolean => {
@@ -450,15 +272,7 @@ export function usePermissions(): UsePermissionsReturn {
       }
 
       const normalizedRole = role.toLowerCase();
-
-      // Check global role
-      if (normalizedRole === user.globalRole.toLowerCase()) {
-        return true;
-      }
-
-      // Check if role matches any project role (we can't check without projectId)
-      // This is a simplified check - for project roles, use hasProjectRole
-      return false;
+      return user.globalRole.toLowerCase() === normalizedRole;
     },
     [user]
   );
@@ -496,10 +310,10 @@ export function usePermissions(): UsePermissionsReturn {
   );
 
   // Calculate loading state
-  const isLoading = authLoading;
+  const isLoading = authLoading || permissionsLoading;
 
   // Calculate error state
-  const error: Error | null = null; // AuthContext doesn't expose errors currently
+  const error: Error | null = permissionsError as Error | null;
 
   // Calculate specific permission flags (cached with useMemo)
   const canCreateProject = useMemo(() => {
@@ -507,7 +321,12 @@ export function usePermissions(): UsePermissionsReturn {
   }, [can]);
 
   const canManageUsers = useMemo(() => {
-    return can(PERMISSIONS.USERS_MANAGE) || can(PERMISSIONS.USERS_CREATE) || can(PERMISSIONS.USERS_UPDATE) || can(PERMISSIONS.USERS_DELETE);
+    return (
+      can(PERMISSIONS.USERS_MANAGE) ||
+      can(PERMISSIONS.USERS_CREATE) ||
+      can(PERMISSIONS.USERS_UPDATE) ||
+      can(PERMISSIONS.USERS_DELETE)
+    );
   }, [can]);
 
   const canManageSettings = useMemo(() => {
@@ -515,7 +334,11 @@ export function usePermissions(): UsePermissionsReturn {
   }, [can]);
 
   const canViewAdminPanel = useMemo(() => {
-    return can(PERMISSIONS.ADMIN_PANEL_VIEW) || can(PERMISSIONS.ADMIN_SETTINGS_UPDATE) || can(PERMISSIONS.ADMIN_PERMISSIONS_UPDATE);
+    return (
+      can(PERMISSIONS.ADMIN_PANEL_VIEW) ||
+      can(PERMISSIONS.ADMIN_SETTINGS_UPDATE) ||
+      can(PERMISSIONS.ADMIN_PERMISSIONS_UPDATE)
+    );
   }, [can]);
 
   return {
@@ -546,24 +369,30 @@ export function usePermissions(): UsePermissionsReturn {
  */
 export function usePermissionsWithProject(projectId: number | string | null | undefined): UsePermissionsReturn {
   const basePermissions = usePermissions();
+  const permissionContext = usePermissionContext();
 
   const projectIdNum = projectId ? (typeof projectId === 'string' ? parseInt(projectId, 10) : projectId) : null;
 
-  // Fetch project role
-  const { data: projectRole, isLoading: projectRoleLoading, error: projectRoleError } = useQuery({
-    queryKey: ['user-role', projectIdNum],
-    queryFn: () => memberService.getUserRole(projectIdNum!),
+  // Fetch project permissions from API
+  const {
+    data: projectPermissionsData,
+    isLoading: projectPermissionsLoading,
+    error: projectPermissionsError,
+  } = useQuery({
+    queryKey: ['project-permissions', projectIdNum],
+    queryFn: () => permissionsApi.getProjectPermissions(projectIdNum!),
     enabled: !!projectIdNum && !isNaN(projectIdNum),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Calculate project-specific permissions
+  // Get project permissions array from API response
   const projectPermissions = useMemo((): Permission[] => {
-    if (!projectRole) {
+    if (!projectPermissionsData) {
       return [];
     }
-
-    return getProjectRolePermissions(projectRole);
-  }, [projectRole]);
+    return projectPermissionsData.permissions || [];
+  }, [projectPermissionsData]);
 
   // Enhanced can function that includes project permissions
   const can = useCallback(
@@ -573,13 +402,13 @@ export function usePermissionsWithProject(projectId: number | string | null | un
         return true;
       }
 
-      // Check project-specific permissions
+      // Check project-specific permissions from API
       return projectPermissions.includes(permission);
     },
     [basePermissions, projectPermissions]
   );
 
-  // Enhanced hasProjectRole that actually works
+  // Enhanced hasProjectRole that uses API data
   const hasProjectRole = useCallback(
     (pid: string | number, role: 'Owner' | 'Member' | 'Viewer'): boolean => {
       // Verify the projectId matches
@@ -588,32 +417,40 @@ export function usePermissionsWithProject(projectId: number | string | null | un
         return false;
       }
 
+      if (!projectPermissionsData) {
+        return false;
+      }
+
+      const projectRole = projectPermissionsData.projectRole;
       if (!projectRole) {
         return false;
       }
 
-      const normalizedRole = normalizeProjectRole(role);
+      // Normalize role names
+      const normalizedRole = projectRole.toLowerCase();
+      const checkRole = role.toLowerCase();
 
-      if (normalizedRole === null) {
-        return false;
+      // Map simplified role names to actual project roles
+      if (checkRole === 'owner') {
+        return normalizedRole === 'productowner';
+      }
+      if (checkRole === 'member') {
+        return ['scrummaster', 'developer', 'tester'].includes(normalizedRole);
+      }
+      if (checkRole === 'viewer') {
+        return normalizedRole === 'viewer';
       }
 
-      // For 'Member', check if user has any member-level role
-      if (role === 'Member') {
-        return ['ScrumMaster', 'Developer', 'Tester'].includes(projectRole);
-      }
-
-      return projectRole === normalizedRole;
+      return normalizedRole === checkRole;
     },
-    [projectRole, projectIdNum]
+    [projectPermissionsData, projectIdNum]
   );
 
   return {
     ...basePermissions,
     can,
     hasProjectRole,
-    isLoading: basePermissions.isLoading || projectRoleLoading,
-    error: basePermissions.error || (projectRoleError as Error | null),
+    isLoading: basePermissions.isLoading || projectPermissionsLoading,
+    error: basePermissions.error || (projectPermissionsError as Error | null),
   };
 }
-

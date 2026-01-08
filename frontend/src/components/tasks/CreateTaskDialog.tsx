@@ -56,6 +56,8 @@ import type { CreateTaskRequest, TaskPriority } from '@/types';
 import { cn } from '@/lib/utils';
 import { AITaskImproverDialog, type ImprovedTask } from './AITaskImproverDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTaskPriorities } from '@/hooks/useLookups';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -88,6 +90,7 @@ export function CreateTaskDialog({
 }: CreateTaskDialogProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { priorities, isLoading: isLoadingPriorities } = useTaskPriorities();
 
   const [formData, setFormData] = useState<CreateTaskRequest & { files: File[] }>({
     title: '',
@@ -437,22 +440,27 @@ export function CreateTaskDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value: TaskPriority) =>
-                    setFormData({ ...formData, priority: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
+                {isLoadingPriorities ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value: TaskPriority) =>
+                      setFormData({ ...formData, priority: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {priorities.map((priority) => (
+                        <SelectItem key={priority.value} value={priority.value}>
+                          {priority.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 

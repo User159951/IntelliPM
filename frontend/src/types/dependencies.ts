@@ -4,20 +4,10 @@
  */
 
 /**
- * Enum matching backend DependencyType.
- * Represents the type of dependency relationship between tasks.
- * Values match backend enum (1-4).
+ * Enum types now imported from generated types.
+ * The backend uses string enums, so we use string literal types.
  */
-export enum DependencyType {
-  /** Finish-to-Start: The dependent task cannot start until the source task finishes. */
-  FinishToStart = 1,
-  /** Start-to-Start: The dependent task cannot start until the source task starts. */
-  StartToStart = 2,
-  /** Finish-to-Finish: The dependent task cannot finish until the source task finishes. */
-  FinishToFinish = 3,
-  /** Start-to-Finish: The dependent task cannot finish until the source task starts. */
-  StartToFinish = 4
-}
+export type { DependencyType } from './generated/enums';
 
 /**
  * API response type for task dependencies.

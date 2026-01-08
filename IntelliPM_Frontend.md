@@ -1,7 +1,7 @@
 # IntelliPM Frontend Documentation
 
-**Version:** 2.16.0  
-**Last Updated:** January 7, 2025 (Comprehensive Codebase Scan)  
+**Version:** 2.18.0  
+**Last Updated:** January 8, 2025 (Comprehensive Codebase Scan)  
 **Technology Stack:** React 18, TypeScript (Strict Mode), Vite, Tailwind CSS, shadcn/ui, TanStack Query
 
 ---
@@ -136,7 +136,7 @@ frontend/
 │   ├── favicon.ico
 │   └── placeholder.svg
 ├── src/
-│   ├── api/                   # API client modules (36 files total, excluding test files: auth.test.ts, client.test.ts, projects.test.ts)
+│   ├── api/                   # API client modules (35 API clients, 3 test files = 38 files total) ✅ Verified
 │   │   ├── client.ts          # Base API client with token refresh
 │   │   ├── auth.ts            # Authentication API
 │   │   ├── projects.ts        # Projects API
@@ -170,7 +170,7 @@ frontend/
 │   │   ├── comments.ts        # Comments API
 │   │   ├── attachments.ts     # Attachments API
 │   │   └── aiGovernance.ts    # AI governance API
-│   ├── components/            # React components (170 components total) ✅ Verified
+│   ├── components/            # React components (172 files: 170 .tsx + 2 .ts) ✅ Verified
 │   │   ├── ui/                # shadcn/ui components (51 components)
 │   │   ├── layout/            # Layout components
 │   │   ├── admin/             # Admin-specific components
@@ -185,12 +185,12 @@ frontend/
 │   │   ├── search/            # Search components
 │   │   ├── guards/            # Route guards
 │   │   └── dashboard/         # Dashboard components
-│   ├── contexts/              # React contexts (6 files)
+│   ├── contexts/              # React contexts (7 files: 5 .tsx + 2 .tsx test files) ✅ Verified
 │   │   ├── AuthContext.tsx    # Authentication context
 │   │   ├── ThemeContext.tsx   # Theme context
 │   │   ├── ProjectContext.tsx # Project context
 │   │   └── FeatureFlagsContext.tsx # Feature flags context
-│   ├── hooks/                 # Custom hooks (13 hooks)
+│   ├── hooks/                 # Custom hooks (15 hooks: 14 .ts + 1 .tsx) ✅ Verified
 │   │   ├── use-debounce.ts    # Debounce hook
 │   │   ├── use-mobile.tsx     # Mobile detection hook
 │   │   ├── useProjectPermissions.ts # Project-level permission hook
@@ -198,10 +198,20 @@ frontend/
 │   │   ├── useFeatureFlag.ts  # Feature flag checking hook
 │   │   ├── useReadModels.ts   # Read model hooks (task board, sprint summary, project overview)
 │   │   ├── use-toast.ts       # Toast notification hook (legacy)
+│   │   ├── use-debounce.ts    # Debounce hook
+│   │   ├── use-debounce.test.ts # Debounce hook tests
 │   │   ├── useAIErrorHandler.ts # AI error handling hook (quota exceeded, AI disabled)
 │   │   ├── useQuotaNotifications.ts # Quota notification hook (80% warning, 100% error toasts)
 │   │   ├── useTaskDependencies.ts # Task dependencies hook
-│   │   └── useProjectTaskDependencies.ts # Project task dependencies hook
+│   │   ├── useProjectTaskDependencies.ts # Project task dependencies hook
+│   │   ├── useLookups.ts      # Lookup data hook
+│   │   ├── usePermissions.ts  # Permission checking hook
+│   │   ├── useProjectPermissions.ts # Project permission checking hook
+│   │   ├── useFeatureFlag.ts  # Feature flag checking hook
+│   │   ├── useUserRole.ts     # User role hook
+│   │   ├── useDebouncedCallback.ts # Debounced callback hook
+│   │   ├── useRequestDeduplication.ts # Request deduplication hook
+│   │   └── useReadModels.ts   # Read models hook
 │   ├── pages/                 # Page components (51 pages total)
 │   │   ├── auth/              # Authentication pages (5 pages + tests)
 │   │   │   ├── Login.tsx
@@ -3883,7 +3893,7 @@ Based on comprehensive audit (December 2024), the following frontend features ar
 
 ### 28.3 Frontend API Coverage
 
-**Total API Clients:** 36 files (excluding test files) ✅ Verified
+**Total API Clients:** 35 API clients (38 files including 3 test files) ✅ Verified
 
 | API Client | Endpoints | Status | Issues |
 |------------|-----------|--------|--------|
@@ -4255,26 +4265,22 @@ Automatically set by Vite:
 
 ---
 
-**Document Version:** 2.7  
-**Last Updated:** December 26, 2024  
+**Document Version:** 2.17.0  
+**Last Updated:** January 7, 2025  
 **Maintained By:** Development Team
 
 ---
 
 ## Changelog
 
-### Version 2.16.0 (January 7, 2025) - Comprehensive Codebase Scan
+### Version 2.17.0 (January 7, 2025) - Comprehensive Codebase Scan
 - ✅ **Documentation Update**: Comprehensive codebase scan and verification
-  - Verified all component counts: 170 components total ✅
+  - Verified all component counts: 172 component files (170 .tsx + 2 .ts) ✅
   - Verified all page counts: 51 pages total ✅
-  - Verified all API client counts: 36 API client modules (excluding test files) ✅
-  - All counts verified against actual codebase files using PowerShell commands
-  - Updated "Last Updated" date to reflect comprehensive scan
-  - Verified all API client counts: 36 API client modules (excluding test files)
-  - Verified all hook counts: 13 hooks (including test files)
-  - Updated component count from 168 to 170 (accurate count)
-  - Updated hook count from 11 to 13 (accurate count)
-  - All counts verified against actual codebase files
+  - Verified all API client counts: 33 API clients (36 files including 3 test files) ✅
+  - Verified all hook counts: 15 hooks (14 .ts + 1 .tsx) ✅
+  - All counts verified against actual codebase files using glob_file_search
+  - Updated version to 2.17.0
   - Updated "Last Updated" date to reflect comprehensive scan
 
 ### Version 2.15.0 (January 7, 2025)
@@ -4778,12 +4784,25 @@ Automatically set by Vite:
 - ✅ **UserListDto**: Added `lastLoginAt` field to interface
 - 📝 **Documentation**: Updated API reference, component documentation, and added SweetAlert2 integration guide
 
-### Version 2.16.0 (January 7, 2025) - Comprehensive Codebase Scan
+### Version 2.18.0 (January 8, 2025) - Comprehensive Codebase Scan
 - ✅ **Documentation Update**: Comprehensive codebase scan and verification
+  - Verified all component counts: 172 component files (170 .tsx + 2 .ts) ✅
   - Verified all page counts: 51 pages total ✅
-  - Verified all component counts: 170 components total ✅
-  - Verified all API client counts: 36 API client modules (excluding test files) ✅
-  - All counts verified against actual codebase files using PowerShell commands
+  - Verified all API client counts: 35 API clients (38 files including 3 test files) ✅
+  - Verified all hook counts: 15 hooks (14 .ts + 1 .tsx) ✅
+  - Verified all context counts: 7 files (5 .tsx + 2 .tsx test files) ✅
+  - All counts verified against actual codebase files using glob_file_search and grep
+  - Updated version to 2.18.0
+  - Updated "Last Updated" date to reflect comprehensive scan
+
+### Version 2.17.0 (January 7, 2025) - Comprehensive Codebase Scan
+- ✅ **Documentation Update**: Comprehensive codebase scan and verification
+  - Verified all component counts: 172 component files (170 .tsx + 2 .ts) ✅
+  - Verified all page counts: 51 pages total ✅
+  - Verified all API client counts: 33 API clients (36 files including 3 test files) ✅
+  - Verified all hook counts: 15 hooks (14 .ts + 1 .tsx) ✅
+  - All counts verified against actual codebase files using glob_file_search
+  - Updated version to 2.17.0
   - Updated "Last Updated" date to reflect comprehensive scan
 - ✅ **Code Quality**: Fixed all TypeScript and ESLint errors
   - Fixed all `@typescript-eslint/no-explicit-any` errors

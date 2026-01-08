@@ -41,6 +41,8 @@ import { showToast, showSuccess, showError } from "@/lib/sweetalert";
 import { ArrowUpDown, MoreHorizontal, Trash2, Edit, ArrowUp, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Task, TaskStatus, TaskPriority } from '@/types';
+import { useTaskStatuses, useTaskPriorities } from '@/hooks/useLookups';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TaskListViewProps {
   tasks: Task[];
@@ -81,6 +83,8 @@ export function TaskListView({
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editingField, setEditingField] = useState<'status' | 'priority' | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+  const { statuses, isLoading: isLoadingStatuses } = useTaskStatuses();
+  const { priorities, isLoading: isLoadingPriorities } = useTaskPriorities();
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ taskId, status }: { taskId: number; status: TaskStatus }) =>
@@ -274,10 +278,19 @@ export function TaskListView({
                 <SelectValue placeholder="Change Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Todo">To Do</SelectItem>
-                <SelectItem value="InProgress">In Progress</SelectItem>
-                <SelectItem value="Blocked">Blocked</SelectItem>
-                <SelectItem value="Done">Done</SelectItem>
+                {isLoadingStatuses ? (
+                  <div className="p-2">
+                    <Skeleton className="h-8 w-full mb-1" />
+                    <Skeleton className="h-8 w-full mb-1" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : (
+                  statuses.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             <Select
@@ -292,10 +305,19 @@ export function TaskListView({
                 <SelectValue placeholder="Change Priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-                <SelectItem value="Critical">Critical</SelectItem>
+                {isLoadingPriorities ? (
+                  <div className="p-2">
+                    <Skeleton className="h-8 w-full mb-1" />
+                    <Skeleton className="h-8 w-full mb-1" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : (
+                  priorities.map((priority) => (
+                    <SelectItem key={priority.value} value={priority.value}>
+                      {priority.label}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             <Button

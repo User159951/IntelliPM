@@ -6,7 +6,7 @@ namespace IntelliPM.Domain.Entities;
 /// <summary>
 /// Defines allowed permissions for an organization.
 /// SuperAdmin can restrict which permissions are available to members of each organization.
-/// If no policy exists for an organization, all permissions are allowed (default behavior).
+/// SECURITY: Deny by default - permissions must be explicitly allowed in an active policy.
 /// </summary>
 public class OrganizationPermissionPolicy : IAggregateRoot
 {
@@ -19,12 +19,13 @@ public class OrganizationPermissionPolicy : IAggregateRoot
     
     /// <summary>
     /// JSON array of allowed permission names (e.g., ["projects.create", "projects.edit", "users.view"]).
-    /// If null or empty, all permissions are allowed (default behavior).
+    /// SECURITY: If null or empty, no permissions are allowed (deny by default).
     /// </summary>
     public string AllowedPermissionsJson { get; set; } = "[]";
     
     /// <summary>
-    /// Whether this policy is active. If false, all permissions are allowed (default behavior).
+    /// Whether this policy is active. 
+    /// SECURITY: If false, no permissions are allowed (deny by default).
     /// </summary>
     public bool IsActive { get; set; } = true;
     
@@ -71,21 +72,25 @@ public class OrganizationPermissionPolicy : IAggregateRoot
     
     /// <summary>
     /// Checks if a permission is allowed by this policy.
-    /// Returns true if policy is inactive, empty, or contains the permission.
+    /// SECURITY: Deny by default - only returns true if policy is active AND explicitly contains the permission.
     /// </summary>
     public bool IsPermissionAllowed(string permission)
     {
+        // Deny if policy is inactive
         if (!IsActive)
         {
-            return true; // Inactive policy = allow all
+            return false;
         }
         
         var allowed = GetAllowedPermissions();
+        
+        // Deny if policy is empty (no permissions explicitly allowed)
         if (allowed.Count == 0)
         {
-            return true; // Empty policy = allow all (default)
+            return false;
         }
         
+        // Only allow if permission is explicitly in the allowed list
         return allowed.Contains(permission, StringComparer.OrdinalIgnoreCase);
     }
 }

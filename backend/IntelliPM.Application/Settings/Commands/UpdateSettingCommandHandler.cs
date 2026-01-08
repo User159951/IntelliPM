@@ -11,15 +11,18 @@ public class UpdateSettingCommandHandler : IRequestHandler<UpdateSettingCommand,
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly IPermissionService _permissionService;
+    private readonly ISettingsService _settingsService;
 
     public UpdateSettingCommandHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        ISettingsService settingsService)
     {
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
         _permissionService = permissionService;
+        _settingsService = settingsService;
     }
 
     public async Task<UpdateSettingResponse> Handle(UpdateSettingCommand request, CancellationToken cancellationToken)
@@ -66,6 +69,9 @@ public class UpdateSettingCommandHandler : IRequestHandler<UpdateSettingCommand,
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Invalidate cache for this setting
+        _settingsService.InvalidateCache(request.Key);
 
         var finalSetting = await settingsRepo.Query()
             .FirstOrDefaultAsync(s => s.Key == request.Key, cancellationToken);

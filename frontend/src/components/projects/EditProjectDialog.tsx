@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { showSuccess, showError } from "@/lib/sweetalert";
 import { Loader2 } from 'lucide-react';
 import type { Project, UpdateProjectRequest, ProjectType, ProjectStatus } from '@/types';
+import { useProjectTypes } from '@/hooks/useLookups';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -21,6 +23,7 @@ interface EditProjectDialogProps {
 export function EditProjectDialog({ open, onOpenChange, project }: EditProjectDialogProps) {
   const queryClient = useQueryClient();
   const permissions = useProjectPermissions(project.id);
+  const { projectTypes, isLoading: isLoadingProjectTypes } = useProjectTypes();
   const [formData, setFormData] = useState<UpdateProjectRequest>({
     name: project.name,
     description: project.description,
@@ -168,19 +171,25 @@ export function EditProjectDialog({ open, onOpenChange, project }: EditProjectDi
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-type">Project type</Label>
-                <Select
-                  value={formData.type || 'Scrum'}
-                  onValueChange={(value: ProjectType) => setFormData({ ...formData, type: value })}
-                >
-                  <SelectTrigger id="edit-type">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Scrum">Scrum</SelectItem>
-                    <SelectItem value="Kanban">Kanban</SelectItem>
-                    <SelectItem value="Waterfall">Waterfall</SelectItem>
-                  </SelectContent>
-                </Select>
+                {isLoadingProjectTypes ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={formData.type || 'Scrum'}
+                    onValueChange={(value: ProjectType) => setFormData({ ...formData, type: value })}
+                  >
+                    <SelectTrigger id="edit-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-sprintDuration">Sprint duration (days)</Label>

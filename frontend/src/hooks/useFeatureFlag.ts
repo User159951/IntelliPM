@@ -1,6 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useFeatureFlags } from '@/contexts/FeatureFlagsContext';
-import { featureFlagService } from '@/services/featureFlagService';
 import { checkFeatureFlag } from '@/utils/featureFlags';
 import type { FeatureFlagName } from '@/types/featureFlags';
 
@@ -10,11 +9,12 @@ import type { FeatureFlagName } from '@/types/featureFlags';
 export interface UseFeatureFlagReturn {
   /**
    * Whether the feature flag is enabled
+   * Returns false if flag doesn't exist (no hardcoded defaults)
    */
   isEnabled: boolean;
 
   /**
-   * Loading state - true when checking the flag
+   * Loading state - true when fetching flags from API
    */
   isLoading: boolean;
 
@@ -28,12 +28,12 @@ export interface UseFeatureFlagReturn {
  * Hook to check if a specific feature flag is enabled.
  * 
  * This hook:
- * 1. First checks the FeatureFlagsContext for cached flags
- * 2. If not in context, falls back to fetching from featureFlagService
- * 3. Returns the flag value, loading state, and error
+ * - Gets flags from FeatureFlagsContext (which uses React Query)
+ * - Returns false if flag doesn't exist (no hardcoded defaults)
+ * - Returns loading/error states from context
  * 
  * @param flagName - Name of the feature flag to check (string or FeatureFlagName enum)
- * @param organizationId - Optional organization ID for organization-specific flags
+ * @param organizationId - Optional organization ID (for future use, currently flags are fetched per organization)
  * @returns UseFeatureFlagReturn with isEnabled, isLoading, and error
  * 
  * @example
@@ -53,61 +53,20 @@ export function useFeatureFlag(
   flagName: string | FeatureFlagName,
   organizationId?: string
 ): UseFeatureFlagReturn {
-  const { flags, isLoading: contextLoading, error: contextError } = useFeatureFlags();
+  const { flags, isLoading, error } = useFeatureFlags();
 
   // Convert enum to string if needed
   const flagNameString = typeof flagName === 'string' ? flagName : flagName;
 
-  // State for service fallback
-  const [serviceEnabled, setServiceEnabled] = useState<boolean | null>(null);
-  const [serviceLoading, setServiceLoading] = useState(false);
-  const [serviceError, setServiceError] = useState<Error | null>(null);
+  // Check if flag is enabled (returns false if flag doesn't exist - no hardcoded defaults)
+  const isEnabled = useMemo(() => {
+    return checkFeatureFlag(flagNameString, flags);
+  }, [flagNameString, flags]);
 
-  // Check if flag is in context
-  const isInContext = flagNameString in flags;
-
-  // Get value from context if available
-  const contextValue = useMemo(() => {
-    if (isInContext) {
-      return checkFeatureFlag(flagNameString, flags);
-    }
-    return null;
-  }, [flagNameString, flags, isInContext]);
-
-  // Fetch from service if not in context
-  useEffect(() => {
-    if (!isInContext && !serviceLoading && serviceEnabled === null) {
-      setServiceLoading(true);
-      featureFlagService
-        .isEnabled(flagNameString, organizationId)
-        .then((enabled) => {
-          setServiceEnabled(enabled);
-          setServiceError(null);
-        })
-        .catch((err) => {
-          setServiceError(err instanceof Error ? err : new Error('Failed to check feature flag'));
-          setServiceEnabled(false); // Fail-safe
-        })
-        .finally(() => {
-          setServiceLoading(false);
-        });
-    }
-  }, [flagNameString, organizationId, isInContext, serviceLoading, serviceEnabled]);
-
-  // If flag is in context, return immediately
-  if (isInContext) {
-    return {
-      isEnabled: contextValue ?? false,
-      isLoading: contextLoading,
-      error: contextError,
-    };
-  }
-
-  // Fallback to service result
   return {
-    isEnabled: serviceEnabled ?? false,
-    isLoading: serviceLoading,
-    error: serviceError,
+    isEnabled,
+    isLoading,
+    error,
   };
 }
 

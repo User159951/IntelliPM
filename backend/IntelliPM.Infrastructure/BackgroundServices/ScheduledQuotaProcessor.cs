@@ -89,7 +89,7 @@ public class ScheduledQuotaProcessor : BackgroundService
         {
             try
             {
-                await ActivateScheduledQuotaAsync(scheduledQuota, dbContext, cancellationToken);
+                await ActivateScheduledQuotaAsync(scheduledQuota, dbContext, scope, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -106,6 +106,7 @@ public class ScheduledQuotaProcessor : BackgroundService
     private async System.Threading.Tasks.Task ActivateScheduledQuotaAsync(
         AIQuota scheduledQuota,
         AppDbContext dbContext,
+        IServiceScope scope,
         CancellationToken cancellationToken)
     {
         var organizationId = scheduledQuota.OrganizationId;
@@ -136,10 +137,18 @@ public class ScheduledQuotaProcessor : BackgroundService
                 organizationId);
         }
 
+        // Get quota period days from settings
+        var settingsService = scope.ServiceProvider.GetRequiredService<IntelliPM.Application.Common.Interfaces.ISettingsService>();
+        var quotaPeriodDays = await settingsService.GetSettingIntAsync(
+            scheduledQuota.OrganizationId, 
+            "AIQuota.QuotaPeriodDays", 
+            stoppingToken) 
+            ?? Domain.Constants.AIQuotaConstants.QuotaPeriodDays; // Fallback to constant
+
         // Activate the scheduled quota
         scheduledQuota.IsActive = true;
         scheduledQuota.PeriodStartDate = scheduledQuota.EffectiveDate ?? now;
-        scheduledQuota.PeriodEndDate = scheduledQuota.PeriodStartDate.AddDays(Domain.Constants.AIQuotaConstants.QuotaPeriodDays);
+        scheduledQuota.PeriodEndDate = scheduledQuota.PeriodStartDate.AddDays(quotaPeriodDays);
         scheduledQuota.UpdatedAt = now;
 
         // Create audit log for quota activation

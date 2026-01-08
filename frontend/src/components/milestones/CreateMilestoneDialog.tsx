@@ -25,6 +25,7 @@ import { Loader2 } from 'lucide-react';
 import { milestonesApi } from '@/api/milestones';
 import { showToast } from '@/lib/sweetalert';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { MilestoneType } from '@/types/generated/enums';
 
 interface CreateMilestoneDialogProps {
   projectId: number;
@@ -36,7 +37,7 @@ interface CreateMilestoneDialogProps {
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(200, 'Name cannot exceed 200 characters'),
   description: z.string().max(1000, 'Description cannot exceed 1000 characters').optional(),
-  type: z.enum(['Release', 'Sprint', 'Deadline', 'Custom']),
+  type: z.enum(['Release', 'Sprint', 'Deadline', 'Custom'] as [MilestoneType, ...MilestoneType[]]),
   dueDate: z.string().min(1, 'Due date is required').refine(
     (date) => new Date(date) > new Date(),
     'Due date must be in the future'

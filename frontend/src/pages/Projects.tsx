@@ -30,11 +30,13 @@ import { ProjectMembersModal } from '@/components/projects/ProjectMembersModal';
 import { Pagination } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
 import type { CreateProjectRequest, ProjectType, Project, ProjectStatus, ProjectMember } from '@/types';
+import { useProjectTypes } from '@/hooks/useLookups';
 
 export default function Projects() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { projectTypes, isLoading: isLoadingProjectTypes } = useProjectTypes();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
@@ -314,19 +316,25 @@ export default function Projects() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="type" id="type-label">Project type</Label>
-                      <Select
-                        value={formData.type}
-                        onValueChange={(value: ProjectType) => setFormData({ ...formData, type: value })}
-                      >
-                        <SelectTrigger id="type" aria-labelledby="type-label">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Scrum">Scrum</SelectItem>
-                          <SelectItem value="Kanban">Kanban</SelectItem>
-                          <SelectItem value="Waterfall">Waterfall</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {isLoadingProjectTypes ? (
+                        <Skeleton className="h-10 w-full" />
+                      ) : (
+                        <Select
+                          value={formData.type}
+                          onValueChange={(value: ProjectType) => setFormData({ ...formData, type: value })}
+                        >
+                          <SelectTrigger id="type" aria-labelledby="type-label">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {projectTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="sprintDuration">Sprint duration (days)</Label>

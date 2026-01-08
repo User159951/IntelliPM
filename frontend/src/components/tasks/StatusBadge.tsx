@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   Circle,
   Clock,
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TaskStatus } from '@/types';
+import { useTaskStatuses, getLookupItem } from '@/hooks/useLookups';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Props for the StatusBadge component.
@@ -39,7 +41,10 @@ interface StatusConfig {
   };
 }
 
-const statusConfig: Record<TaskStatus, StatusConfig> = {
+/**
+ * Fallback status configuration for when API data is not available.
+ */
+const fallbackStatusConfig: Record<TaskStatus, StatusConfig> = {
   Todo: {
     label: 'To Do',
     icon: Circle,
@@ -80,6 +85,23 @@ const statusConfig: Record<TaskStatus, StatusConfig> = {
       dot: 'bg-red-500',
     },
   },
+};
+
+/**
+ * Map icon name from API to Lucide icon component
+ */
+const iconMap: Record<string, LucideIcon> = {
+  Circle,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  // Aliases
+  'circle': Circle,
+  'clock': Clock,
+  'check-circle': CheckCircle2,
+  'check-circle-2': CheckCircle2,
+  'x-circle': XCircle,
+  'xcircle': XCircle,
 };
 
 /**
@@ -137,7 +159,46 @@ function StatusBadge({
   showIcon = true,
   className,
 }: StatusBadgeProps) {
-  const config = statusConfig[status];
+  const { statuses, isLoading } = useTaskStatuses();
+
+  // Build status config from API data or fallback
+  const config = useMemo<StatusConfig | null>(() => {
+    const lookupItem = getLookupItem(statuses, status);
+    
+    if (lookupItem) {
+      // Use API metadata if available
+      const metadata = lookupItem.metadata || {};
+      const iconName = metadata.icon || 'Circle';
+      const Icon = iconMap[iconName] || Circle;
+
+      return {
+        label: lookupItem.label,
+        icon: Icon,
+        color: {
+          bg: metadata.bgColor || fallbackStatusConfig[status]?.color.bg || 'bg-muted',
+          text: metadata.textColor || fallbackStatusConfig[status]?.color.text || 'text-muted-foreground',
+          border: metadata.borderColor || fallbackStatusConfig[status]?.color.border || 'border-muted',
+          dot: metadata.dotColor || fallbackStatusConfig[status]?.color.dot || 'bg-muted',
+        },
+      };
+    }
+
+    // Fallback to hardcoded config if API doesn't have this status
+    return fallbackStatusConfig[status] || null;
+  }, [statuses, status]);
+
+  // Show loading skeleton while fetching
+  if (isLoading && !config) {
+    return (
+      <Skeleton
+        className={cn(
+          'inline-block rounded-full',
+          sizeConfig[size].badge,
+          className
+        )}
+      />
+    );
+  }
 
   if (!config) {
     // Fallback for unknown status
@@ -240,41 +301,84 @@ export default memo(StatusBadge);
  * </span>
  * ```
  */
+/**
+ * Get the text color class for a given status.
+ * Note: This function now requires lookup data. Use within components that have access to useTaskStatuses.
+ * 
+ * @param status - The task status
+ * @param statuses - Optional lookup items from useTaskStatuses hook
+ * @returns Tailwind text color class
+ * 
+ * @example
+ * ```tsx
+ * const { statuses } = useTaskStatuses();
+ * <span className={getStatusColor('InProgress', statuses)}>
+ *   Custom status display
+ * </span>
+ * ```
+ */
 // eslint-disable-next-line react-refresh/only-export-components
-export function getStatusColor(status: TaskStatus): string {
-  return statusConfig[status]?.color.text || 'text-gray-700 dark:text-gray-300';
+export function getStatusColor(status: TaskStatus, statuses?: Array<{ value: string; metadata?: { textColor?: string } }>): string {
+  if (statuses) {
+    const item = statuses.find((s) => s.value === status);
+    if (item?.metadata?.textColor) {
+      return item.metadata.textColor;
+    }
+  }
+  return fallbackStatusConfig[status]?.color.text || 'text-gray-700 dark:text-gray-300';
 }
 
 /**
  * Get the display label for a given status.
+ * Note: This function now requires lookup data. Use within components that have access to useTaskStatuses.
  * 
  * @param status - The task status
+ * @param statuses - Optional lookup items from useTaskStatuses hook
  * @returns Human-readable label
  * 
  * @example
  * ```tsx
- * <span>{getStatusLabel(task.status)}</span>
+ * const { statuses } = useTaskStatuses();
+ * <span>{getStatusLabel(task.status, statuses)}</span>
  * ```
  */
 // eslint-disable-next-line react-refresh/only-export-components
-export function getStatusLabel(status: TaskStatus): string {
-  return statusConfig[status]?.label || status;
+export function getStatusLabel(status: TaskStatus, statuses?: Array<{ value: string; label: string }>): string {
+  if (statuses) {
+    const item = statuses.find((s) => s.value === status);
+    if (item) {
+      return item.label;
+    }
+  }
+  return fallbackStatusConfig[status]?.label || status;
 }
 
 /**
  * Get the icon component for a given status.
+ * Note: This function now requires lookup data. Use within components that have access to useTaskStatuses.
  * 
  * @param status - The task status
+ * @param statuses - Optional lookup items from useTaskStatuses hook
  * @returns Lucide icon component
  * 
  * @example
  * ```tsx
- * const StatusIcon = getStatusIcon('Done');
+ * const { statuses } = useTaskStatuses();
+ * const StatusIcon = getStatusIcon('Done', statuses);
  * <StatusIcon className="h-4 w-4" />
  * ```
  */
 // eslint-disable-next-line react-refresh/only-export-components
-export function getStatusIcon(status: TaskStatus): LucideIcon {
-  return statusConfig[status]?.icon || Circle;
+export function getStatusIcon(status: TaskStatus, statuses?: Array<{ value: string; metadata?: { icon?: string } }>): LucideIcon {
+  if (statuses) {
+    const item = statuses.find((s) => s.value === status);
+    if (item?.metadata?.icon) {
+      const Icon = iconMap[item.metadata.icon];
+      if (Icon) {
+        return Icon;
+      }
+    }
+  }
+  return fallbackStatusConfig[status]?.icon || Circle;
 }
 

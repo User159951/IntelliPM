@@ -416,6 +416,8 @@ npm run test:ui       # Open test UI
 - [ ] Configure health check endpoints
 - [ ] Set up database backups
 - [ ] Review security headers
+- [ ] **Build in Release mode**: `dotnet build -c Release` (excludes debug controllers)
+- [ ] **Verify debug controllers excluded**: Runtime check in `Program.cs` confirms no test controllers in production
 
 ---
 
@@ -571,6 +573,7 @@ See [Troubleshooting Guide](docs/IntelliPM%20Documentation/IntelliPM_Backend.md#
 - **Security Headers**: Comprehensive security headers middleware
 - **CORS**: Configurable CORS policy
 - **Rate Limiting**: Built-in rate limiting for API endpoints
+- **Debug Controller Isolation**: All test/debug controllers are excluded from Release builds via `#if DEBUG` preprocessor directives
 
 ### Roles and Permissions
 
@@ -586,6 +589,48 @@ IntelliPM implements a comprehensive role-based access control system:
 - Strict enforcement at API and UI levels
 
 See [Roles and Permissions Guide](docs/RolesAndPermissions.md) for complete details.
+
+### Development-Only Controllers
+
+⚠️ **IMPORTANT**: The following controllers and endpoints are **DEBUG-ONLY** and are **completely excluded** from Release builds:
+
+#### Debug Controllers (Excluded in Release Builds)
+
+1. **`TestController`** (`/api/v1/Test`)
+   - **Status**: Wrapped with `#if DEBUG` preprocessor directive
+   - **Purpose**: Testing error tracking integrations (e.g., Sentry)
+   - **Endpoints**:
+     - `GET /api/v1/Test/sentry` - Test Sentry integration (throws exception)
+   - **Build Behavior**: Controller code is completely removed in Release builds - compilation will fail if referenced elsewhere
+
+#### Debug Endpoints in Production Controllers
+
+2. **`HealthController`** - Debug-only endpoints:
+   - `GET /api/v1/Health/smtp` - SMTP connection diagnostics (DEBUG-only)
+   - `POST /api/v1/Health/smtp/send-test` - Send test email (DEBUG-only)
+   - **Status**: Wrapped with `#if DEBUG` preprocessor directive
+   - **Build Behavior**: These endpoints are completely removed in Release builds
+
+#### Security Measures
+
+- **Compile-time exclusion**: All debug controllers/endpoints use `#if DEBUG` preprocessor directives
+- **Build configuration**: `.csproj` ensures DEBUG/RELEASE constants are properly set
+- **Runtime verification**: `Program.cs` includes runtime checks in production to detect any debug controllers
+- **Build failure protection**: Release builds will fail to compile if debug controllers are referenced
+
+#### Verifying Debug Controller Exclusion
+
+To verify debug controllers are excluded in Release builds:
+
+```bash
+# Build in Release mode
+dotnet build -c Release
+
+# The build should succeed, and TestController will not be included in the assembly
+# Runtime check in Program.cs will also verify no test controllers are present
+```
+
+**Note**: Always build in Release mode for production deployments. Debug controllers are automatically excluded and cannot be accessed in production.
 
 ---
 

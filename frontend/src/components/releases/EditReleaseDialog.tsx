@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/form';
 import type { ReleaseDto } from '@/types/releases';
 import { format } from 'date-fns';
+import { ReleaseStatus } from '@/types/generated/enums';
 
 interface EditReleaseDialogProps {
   release: ReleaseDto;
@@ -50,7 +51,7 @@ const schema = z.object({
   name: z.string().min(1, 'Name is required').max(200, 'Name cannot exceed 200 characters'),
   description: z.string().max(2000, 'Description cannot exceed 2000 characters').optional(),
   plannedDate: z.string().min(1, 'Planned date is required'),
-  status: z.enum(['Planned', 'InProgress', 'Testing', 'ReadyForDeployment', 'Cancelled']),
+  status: z.enum(['Planned', 'InProgress', 'Testing', 'ReadyForDeployment', 'Cancelled'] as [ReleaseStatus, ...ReleaseStatus[]]),
   isPreRelease: z.boolean(),
   tagName: z.string().max(100, 'Tag name cannot exceed 100 characters').optional(),
 });

@@ -46,6 +46,9 @@ export default function QuotaDetails() {
     queryKey: ['ai-quota-status'],
     queryFn: () => aiGovernanceApi.getQuotaStatus(),
     refetchInterval: 60000, // Refresh every minute
+    retry: 3, // Retry up to 3 times on failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff: 1s, 2s, 4s (max 30s)
+    staleTime: 30000, // Consider data stale after 30 seconds
   });
 
   // Calculate date range
@@ -70,6 +73,9 @@ export default function QuotaDetails() {
       pageSize: 1000, // Get all data for the date range
     }),
     enabled: !!quotaStatus,
+    retry: 3, // Retry up to 3 times on failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 60000, // Consider data stale after 60 seconds
   });
 
   // Fetch breakdown by agent
@@ -80,6 +86,9 @@ export default function QuotaDetails() {
       ...dateRangeParams,
     }),
     enabled: !!quotaStatus,
+    retry: 3, // Retry up to 3 times on failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 60000, // Consider data stale after 60 seconds
   });
 
   // Transform usage history data for chart

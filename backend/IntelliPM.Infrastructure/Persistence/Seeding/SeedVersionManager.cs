@@ -11,9 +11,9 @@ namespace IntelliPM.Infrastructure.Persistence.Seeding;
 public class SeedVersionManager
 {
     private readonly AppDbContext _context;
-    private readonly ILogger _logger;
+    private readonly ILogger<SeedVersionManager> _logger;
 
-    public SeedVersionManager(AppDbContext context, ILogger logger)
+    public SeedVersionManager(AppDbContext context, ILogger<SeedVersionManager> logger)
     {
         _context = context;
         _logger = logger;

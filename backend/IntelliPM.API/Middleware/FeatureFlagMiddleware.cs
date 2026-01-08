@@ -1,4 +1,5 @@
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.API.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -65,7 +66,7 @@ public class FeatureFlagMiddleware
                 }
             }
 
-            // Check if feature is enabled
+            // Check if feature is enabled (strict mode: throws FeatureFlagNotFoundException if not found)
             var isEnabled = await featureFlagService.IsEnabledAsync(featureFlagName, organizationId);
 
             if (!isEnabled)
@@ -104,6 +105,34 @@ public class FeatureFlagMiddleware
 
             // Feature is enabled, continue pipeline
             await _next(context);
+        }
+        catch (FeatureFlagNotFoundException ex)
+        {
+            // Strict mode: flag not found in database - return 403 Forbidden
+            _logger.LogWarning(
+                "Feature flag {FeatureFlagName} not found for OrganizationId {OrganizationId}. Request {Path} blocked. Error: {Message}",
+                featureFlagName,
+                ex.OrganizationId?.ToString() ?? "Global",
+                context.Request.Path,
+                ex.Message);
+
+            context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+            context.Response.ContentType = "application/json";
+
+            var response = new
+            {
+                error = "Feature not available",
+                message = $"Feature '{featureFlagName}' is not available (flag not found in database).",
+                featureFlag = featureFlagName
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            await context.Response.WriteAsync(jsonResponse);
+            return;
         }
         catch (Exception ex)
         {

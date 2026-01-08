@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/form';
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { ReleaseType } from '@/types/generated/enums';
 
 interface CreateReleaseDialogProps {
   projectId: number;
@@ -51,7 +52,7 @@ const schema = z.object({
     .min(1, 'Version is required')
     .regex(/^\d+\.\d+\.\d+$/, 'Must be semantic version (e.g., 2.1.0)'),
   description: z.string().max(2000, 'Description cannot exceed 2000 characters').optional(),
-  type: z.enum(['Major', 'Minor', 'Patch', 'Hotfix']),
+  type: z.enum(['Major', 'Minor', 'Patch', 'Hotfix'] as [ReleaseType, ...ReleaseType[]]),
   plannedDate: z.string().min(1, 'Planned date is required'),
   isPreRelease: z.boolean().default(false),
   tagName: z.string().max(100, 'Tag name cannot exceed 100 characters').optional(),

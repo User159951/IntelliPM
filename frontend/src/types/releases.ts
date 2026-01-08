@@ -1,38 +1,5 @@
-export enum ReleaseStatus {
-  Planned = 0,
-  InProgress = 1,
-  Testing = 2,
-  ReadyForDeployment = 3,
-  Deployed = 4,
-  Failed = 5,
-  Cancelled = 6,
-}
-
-export enum ReleaseType {
-  Major = 0,
-  Minor = 1,
-  Patch = 2,
-  Hotfix = 3,
-}
-
-export enum QualityGateStatus {
-  Passed = 0,
-  Warning = 1,
-  Failed = 2,
-  Pending = 3,
-  Skipped = 4,
-}
-
-export enum QualityGateType {
-  CodeCoverage = 0,
-  AllTasksCompleted = 1,
-  NoOpenBugs = 2,
-  CodeReviewApproval = 3,
-  SecurityScan = 4,
-  PerformanceTests = 5,
-  DocumentationComplete = 6,
-  ManualApproval = 7,
-}
+// Enum types now imported from generated types
+export type { ReleaseStatus, ReleaseType, QualityGateStatus, QualityGateType } from './generated/enums';
 
 export interface ReleaseDto {
   id: number;

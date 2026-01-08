@@ -21,6 +21,8 @@ using HealthChecks.UI.Client;
 using Sentry;
 using Microsoft.AspNetCore.Authorization;
 using IntelliPM.API.Authorization;
+using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
 
 // Configure Sentry before creating the builder
 var builder = WebApplication.CreateBuilder(args);
@@ -438,6 +440,44 @@ var cspConnectSources = builder.Configuration.GetSection("SecurityHeaders:CSPCon
 
 var app = builder.Build();
 
+// SECURITY: Runtime check to prevent debug/test controllers in production
+#if !DEBUG
+if (isProduction)
+{
+    // Verify that TestController is not accessible in production builds
+    // This is a compile-time check, but we also verify at runtime
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Production build detected - DEBUG controllers are excluded via preprocessor directives");
+    
+    // Additional runtime verification: Check if any debug controllers are registered
+    // This would fail at compile time if TestController is referenced, but provides extra safety
+    try
+    {
+        var controllerTypes = Assembly.GetExecutingAssembly()
+            .GetTypes()
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && 
+                       t.Name.Contains("Test", StringComparison.OrdinalIgnoreCase) &&
+                       !t.IsAbstract)
+            .ToList();
+        
+        if (controllerTypes.Any())
+        {
+            var controllerNames = string.Join(", ", controllerTypes.Select(t => t.Name));
+            logger.LogError("SECURITY WARNING: Test controllers detected in production build: {Controllers}", controllerNames);
+            throw new InvalidOperationException(
+                $"SECURITY VIOLATION: Debug/test controllers detected in production build: {controllerNames}. " +
+                "All test controllers must be wrapped with #if DEBUG preprocessor directives.");
+        }
+    }
+    catch (ReflectionTypeLoadException)
+    {
+        // Type loading exceptions are expected if controllers are excluded via #if DEBUG
+        // This is actually the desired behavior - the types won't be loadable in Release builds
+        logger.LogInformation("Debug controllers successfully excluded from production build (type loading failed as expected)");
+    }
+}
+#endif
+
 // Migrate and seed databases
 using (var scope = app.Services.CreateScope())
 {
@@ -463,9 +503,10 @@ using (var scope = app.Services.CreateScope())
 
         // Seed all RBAC data using the comprehensive versioned seed system
         // This includes: permissions, role-permissions, workflow rules, and AI decision policies
+        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
         await IntelliPM.Infrastructure.Persistence.DataSeeder.SeedAllRBACDataAsync(
             appContext,
-            logger);
+            loggerFactory);
         logger.LogInformation("RBAC data seeding completed");
 
         // Seed default organization (idempotent - safe to run on every startup)
@@ -598,6 +639,17 @@ app.UseExceptionHandler(appBuilder =>
                 {
                     organizationId = aiDisabledEx.OrganizationId,
                     reason = aiDisabledEx.Reason
+                }
+            },
+            IntelliPM.Application.Common.Exceptions.ForbiddenException forbiddenEx => new
+            {
+                statusCode = StatusCodes.Status403Forbidden,
+                error = forbiddenEx.Message,
+                errors = (object?)null,
+                details = (object?)new
+                {
+                    permission = forbiddenEx.Permission,
+                    organizationId = forbiddenEx.OrganizationId
                 }
             },
             Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException => new

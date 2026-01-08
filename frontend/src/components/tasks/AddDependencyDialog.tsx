@@ -23,6 +23,7 @@ import { dependenciesApi } from '@/api/dependencies';
 import { tasksApi } from '@/api/tasks';
 import { MySwal } from '@/lib/sweetalert';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { DependencyType } from '@/types/generated/enums';
 
 interface AddDependencyDialogProps {
   taskId: number;
@@ -32,7 +33,7 @@ interface AddDependencyDialogProps {
   onSuccess?: () => void;
 }
 
-const dependencyTypeSchema = z.enum(['FinishToStart', 'StartToStart', 'FinishToFinish', 'StartToFinish']);
+const dependencyTypeSchema = z.enum(['FinishToStart', 'StartToStart', 'FinishToFinish', 'StartToFinish'] as [DependencyType, ...DependencyType[]]);
 
 const schema = z.object({
   dependentTaskId: z.number().min(1, 'Please select a task'),

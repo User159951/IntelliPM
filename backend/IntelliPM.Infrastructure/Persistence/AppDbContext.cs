@@ -49,6 +49,7 @@ public class AppDbContext : DbContext
     public DbSet<Invitation> Invitations { get; set; }
     public DbSet<OrganizationInvitation> OrganizationInvitations { get; set; }
     public DbSet<GlobalSetting> GlobalSettings { get; set; }
+    public DbSet<OrganizationSetting> OrganizationSettings { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
@@ -65,6 +66,7 @@ public class AppDbContext : DbContext
     public DbSet<Attachment> Attachments { get; set; }
     public DbSet<AIDecisionLog> AIDecisionLogs { get; set; }
     public DbSet<AIQuota> AIQuotas { get; set; }
+    public DbSet<AIQuotaTemplate> AIQuotaTemplates { get; set; }
     public DbSet<TaskDependency> TaskDependencies { get; set; }
     public DbSet<Milestone> Milestones { get; set; }
     public DbSet<Release> Releases { get; set; }
@@ -123,6 +125,44 @@ public class AppDbContext : DbContext
             .HasOne(gs => gs.UpdatedBy)
             .WithMany()
             .HasForeignKey(gs => gs.UpdatedById)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // OrganizationSetting
+        modelBuilder.Entity<OrganizationSetting>()
+            .ToTable("OrganizationSettings");
+        modelBuilder.Entity<OrganizationSetting>()
+            .HasKey(os => os.Id);
+        modelBuilder.Entity<OrganizationSetting>()
+            .Property(os => os.Key)
+            .IsRequired()
+            .HasMaxLength(100);
+        modelBuilder.Entity<OrganizationSetting>()
+            .Property(os => os.Value)
+            .IsRequired()
+            .HasMaxLength(1000);
+        modelBuilder.Entity<OrganizationSetting>()
+            .Property(os => os.Description)
+            .HasMaxLength(500);
+        modelBuilder.Entity<OrganizationSetting>()
+            .Property(os => os.CreatedAt)
+            .IsRequired();
+        modelBuilder.Entity<OrganizationSetting>()
+            .HasIndex(os => new { os.OrganizationId, os.Key })
+            .IsUnique();
+        modelBuilder.Entity<OrganizationSetting>()
+            .Property(os => os.Category)
+            .HasMaxLength(50)
+            .HasDefaultValue("General");
+        modelBuilder.Entity<OrganizationSetting>()
+            .HasOne(os => os.Organization)
+            .WithMany()
+            .HasForeignKey(os => os.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
+        modelBuilder.Entity<OrganizationSetting>()
+            .HasOne(os => os.UpdatedBy)
+            .WithMany()
+            .HasForeignKey(os => os.UpdatedById)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Permission
@@ -441,6 +481,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AttachmentConfiguration());
         modelBuilder.ApplyConfiguration(new AIDecisionLogConfiguration());
         modelBuilder.ApplyConfiguration(new AIQuotaConfiguration());
+        modelBuilder.ApplyConfiguration(new AIQuotaTemplateConfiguration());
         modelBuilder.ApplyConfiguration(new UserAIQuotaOverrideConfiguration());
         modelBuilder.ApplyConfiguration(new UserAIUsageCounterConfiguration());
         modelBuilder.ApplyConfiguration(new OrganizationAIQuotaConfiguration());
