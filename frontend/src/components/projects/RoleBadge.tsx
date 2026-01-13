@@ -48,6 +48,12 @@ const getRoleConfig = (t: (key: string) => string): Record<
     variant: 'secondary',
     customClassName: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20',
   },
+  Manager: {
+    label: t('common:roles.manager') || 'Manager',
+    icon: Users,
+    variant: 'default',
+    customClassName: 'bg-indigo-600 text-white border-transparent hover:bg-indigo-600/80',
+  },
 });
 
 export default function RoleBadge({ role, className }: RoleBadgeProps) {

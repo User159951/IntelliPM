@@ -20,13 +20,14 @@ import {
   Plus,
   User,
   GripVertical,
+  XCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Task, TaskStatus, TaskPriority } from '@/types';
 import BlockedBadge from './BlockedBadge';
 import { useProjectTaskDependencies } from '@/hooks/useProjectTaskDependencies';
-import { useTaskStatuses, useTaskPriorities, getLookupItem } from '@/hooks/useLookups';
+import { useTaskStatuses, useTaskPriorities } from '@/hooks/useLookups';
 
 /**
  * Extended Task interface for TaskBoard component.
@@ -191,14 +192,20 @@ export default function TaskBoard({
   const { priorities } = useTaskPriorities();
 
   // Build priority color map from API data
-  const priorityColors = useMemo(() => {
+  const priorityColors = useMemo<Record<TaskPriority, string>>(() => {
     const colorMap: Record<string, string> = {};
     priorities.forEach((priority) => {
       // Use metadata borderColor if available, otherwise fallback
       const borderColor = priority.metadata?.borderColor || fallbackPriorityColors[priority.value as TaskPriority];
       colorMap[priority.value] = borderColor || fallbackPriorityColors[priority.value as TaskPriority] || 'border-l-slate-400';
     });
-    return colorMap;
+    // Ensure all TaskPriority values are covered
+    return {
+      Low: colorMap['Low'] || fallbackPriorityColors.Low,
+      Medium: colorMap['Medium'] || fallbackPriorityColors.Medium,
+      High: colorMap['High'] || fallbackPriorityColors.High,
+      Critical: colorMap['Critical'] || fallbackPriorityColors.Critical,
+    };
   }, [priorities]);
 
   // Build columns from API data or fallback
@@ -413,6 +420,7 @@ export default function TaskBoard({
                   onAddTask={onAddTask}
                   isDragDisabled={!canEditTasks || isMobile}
                   blockingMap={blockingMap}
+                  priorityColors={priorityColors}
                 />
               ))
             )}
@@ -435,6 +443,7 @@ interface TaskColumnProps {
   onAddTask?: (status: TaskStatus) => void;
   isDragDisabled: boolean;
   blockingMap: Map<number, { isBlocked: boolean; blockedByCount: number; blockingTasks: Array<{ taskId: number; title: string; status: string }> }>;
+  priorityColors: Record<TaskPriority, string>;
 }
 
 /**
@@ -449,6 +458,7 @@ function TaskColumn({
   onAddTask,
   isDragDisabled,
   blockingMap,
+  priorityColors,
 }: TaskColumnProps) {
   const Icon = column.icon;
 
@@ -540,6 +550,7 @@ function TaskColumn({
                     onClick={onTaskClick}
                     isDragDisabled={isDragDisabled}
                     blockingInfo={blockingMap.get(task.id)}
+                    priorityColors={priorityColors}
                   />
                 ))
               )}
@@ -562,12 +573,13 @@ interface TaskCardProps {
   onClick?: (taskId: number) => void;
   isDragDisabled: boolean;
   blockingInfo?: { isBlocked: boolean; blockedByCount: number; blockingTasks: Array<{ taskId: number; title: string; status: string }> };
+  priorityColors: Record<TaskPriority, string>;
 }
 
 /**
  * TaskCard component representing a single draggable task card.
  */
-function TaskCard({ task, index, onClick, isDragDisabled, blockingInfo }: TaskCardProps) {
+function TaskCard({ task, index, onClick, isDragDisabled, blockingInfo, priorityColors }: TaskCardProps) {
   const { language } = useLanguage();
   
   // Get assignee info
@@ -614,7 +626,7 @@ function TaskCard({ task, index, onClick, isDragDisabled, blockingInfo }: TaskCa
           {...provided.draggableProps}
           className={cn(
             'bg-card rounded-lg border mb-2 shadow-sm transition-all border-l-4',
-            priorityColors[task.priority] || fallbackPriorityColors[task.priority],
+            priorityColors[task.priority as TaskPriority] || fallbackPriorityColors[task.priority],
             isBlocked && 'border-l-red-500 border-l-4',
             snapshot.isDragging && 'shadow-lg rotate-2 opacity-90'
           )}

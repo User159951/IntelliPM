@@ -181,7 +181,7 @@ export default function Tasks() {
             Medium: 2,
             Low: 1,
           };
-          const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+          const priorityDiff = priorityOrder[b.priority as TaskPriority] - priorityOrder[a.priority as TaskPriority];
           // Secondary sort: by title (alphabetical) for same priority
           if (priorityDiff !== 0) return priorityDiff;
           return a.title.localeCompare(b.title);
@@ -198,7 +198,7 @@ export default function Tasks() {
             Medium: 2,
             Low: 1,
           };
-          const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+          const priorityDiff = priorityOrder[b.priority as TaskPriority] - priorityOrder[a.priority as TaskPriority];
           if (priorityDiff !== 0) return priorityDiff;
           return a.title.localeCompare(b.title);
         }
@@ -217,7 +217,7 @@ export default function Tasks() {
             Medium: 2,
             Low: 1,
           };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
+          return priorityOrder[b.priority as TaskPriority] - priorityOrder[a.priority as TaskPriority];
         }
         case 'points': {
           // Story points: high to low (null/undefined at end)
@@ -231,7 +231,7 @@ export default function Tasks() {
             Medium: 2,
             Low: 1,
           };
-          const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+          const priorityDiff = priorityOrder[b.priority as TaskPriority] - priorityOrder[a.priority as TaskPriority];
           if (priorityDiff !== 0) return priorityDiff;
           return a.title.localeCompare(b.title);
         }
@@ -246,7 +246,7 @@ export default function Tasks() {
             Medium: 2,
             Low: 1,
           };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
+          return priorityOrder[b.priority as TaskPriority] - priorityOrder[a.priority as TaskPriority];
         }
         default:
           return 0;
@@ -497,7 +497,7 @@ export default function Tasks() {
                           {task.description}
                         </p>
                         <div className="flex items-center justify-between">
-                          <Badge className={priorityColors[task.priority]} variant="secondary">
+                          <Badge className={priorityColors[task.priority as TaskPriority]} variant="secondary">
                             {task.priority}
                           </Badge>
                           {task.storyPoints && (

@@ -1,4 +1,7 @@
 import { format, formatDistanceToNow, Locale } from 'date-fns';
+
+// Re-export formatDistanceToNow for direct use
+export { formatDistanceToNow };
 import { fr, enUS } from 'date-fns/locale';
 
 /**

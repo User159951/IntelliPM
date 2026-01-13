@@ -575,12 +575,9 @@ public class AppDbContext : DbContext
 
         // Apply global query filters for multi-tenancy (automatic tenant isolation)
         // This ensures all queries on ITenantEntity types are automatically filtered by OrganizationId
-        // Apply filters to all concrete entity types that implement ITenantEntity
-        // (including derived types like Epic, Feature, UserStory that inherit from BacklogItem)
+        // Note: Only apply filters to root entity types (not derived types in inheritance hierarchies)
         foreach (var entityType in modelBuilder.Model.GetEntityTypes()
-            .Where(e => typeof(ITenantEntity).IsAssignableFrom(e.ClrType) 
-                     && !e.ClrType.IsAbstract 
-                     && !e.IsOwned()))
+            .Where(e => typeof(ITenantEntity).IsAssignableFrom(e.ClrType) && e.BaseType == null))
         {
             var method = typeof(AppDbContext)
                 .GetMethod(nameof(BuildTenantFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)

@@ -82,7 +82,7 @@ export function AIDecisionsList() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Select
             value={filters.decisionType}
-            onValueChange={(value) => setFilters({ ...filters, decisionType: value })}
+            onValueChange={(value) => setFilters({ ...filters, decisionType: value as 'all' | AIDecisionType })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Decision Type" />
@@ -97,7 +97,7 @@ export function AIDecisionsList() {
 
           <Select
             value={filters.agentType}
-            onValueChange={(value) => setFilters({ ...filters, agentType: value })}
+            onValueChange={(value) => setFilters({ ...filters, agentType: value as 'all' | AIAgentType })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Agent Type" />

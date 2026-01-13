@@ -96,18 +96,12 @@ public class ReleasesController : BaseApiController
             var query = new GetReleaseByIdQuery(id);
             var result = await _mediator.Send(query, ct);
             
-            if (result == null)
-            {
-                _logger.LogWarning("Release {ReleaseId} not found", id);
-                return NotFound(new { message = $"Release with ID {id} not found" });
-            }
-            
             return Ok(result);
         }
-        catch (IntelliPM.Application.Common.Exceptions.NotFoundException ex)
+        catch (IntelliPM.Application.Common.Exceptions.NotFoundException)
         {
-            _logger.LogWarning("Release {ReleaseId} not found: {Message}", id, ex.Message);
-            return NotFound(new { message = ex.Message });
+            // NotFoundException is handled by global exception handler
+            throw;
         }
         catch (Exception ex)
         {

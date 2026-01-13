@@ -19,14 +19,8 @@ import { useTranslation as useI18nTranslation, UseTranslationResponse } from 're
  */
 export const useTranslation = (
   ns?: string | string[]
-): UseTranslationResponse<string, string> & {
-  /**
-   * Safe translation function that returns a fallback if the key is not found
-   * @param key - Translation key
-   * @param fallback - Fallback text if key is not found
-   * @param options - Optional translation options
-   * @returns Translated text or fallback
-   */
+): Omit<UseTranslationResponse<string, string>, 't'> & {
+  t: UseTranslationResponse<string, string>['t'];
   safeT: (key: string, fallback: string, options?: Record<string, unknown>) => string;
 } => {
   const translation = useI18nTranslation(ns);
@@ -52,6 +46,7 @@ export const useTranslation = (
 
   return {
     ...translation,
+    t: translation.t,
     safeT,
   };
 };

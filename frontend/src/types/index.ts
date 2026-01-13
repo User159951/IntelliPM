@@ -1,11 +1,33 @@
-// Auth types - now imported from generated types
-export type { GlobalRole } from './generated/enums';
+// Import types from generated enums (needed for use in interfaces)
+import type {
+  GlobalRole,
+  ProjectRole,
+  ProjectStatus,
+  ProjectType,
+  SprintStatus,
+  TaskStatus,
+  TaskPriority,
+  DefectSeverity,
+  DefectStatus,
+} from './generated/enums';
 
-// Notification types - now imported from generated types
-export type { NotificationType, NotificationFrequency } from './generated/enums';
-
-// AI Decision types - now imported from generated types
-export type { AIDecisionType, AIAgentType, AIDecisionStatus } from './generated/enums';
+// Re-export all types for convenience
+export type {
+  GlobalRole,
+  ProjectRole,
+  ProjectStatus,
+  ProjectType,
+  SprintStatus,
+  TaskStatus,
+  TaskPriority,
+  DefectSeverity,
+  DefectStatus,
+  NotificationType,
+  NotificationFrequency,
+  AIDecisionType,
+  AIAgentType,
+  AIDecisionStatus,
+} from './generated/enums';
 
 export interface LoginRequest {
   username: string;
@@ -47,8 +69,7 @@ export interface User {
   roles?: string[];
 }
 
-// Project types - now imported from generated types
-export type { ProjectStatus, ProjectType, ProjectRole } from './generated/enums';
+// Project types - already imported above
 
 export interface ProjectMember {
   id: number;
@@ -103,8 +124,7 @@ export interface UpdateProjectRequest {
   sprintDurationDays?: number;
 }
 
-// Sprint types - now imported from generated types
-export type { SprintStatus } from './generated/enums';
+// Sprint types - already imported above
 
 export interface Sprint {
   id: number;
@@ -127,8 +147,7 @@ export interface CreateSprintRequest {
   goal?: string;
 }
 
-// Task types - now imported from generated types
-export type { TaskStatus, TaskPriority } from './generated/enums';
+// Task types - already imported above
 
 export interface Task {
   id: number;
@@ -260,8 +279,7 @@ export interface CreateStoryRequest {
   acceptanceCriteria?: string;
 }
 
-// Defect types - now imported from generated types
-export type { DefectSeverity, DefectStatus } from './generated/enums';
+// Defect types - already imported above
 
 export interface Defect {
   id: number;

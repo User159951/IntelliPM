@@ -100,7 +100,7 @@ export default function Defects() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'severity':
-          return (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0);
+          return (severityOrder[b.severity as DefectSeverity] || 0) - (severityOrder[a.severity as DefectSeverity] || 0);
         case 'created':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case 'status':
@@ -360,12 +360,12 @@ export default function Defects() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={severityColors[defect.severity]} variant="outline">
+                      <Badge className={severityColors[defect.severity as DefectSeverity]} variant="outline">
                         {defect.severity}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={statusColors[defect.status]}>{defect.status}</Badge>
+                      <Badge className={statusColors[defect.status as DefectStatus]}>{defect.status}</Badge>
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">

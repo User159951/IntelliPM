@@ -2,7 +2,6 @@
  * Validation helper utilities for Zod schemas with i18n support
  */
 import i18next from 'i18next';
-import { z } from 'zod';
 
 /**
  * Get translated validation error messages

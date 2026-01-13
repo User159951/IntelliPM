@@ -51,7 +51,7 @@ export interface UseFeatureFlagReturn {
  */
 export function useFeatureFlag(
   flagName: string | FeatureFlagName,
-  organizationId?: string
+  _organizationId?: string
 ): UseFeatureFlagReturn {
   const { flags, isLoading, error } = useFeatureFlags();
 

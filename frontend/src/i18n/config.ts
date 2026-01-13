@@ -10,7 +10,6 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    supportedLngs: ['en', 'fr'],
     fallbackLng: 'en',
     debug: isDevelopment,
 
@@ -46,12 +45,12 @@ i18n
       cookieMinutes: 10080, // 7 days
       cookieDomain: undefined, // Use current domain
       
-      // navigator lookup (browser language)
-      checkWhitelist: true, // Only use detected language if it's in supportedLngs
-      
       // htmlTag lookup (lang attribute on <html> tag)
       htmlTag: typeof document !== 'undefined' ? document.documentElement : undefined,
     },
+
+    // Supported languages
+    supportedLngs: ['en', 'fr'],
 
     // Interpolation configuration
     interpolation: {

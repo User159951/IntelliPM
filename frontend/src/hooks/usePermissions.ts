@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissionContext } from '@/contexts/PermissionContext';
 import { permissionsApi } from '@/api/permissions';
-import type { GlobalRole, ProjectRole } from '@/types';
+import type { GlobalRole } from '@/types';
 
 /**
  * Permission string format: "resource.action"
@@ -195,7 +195,7 @@ export interface UsePermissionsReturn {
  */
 export function usePermissions(): UsePermissionsReturn {
   const { user, isLoading: authLoading } = useAuth();
-  const permissionContext = usePermissionContext();
+  usePermissionContext(); // Initialize context
 
   // Fetch permissions from API
   const {
@@ -369,7 +369,7 @@ export function usePermissions(): UsePermissionsReturn {
  */
 export function usePermissionsWithProject(projectId: number | string | null | undefined): UsePermissionsReturn {
   const basePermissions = usePermissions();
-  const permissionContext = usePermissionContext();
+  usePermissionContext(); // Initialize context
 
   const projectIdNum = projectId ? (typeof projectId === 'string' ? parseInt(projectId, 10) : projectId) : null;
 

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumber, formatDecimal, formatPercentage } from '@/utils/numberFormat';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { releasesApi } from '@/api/releases';
 import type { ReleaseDto, ReleaseStatistics } from '@/types/releases';

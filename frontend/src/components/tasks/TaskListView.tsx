@@ -183,7 +183,7 @@ export function TaskListView({
             Medium: 2,
             Low: 1,
           };
-          comparison = priorityOrder[b.priority] - priorityOrder[a.priority];
+          comparison = priorityOrder[b.priority as TaskPriority] - priorityOrder[a.priority as TaskPriority];
           break;
         }
         case 'assignee':
@@ -448,7 +448,7 @@ export function TaskListView({
                         </Select>
                       ) : (
                         <Badge
-                          className={statusColors[task.status]}
+                          className={statusColors[task.status as TaskStatus]}
                           variant="outline"
                           onClick={() => {
                             setEditingTaskId(task.id);
@@ -485,7 +485,7 @@ export function TaskListView({
                         </Select>
                       ) : (
                         <Badge
-                          className={priorityColors[task.priority]}
+                          className={priorityColors[task.priority as TaskPriority]}
                           variant="outline"
                           onClick={() => {
                             setEditingTaskId(task.id);

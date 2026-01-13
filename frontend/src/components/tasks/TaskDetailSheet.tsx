@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatRelativeTime } from '@/utils/dateFormat';
+import { formatRelativeTime, formatDistanceToNow } from '@/utils/dateFormat';
 import { useTaskStatuses, useTaskPriorities } from '@/hooks/useLookups';
 import { Skeleton } from '@/components/ui/skeleton';
 

@@ -272,8 +272,8 @@ export function TaskTimelineView({
                   {groupTasks.map((item) => {
                     const { left, width } = getTaskPosition(item);
                     const overdue = isOverdue(item);
-                    const statusColor = overdue ? 'bg-red-600' : statusColors[item.task.status];
-                    const hoverColor = overdue ? 'bg-red-700' : statusHoverColors[item.task.status];
+                    const statusColor = overdue ? 'bg-red-600' : statusColors[item.task.status as TaskStatus];
+                    const hoverColor = overdue ? 'bg-red-700' : statusHoverColors[item.task.status as TaskStatus];
 
                     return (
                       <TooltipProvider key={item.task.id}>
@@ -319,7 +319,7 @@ export function TaskTimelineView({
                                 {format(item.startDate, 'MMM d')} - {format(item.dueDate, 'MMM d, yyyy')}
                               </div>
                               <div className="flex items-center gap-2 text-xs">
-                                <Badge variant="outline" className={statusColors[item.task.status]}>
+                                <Badge variant="outline" className={statusColors[item.task.status as TaskStatus]}>
                                   {item.task.status}
                                 </Badge>
                                 <Badge variant="outline">{item.task.priority}</Badge>
