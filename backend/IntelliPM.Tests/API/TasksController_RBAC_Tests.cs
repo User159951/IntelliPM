@@ -39,22 +39,32 @@ public class TasksController_RBAC_Tests : IClassFixture<RBAC_WebApplicationFacto
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var org = new Organization { Name = "Test Org", CreatedAt = DateTimeOffset.UtcNow };
+        // IMPORTANT: Clear existing RolePermissions for GlobalRole.User to ensure test isolation
+        // This prevents permissions from other tests (like tasks.view) from affecting this test
+        var existingUserRolePermissions = db.RolePermissions.Where(rp => rp.Role == GlobalRole.User);
+        db.RolePermissions.RemoveRange(existingUserRolePermissions);
+        await db.SaveChangesAsync();
+
+        var org = new Organization { Name = "Test Org BlockedWithout", CreatedAt = DateTimeOffset.UtcNow };
         db.Organizations.Add(org);
         await db.SaveChangesAsync();
 
         // Create user WITHOUT tasks.view permission
-        var user = CreateTestUser("user@test.com", "user", GlobalRole.User, org.Id);
-        var project = CreateTestProject("Test Project", user.Id, org.Id);
+        var user = CreateTestUser($"blocked_without_{Guid.NewGuid()}@test.com", $"user_blocked_without_{Guid.NewGuid()}", GlobalRole.User, org.Id);
+        var project = CreateTestProject("Test Project BlockedWithout", user.Id, org.Id);
         
         db.Users.Add(user);
         db.Projects.Add(project);
         await db.SaveChangesAsync();
 
         // Add some permissions but NOT tasks.view
-        var projectsViewPerm = new Permission { Name = "projects.view", Category = "Projects", CreatedAt = DateTimeOffset.UtcNow };
-        db.Permissions.Add(projectsViewPerm);
-        await db.SaveChangesAsync();
+        var projectsViewPerm = await db.Permissions.FirstOrDefaultAsync(p => p.Name == "projects.view")
+            ?? new Permission { Name = "projects.view", Category = "Projects", CreatedAt = DateTimeOffset.UtcNow };
+        if (projectsViewPerm.Id == 0)
+        {
+            db.Permissions.Add(projectsViewPerm);
+            await db.SaveChangesAsync();
+        }
 
         // Give user only projects.view permission (not tasks.view)
         db.RolePermissions.Add(new RolePermission
@@ -131,21 +141,31 @@ public class TasksController_RBAC_Tests : IClassFixture<RBAC_WebApplicationFacto
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var org = new Organization { Name = "Test Org", CreatedAt = DateTimeOffset.UtcNow };
+        // IMPORTANT: Clear existing RolePermissions for GlobalRole.User to ensure test isolation
+        // This prevents permissions from other tests (like tasks.view) from affecting this test
+        var existingUserRolePermissions = db.RolePermissions.Where(rp => rp.Role == GlobalRole.User);
+        db.RolePermissions.RemoveRange(existingUserRolePermissions);
+        await db.SaveChangesAsync();
+
+        var org = new Organization { Name = "Test Org AssigneeWithout", CreatedAt = DateTimeOffset.UtcNow };
         db.Organizations.Add(org);
         await db.SaveChangesAsync();
 
         // Create user WITHOUT tasks.view permission
-        var user = CreateTestUser("user@test.com", "user", GlobalRole.User, org.Id);
-        var assignee = CreateTestUser("assignee@test.com", "assignee", GlobalRole.User, org.Id);
+        var user = CreateTestUser($"assignee_without_{Guid.NewGuid()}@test.com", $"user_assignee_without_{Guid.NewGuid()}", GlobalRole.User, org.Id);
+        var assignee = CreateTestUser($"assignee_{Guid.NewGuid()}@test.com", $"assignee_{Guid.NewGuid()}", GlobalRole.User, org.Id);
         
         db.Users.AddRange(user, assignee);
         await db.SaveChangesAsync();
 
         // Add some permissions but NOT tasks.view
-        var projectsViewPerm = new Permission { Name = "projects.view", Category = "Projects", CreatedAt = DateTimeOffset.UtcNow };
-        db.Permissions.Add(projectsViewPerm);
-        await db.SaveChangesAsync();
+        var projectsViewPerm = await db.Permissions.FirstOrDefaultAsync(p => p.Name == "projects.view")
+            ?? new Permission { Name = "projects.view", Category = "Projects", CreatedAt = DateTimeOffset.UtcNow };
+        if (projectsViewPerm.Id == 0)
+        {
+            db.Permissions.Add(projectsViewPerm);
+            await db.SaveChangesAsync();
+        }
 
         // Give user only projects.view permission (not tasks.view)
         db.RolePermissions.Add(new RolePermission

@@ -107,6 +107,18 @@ public class PermissionsControllerTests : IClassFixture<CustomWebApplicationFact
         db.Permissions.AddRange(perm1, perm2, permAdmin);
         await db.SaveChangesAsync();
 
+        // Add OrganizationPermissionPolicy to allow the permissions being assigned
+        // The UpdateRolePermissionsCommandHandler validates permissions against the organization's policy
+        var permissionPolicy = new OrganizationPermissionPolicy
+        {
+            OrganizationId = org.Id,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        permissionPolicy.SetAllowedPermissions(new List<string> { "projects.view", "projects.create", "admin.permissions.update" });
+        db.Set<OrganizationPermissionPolicy>().Add(permissionPolicy);
+        await db.SaveChangesAsync();
+
         var admin = new User
         {
             Email = "admin2@test.com",

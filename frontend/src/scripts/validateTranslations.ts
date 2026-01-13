@@ -69,7 +69,7 @@ function getAllKeys(obj: Record<string, unknown>, prefix = ''): string[] {
     const fullKey = prefix ? `${prefix}.${key}` : key;
     
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      keys.push(...getAllKeys(value, fullKey));
+      keys.push(...getAllKeys(value as Record<string, unknown>, fullKey));
     } else {
       keys.push(fullKey);
     }
@@ -87,7 +87,7 @@ function getNestedValue(obj: Record<string, unknown>, key: string): unknown {
   
   for (const k of keys) {
     if (current && typeof current === 'object' && k in current) {
-      current = current[k];
+      current = (current as Record<string, unknown>)[k] as Record<string, unknown>;
     } else {
       return undefined;
     }
@@ -137,7 +137,7 @@ function findEmptyValues(obj: Record<string, unknown>, prefix = ''): string[] {
     const fullKey = prefix ? `${prefix}.${key}` : key;
     
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      empty.push(...findEmptyValues(value, fullKey));
+      empty.push(...findEmptyValues(value as Record<string, unknown>, fullKey));
     } else if (value === '' || value === null || value === undefined) {
       empty.push(fullKey);
     }
