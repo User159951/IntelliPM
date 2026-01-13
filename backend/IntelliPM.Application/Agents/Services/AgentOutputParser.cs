@@ -104,18 +104,47 @@ public class AgentOutputParser : IAgentOutputParser
     /// </summary>
     private string ExtractJson(string input)
     {
-        // Try to find JSON in markdown code block (```json ... ```)
-        var markdownJsonMatch = Regex.Match(input, @"```(?:json)?\s*(\{.*?\})\s*```", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return string.Empty;
+        }
+
+        // Try to find JSON in markdown code block (```json ... ``` or ``` ... ```)
+        var markdownJsonMatch = Regex.Match(input, @"```(?:json)?\s*(\{[\s\S]*?\})\s*```", RegexOptions.IgnoreCase);
         if (markdownJsonMatch.Success)
         {
             return markdownJsonMatch.Groups[1].Value;
         }
 
-        // Try to find JSON object directly
-        var jsonObjectMatch = Regex.Match(input, @"\{.*\}", RegexOptions.Singleline);
-        if (jsonObjectMatch.Success)
+        // Try to find JSON object directly - match balanced braces
+        // Start from the first { and find the matching }
+        var startIndex = input.IndexOf('{');
+        if (startIndex >= 0)
         {
-            return jsonObjectMatch.Value;
+            var braceCount = 0;
+            var endIndex = startIndex;
+            
+            for (int i = startIndex; i < input.Length; i++)
+            {
+                if (input[i] == '{')
+                {
+                    braceCount++;
+                }
+                else if (input[i] == '}')
+                {
+                    braceCount--;
+                    if (braceCount == 0)
+                    {
+                        endIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            if (braceCount == 0 && endIndex > startIndex)
+            {
+                return input.Substring(startIndex, endIndex - startIndex + 1);
+            }
         }
 
         // If no JSON found, return the original string (let deserializer handle it)

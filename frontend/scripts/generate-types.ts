@@ -12,7 +12,7 @@
 import { writeFileSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import openapiTS from 'openapi-typescript';
+import openapiTS, { astToString } from 'openapi-typescript';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -219,20 +219,28 @@ async function generateTypes() {
   try {
     console.log(`Fetching OpenAPI spec from ${SWAGGER_URL}...`);
     
-    console.log('Generating TypeScript types...');
-    // openapi-typescript can accept a URL directly
-    const types = await openapiTS(SWAGGER_URL);
+    // Fetch the OpenAPI spec first
+    const response = await fetch(SWAGGER_URL);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch OpenAPI spec: ${response.status} ${response.statusText}`);
+    }
+    const spec = await response.json();
     
-    // Write the generated types to file
-    // openapi-typescript can return either a string or an array of strings
-    // Handle both cases
-    let typesContent: string;
-    if (Array.isArray(types)) {
-      // If it's an array, join all the strings together
-      typesContent = types.join('\n');
-    } else {
-      // If it's already a string, use it directly
-      typesContent = types as string;
+    console.log('Generating TypeScript types...');
+    // openapi-typescript v7 returns AST nodes, which need to be converted to string
+    const astNodes = await openapiTS(spec);
+    
+    // Convert AST nodes to TypeScript code string
+    const typesContent = astToString(astNodes);
+    
+    // Validate that we have actual TypeScript content
+    if (!typesContent || typeof typesContent !== 'string' || typesContent.trim().length === 0) {
+      throw new Error('Generated types content is empty or invalid');
+    }
+    
+    // Check for common corruption patterns
+    if (typesContent.includes('[object Object]')) {
+      throw new Error('Generated types appear to be corrupted (contains [object Object])');
     }
     
     writeFileSync(OUTPUT_FILE, typesContent, 'utf-8');
@@ -248,9 +256,11 @@ async function generateTypes() {
     
   } catch (error) {
     console.error('❌ Error generating types:', error);
-    if (error instanceof Error && error.message.includes('fetch')) {
-      console.error('\n💡 Make sure the backend API is running at', SWAGGER_URL);
-      console.error('   You can start it with: cd backend/IntelliPM.API && dotnet run');
+    if (error instanceof Error) {
+      if (error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
+        console.error('\n💡 Make sure the backend API is running at', SWAGGER_URL);
+        console.error('   You can start it with: cd backend/IntelliPM.API && dotnet run');
+      }
     }
     process.exit(1);
   }
