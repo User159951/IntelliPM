@@ -576,6 +576,7 @@ public class AppDbContext : DbContext
         // Apply global query filters for multi-tenancy (automatic tenant isolation)
         // This ensures all queries on ITenantEntity types are automatically filtered by OrganizationId
         // Note: Only apply filters to root entity types (not derived types in inheritance hierarchies)
+        // EF Core automatically inherits filters from base types, so derived types don't need their own filter
         foreach (var entityType in modelBuilder.Model.GetEntityTypes()
             .Where(e => typeof(ITenantEntity).IsAssignableFrom(e.ClrType) && e.BaseType == null))
         {

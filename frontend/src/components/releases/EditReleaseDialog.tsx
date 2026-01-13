@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -75,10 +75,10 @@ export function EditReleaseDialog({
 
   type FormData = z.infer<typeof schema>;
 
-  const getValidStatus = (status: string): FormData['status'] => {
+  const getValidStatus = useCallback((status: string): FormData['status'] => {
     const validStatuses: FormData['status'][] = ['Planned', 'InProgress', 'Testing', 'ReadyForDeployment', 'Cancelled'];
     return validStatuses.includes(status as FormData['status']) ? (status as FormData['status']) : 'Planned';
-  };
+  }, []);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -104,7 +104,7 @@ export function EditReleaseDialog({
         tagName: release.tagName || '',
       });
     }
-  }, [open, release, form]);
+  }, [open, release, form, getValidStatus]);
 
   const mutation = useMutation({
     mutationFn: (data: FormData) =>

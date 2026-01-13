@@ -33,13 +33,42 @@ public class GlobalQueryFilterTests
             .Where(e => typeof(ITenantEntity).IsAssignableFrom(e.ClrType))
             .ToList();
 
-        // Assert - All ITenantEntity types should have a query filter
+        // Assert - All ITenantEntity types should have a query filter (either directly or inherited from base type)
+        // In EF Core, derived types inherit query filters from their base types automatically
         foreach (var entityType in entityTypes)
         {
-            var queryFilter = entityType.GetQueryFilter();
+            var queryFilter = GetQueryFilterIncludingInherited(entityType);
             queryFilter.Should().NotBeNull(
-                $"Entity type {entityType.ClrType.Name} implements ITenantEntity but has no query filter");
+                $"Entity type {entityType.ClrType.Name} implements ITenantEntity but has no query filter (including inherited)");
         }
+    }
+
+    /// <summary>
+    /// Gets the query filter for an entity type, including checking for inherited filters from base types.
+    /// EF Core inheritance hierarchies inherit query filters from their root type.
+    /// </summary>
+    private static System.Linq.Expressions.LambdaExpression? GetQueryFilterIncludingInherited(Microsoft.EntityFrameworkCore.Metadata.IEntityType entityType)
+    {
+        // Check this type first
+        var filter = entityType.GetQueryFilter();
+        if (filter != null)
+        {
+            return filter;
+        }
+
+        // Check base types (for inheritance hierarchies)
+        var baseType = entityType.BaseType;
+        while (baseType != null)
+        {
+            filter = baseType.GetQueryFilter();
+            if (filter != null)
+            {
+                return filter;
+            }
+            baseType = baseType.BaseType;
+        }
+
+        return null;
     }
 
     [Fact]

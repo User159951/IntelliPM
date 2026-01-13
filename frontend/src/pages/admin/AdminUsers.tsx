@@ -174,11 +174,21 @@ export default function AdminUsers() {
       setTogglingUser(null);
       showToast(t('users.status.toggleSuccess'), 'success');
     },
-    onError: (error: any) => {
-      const errorMessage = error?.response?.data?.detail || 
-                          error?.response?.data?.error || 
-                          error?.message || 
-                          t('users.status.toggleError');
+    onError: (error: unknown) => {
+      let errorMessage = t('users.status.toggleError');
+      if (error && typeof error === 'object') {
+        if ('response' in error && error.response && typeof error.response === 'object') {
+          if ('data' in error.response && error.response.data && typeof error.response.data === 'object') {
+            if ('detail' in error.response.data && typeof error.response.data.detail === 'string') {
+              errorMessage = error.response.data.detail;
+            } else if ('error' in error.response.data && typeof error.response.data.error === 'string') {
+              errorMessage = error.response.data.error;
+            }
+          }
+        } else if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message;
+        }
+      }
       showError(t('users.status.toggleError'), errorMessage);
       setTogglingUser(null);
     },

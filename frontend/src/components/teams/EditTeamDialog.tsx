@@ -82,8 +82,15 @@ export function EditTeamDialog({ open, onOpenChange, team }: EditTeamDialogProps
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       showSuccess(t('messages.memberAdded') || 'Member added successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.message || t('messages.addMemberError') || 'Failed to add member';
+    onError: (error: unknown) => {
+      const message = (error && typeof error === 'object' && 'response' in error && 
+        error.response && typeof error.response === 'object' && 'data' in error.response &&
+        error.response.data && typeof error.response.data === 'object' && 'detail' in error.response.data &&
+        typeof error.response.data.detail === 'string')
+        ? error.response.data.detail
+        : (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string')
+        ? error.message
+        : t('messages.addMemberError') || 'Failed to add member';
       showError(message);
     },
   });
@@ -94,8 +101,15 @@ export function EditTeamDialog({ open, onOpenChange, team }: EditTeamDialogProps
       queryClient.invalidateQueries({ queryKey: ['teams'] });
       showSuccess(t('messages.memberRemoved') || 'Member removed successfully');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.message || t('messages.removeMemberError') || 'Failed to remove member';
+    onError: (error: unknown) => {
+      const message = (error && typeof error === 'object' && 'response' in error && 
+        error.response && typeof error.response === 'object' && 'data' in error.response &&
+        error.response.data && typeof error.response.data === 'object' && 'detail' in error.response.data &&
+        typeof error.response.data.detail === 'string')
+        ? error.response.data.detail
+        : (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string')
+        ? error.message
+        : t('messages.removeMemberError') || 'Failed to remove member';
       showError(message);
     },
   });

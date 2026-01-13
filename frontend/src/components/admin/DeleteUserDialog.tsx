@@ -44,7 +44,9 @@ export function DeleteUserDialog({ open, onOpenChange, user }: DeleteUserDialogP
         ? error.message 
         : typeof error === 'string'
         ? error
-        : (error as any)?.message || t('dialogs.delete.errorMessage');
+        : (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string')
+        ? error.message
+        : t('dialogs.delete.errorMessage');
       showError(t('dialogs.delete.error'), errorMessage);
     },
   });

@@ -102,7 +102,7 @@ export default function Metrics() {
       points: s.storyPoints,
       date: formatDate(new Date(s.completedDate), DateFormats.MONTH_DAY(language), language),
     }));
-  }, [velocityChart]);
+  }, [velocityChart, language]);
 
   const burndownChartData = useMemo(() => {
     if (!burndownData?.days) return [];

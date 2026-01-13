@@ -267,10 +267,6 @@ class FeatureFlagService {
         this.cache.set(key, this.createCacheEntry(isEnabled, flag ?? undefined));
 
         return isEnabled;
-      } catch (error) {
-        // On error, throw instead of returning false (no assumptions)
-        // This ensures callers know the API failed
-        throw error;
       } finally {
         // Remove from pending fetches
         this.pendingFetches.delete(key);

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { permissionsApi } from '@/api/permissions';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 
 interface ProjectPermissions {
   userRole: string | null;
@@ -54,68 +54,68 @@ export function useProjectPermissions(projectId: number): ProjectPermissions {
   const userRole = projectPermissionsData?.projectRole || null;
 
   // Helper function to check if a permission exists in the permissions array
-  const hasPermission = (permission: string): boolean => {
+  const hasPermission = useCallback((permission: string): boolean => {
     return permissions.includes(permission);
-  };
+  }, [permissions]);
 
   // Calculate permission flags based on API-returned permissions
   const canEditProject = useMemo(() => {
     return hasPermission('projects.edit');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canDeleteProject = useMemo(() => {
     return hasPermission('projects.delete');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canInviteMembers = useMemo(() => {
     return hasPermission('projects.members.invite');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canRemoveMembers = useMemo(() => {
     return hasPermission('projects.members.remove');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canChangeRoles = useMemo(() => {
     return hasPermission('projects.members.changeRole');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canCreateTasks = useMemo(() => {
     return hasPermission('tasks.create');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canEditTasks = useMemo(() => {
     return hasPermission('tasks.edit');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canDeleteTasks = useMemo(() => {
     return hasPermission('tasks.delete');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canManageSprints = useMemo(() => {
     return hasPermission('sprints.manage') || hasPermission('sprints.create') || hasPermission('sprints.edit');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canViewMilestones = useMemo(() => {
     // All project members can view milestones if they can view the project
     return hasPermission('projects.view');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canCreateMilestone = useMemo(() => {
     // Check for milestone-specific permission or general project edit permission
     return hasPermission('milestones.create') || hasPermission('projects.edit');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canEditMilestone = useMemo(() => {
     return hasPermission('milestones.edit') || hasPermission('projects.edit');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canCompleteMilestone = useMemo(() => {
     return hasPermission('milestones.complete') || hasPermission('milestones.edit') || hasPermission('projects.edit');
-  }, [permissions]);
+  }, [hasPermission]);
 
   const canDeleteMilestone = useMemo(() => {
     return hasPermission('milestones.delete') || hasPermission('projects.delete');
-  }, [permissions]);
+  }, [hasPermission]);
 
   // Role checks based on API-returned role
   const isViewer = useMemo(() => {

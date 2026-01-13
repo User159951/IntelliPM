@@ -62,7 +62,7 @@ interface ValidationResult {
 /**
  * Recursively get all keys from a translation object
  */
-function getAllKeys(obj: Record<string, any>, prefix = ''): string[] {
+function getAllKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   const keys: string[] = [];
   
   for (const [key, value] of Object.entries(obj)) {
@@ -81,7 +81,7 @@ function getAllKeys(obj: Record<string, any>, prefix = ''): string[] {
 /**
  * Get nested value from object using dot notation
  */
-function getNestedValue(obj: Record<string, any>, key: string): any {
+function getNestedValue(obj: Record<string, unknown>, key: string): unknown {
   const keys = key.split('.');
   let current = obj;
   
@@ -99,7 +99,7 @@ function getNestedValue(obj: Record<string, any>, key: string): any {
 /**
  * Validate a single translation file
  */
-function validateFile(filePath: string): { valid: boolean; data: Record<string, any> | null; error?: string } {
+function validateFile(filePath: string): { valid: boolean; data: Record<string, unknown> | null; error?: string } {
   try {
     if (!fs.existsSync(filePath)) {
       return { valid: false, data: null, error: `File not found: ${filePath}` };
@@ -130,7 +130,7 @@ function validateFile(filePath: string): { valid: boolean; data: Record<string, 
 /**
  * Find empty values in translation object
  */
-function findEmptyValues(obj: Record<string, any>, prefix = ''): string[] {
+function findEmptyValues(obj: Record<string, unknown>, prefix = ''): string[] {
   const empty: string[] = [];
   
   for (const [key, value] of Object.entries(obj)) {
@@ -165,7 +165,7 @@ function validateTranslations(): ValidationResult {
   console.log('✓ Checking translation files...\n');
   
   // Collect all translation data
-  const translations: Record<string, Record<string, Record<string, any>>> = {};
+  const translations: Record<string, Record<string, Record<string, unknown>>> = {};
   
   // Initialize structure
   for (const lang of SUPPORTED_LANGUAGES) {
