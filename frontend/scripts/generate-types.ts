@@ -9,7 +9,7 @@
  * 4. Generates enums.ts with extracted enum types
  */
 
-import { writeFileSync, readFileSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import openapiTS, { astToString } from 'openapi-typescript';
@@ -22,6 +22,9 @@ const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:5001';
 const SWAGGER_URL = `${API_BASE_URL}/swagger/v1/swagger.json`;
 const OUTPUT_FILE = join(__dirname, '../src/types/generated/api.ts');
 const ENUMS_FILE = join(__dirname, '../src/types/generated/enums.ts');
+
+// Check if running in CI environment
+const IS_CI = process.env.CI === 'true';
 
 /**
  * Generate enums.ts file with all enum types extracted from the API spec
@@ -255,11 +258,24 @@ async function generateTypes() {
     console.log('✅ Type generation completed successfully!');
     
   } catch (error) {
+    // In CI, if types already exist, skip regeneration gracefully
+    if (IS_CI && existsSync(OUTPUT_FILE) && existsSync(ENUMS_FILE)) {
+      console.warn('⚠️ Backend not available in CI, using existing generated types');
+      console.log('✅ Skipping type generation - existing types found');
+      return;
+    }
+    
     console.error('❌ Error generating types:', error);
     if (error instanceof Error) {
       if (error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
         console.error('\n💡 Make sure the backend API is running at', SWAGGER_URL);
         console.error('   You can start it with: cd backend/IntelliPM.API && dotnet run');
+        
+        // If types already exist locally, allow build to continue with a warning
+        if (existsSync(OUTPUT_FILE) && existsSync(ENUMS_FILE)) {
+          console.warn('\n⚠️ Using existing generated types. Run with backend available to update.');
+          return;
+        }
       }
     }
     process.exit(1);
