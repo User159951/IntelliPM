@@ -12,7 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, CheckCircle2, Circle, CheckCheck } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatRelativeTime } from '@/utils/dateFormat';
 import { showSuccess } from "@/lib/sweetalert";
 const notificationIcons: Record<string, React.ReactNode> = {
   task_assigned: <Circle className="h-3 w-3 text-blue-500" />,
@@ -25,6 +26,7 @@ const notificationIcons: Record<string, React.ReactNode> = {
 export function NotificationDropdown() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { language } = useLanguage();
   const { data, isLoading } = useQuery({
     queryKey: ['notifications', 'all'],
     queryFn: () => notificationsApi.getAll({ limit: 10, unreadOnly: false }),
@@ -133,7 +135,7 @@ export function NotificationDropdown() {
                       </p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                      {formatRelativeTime(notification.createdAt, language)}
                     </p>
                   </div>
                 </div>

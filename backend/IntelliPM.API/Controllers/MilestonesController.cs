@@ -170,12 +170,12 @@ public class MilestonesController : BaseApiController
             var query = new GetMilestoneByIdQuery(id);
             var result = await _mediator.Send(query, ct);
             
-            if (result == null)
-            {
-                return NotFound(new { message = $"Milestone with ID {id} not found" });
-            }
-            
             return Ok(result);
+        }
+        catch (IntelliPM.Application.Common.Exceptions.NotFoundException)
+        {
+            // NotFoundException is handled by global exception handler
+            throw;
         }
         catch (Exception ex)
         {

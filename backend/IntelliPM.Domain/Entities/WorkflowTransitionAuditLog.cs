@@ -6,9 +6,14 @@ namespace IntelliPM.Domain.Entities;
 /// Audit log for workflow transition attempts (both successful and failed).
 /// Tracks who attempted transitions, from/to statuses, and whether they were allowed or denied.
 /// </summary>
-public class WorkflowTransitionAuditLog : IAggregateRoot
+public class WorkflowTransitionAuditLog : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
+
+    /// <summary>
+    /// Organization ID for multi-tenancy filtering.
+    /// </summary>
+    public int OrganizationId { get; set; }
 
     /// <summary>
     /// ID of the user who attempted the transition.
@@ -63,5 +68,6 @@ public class WorkflowTransitionAuditLog : IAggregateRoot
     // Navigation properties
     public User User { get; set; } = null!;
     public Project? Project { get; set; }
+    public Organization Organization { get; set; } = null!;
 }
 

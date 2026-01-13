@@ -2,6 +2,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
   Dialog,
   DialogContent,
@@ -35,13 +37,6 @@ interface AddDependencyDialogProps {
 
 const dependencyTypeSchema = z.enum(['FinishToStart', 'StartToStart', 'FinishToFinish', 'StartToFinish'] as [DependencyType, ...DependencyType[]]);
 
-const schema = z.object({
-  dependentTaskId: z.number().min(1, 'Please select a task'),
-  dependencyType: dependencyTypeSchema,
-});
-
-type FormData = z.infer<typeof schema>;
-
 /**
  * Dialog for adding a task dependency.
  * Allows selecting a dependent task and dependency type.
@@ -54,6 +49,15 @@ export function AddDependencyDialog({
   onSuccess,
 }: AddDependencyDialogProps) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('errors');
+
+  // Create schema inside component so it has access to t function
+  const schema = useMemo(() => z.object({
+    dependentTaskId: z.number().min(1, t('validation.required')),
+    dependencyType: dependencyTypeSchema,
+  }), [t]);
+
+  type FormData = z.infer<typeof schema>;
 
   // Fetch tasks from the same project
   const { data: tasksData, isLoading: isLoadingTasks } = useQuery({

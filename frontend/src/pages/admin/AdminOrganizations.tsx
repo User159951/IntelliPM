@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { organizationsApi, type OrganizationDto, type CreateOrganizationRequest } from '@/api/organizations';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ import {
 import { Pagination } from '@/components/ui/pagination';
 
 export default function AdminOrganizations() {
+  const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,10 +60,10 @@ export default function AdminOrganizations() {
       queryClient.invalidateQueries({ queryKey: ['admin-organizations'] });
       setCreateDialogOpen(false);
       setCreateForm({ name: '', code: '' });
-      showSuccess('Organization created successfully');
+      showSuccess(t('organizations.messages.createSuccess'));
     },
     onError: (error: Error) => {
-      showError('Failed to create organization', error.message);
+      showError(t('organizations.messages.createError'), error.message);
     },
   });
 
@@ -70,25 +72,25 @@ export default function AdminOrganizations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-organizations'] });
       setDeletingOrg(null);
-      showSuccess('Organization deleted successfully');
+      showSuccess(t('organizations.messages.deleteSuccess'));
     },
     onError: (error: Error) => {
       // Check if error is about users in organization
       const errorMessage = error.message.toLowerCase();
       if (errorMessage.includes('user') || errorMessage.includes('member')) {
         showError(
-          'Cannot delete organization',
-          error.message || 'This organization has members. Please remove or reassign all members before deleting.'
+          t('organizations.deleteDialog.cannotDelete'),
+          error.message || t('organizations.deleteDialog.cannotDeleteMessage')
         );
       } else {
-        showError('Failed to delete organization', error.message);
+        showError(t('organizations.deleteDialog.deleteError'), error.message);
       }
     },
   });
 
   const handleCreate = () => {
     if (!createForm.name.trim() || !createForm.code.trim()) {
-      showError('Validation Error', 'Name and Code are required');
+      showError(t('organizations.createDialog.validationError'), t('organizations.createDialog.validationMessage'));
       return;
     }
     createMutation.mutate(createForm);
@@ -113,12 +115,12 @@ export default function AdminOrganizations() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Organizations</h1>
-          <p className="text-muted-foreground mt-1">Manage all organizations</p>
+          <h1 className="text-3xl font-bold">{t('organizations.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('organizations.description')}</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Create Organization
+          {t('organizations.create')}
         </Button>
       </div>
 
@@ -126,7 +128,7 @@ export default function AdminOrganizations() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search organizations..."
+            placeholder={t('organizations.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -141,11 +143,11 @@ export default function AdminOrganizations() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Members</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t('organizations.table.headers.name')}</TableHead>
+              <TableHead>{t('organizations.table.headers.code')}</TableHead>
+              <TableHead>{t('organizations.table.headers.members')}</TableHead>
+              <TableHead>{t('organizations.table.headers.created')}</TableHead>
+              <TableHead className="text-right">{t('organizations.table.headers.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -193,7 +195,7 @@ export default function AdminOrganizations() {
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  No organizations found
+                  {t('organizations.table.noOrganizations')}
                 </TableCell>
               </TableRow>
             )}
@@ -213,41 +215,41 @@ export default function AdminOrganizations() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Organization</DialogTitle>
+            <DialogTitle>{t('organizations.createDialog.title')}</DialogTitle>
             <DialogDescription>
-              Create a new organization. The code must be unique and URL-friendly.
+              {t('organizations.createDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t('organizations.createDialog.name')}</Label>
               <Input
                 id="name"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                placeholder="Organization Name"
+                placeholder={t('organizations.createDialog.namePlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="code">Code</Label>
+              <Label htmlFor="code">{t('organizations.createDialog.code')}</Label>
               <Input
                 id="code"
                 value={createForm.code}
                 onChange={(e) => setCreateForm({ ...createForm, code: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                placeholder="organization-code"
+                placeholder={t('organizations.createDialog.codePlaceholder')}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Lowercase letters, numbers, and hyphens only
+                {t('organizations.createDialog.codeHint')}
               </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-              Cancel
+              {t('organizations.createDialog.cancel')}
             </Button>
             <Button onClick={handleCreate} disabled={createMutation.isPending}>
               {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create
+              {t('organizations.createDialog.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -257,20 +259,19 @@ export default function AdminOrganizations() {
       <Dialog open={!!deletingOrg} onOpenChange={(open) => !open && setDeletingOrg(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Organization</DialogTitle>
+            <DialogTitle>{t('organizations.deleteDialog.title')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deletingOrg?.name}"? This action cannot be undone.
+              {t('organizations.deleteDialog.description', { name: deletingOrg?.name || '' })}
               {deletingOrg && deletingOrg.userCount > 0 && (
                 <span className="block mt-2 text-destructive font-semibold">
-                  ⚠️ Warning: This organization has {deletingOrg.userCount} member(s). 
-                  You must remove or reassign all members before deleting the organization.
+                  {t('organizations.deleteDialog.warning', { count: deletingOrg.userCount })}
                 </span>
               )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeletingOrg(null)} disabled={deleteMutation.isPending}>
-              Cancel
+              {t('organizations.deleteDialog.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -278,7 +279,7 @@ export default function AdminOrganizations() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete
+              {t('organizations.deleteDialog.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

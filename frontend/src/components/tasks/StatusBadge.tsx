@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import type { TaskStatus } from '@/types';
 import { useTaskStatuses, getLookupItem } from '@/hooks/useLookups';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Props for the StatusBadge component.
@@ -42,11 +43,12 @@ interface StatusConfig {
 }
 
 /**
- * Fallback status configuration for when API data is not available.
+ * Get fallback status configuration for when API data is not available.
+ * This function uses translations for labels.
  */
-const fallbackStatusConfig: Record<TaskStatus, StatusConfig> = {
+const getFallbackStatusConfig = (t: (key: string) => string): Record<TaskStatus, StatusConfig> => ({
   Todo: {
-    label: 'To Do',
+    label: t('common:status.todo'),
     icon: Circle,
     color: {
       bg: 'bg-blue-100 dark:bg-blue-950',
@@ -56,7 +58,7 @@ const fallbackStatusConfig: Record<TaskStatus, StatusConfig> = {
     },
   },
   InProgress: {
-    label: 'In Progress',
+    label: t('common:status.inProgress'),
     icon: Clock,
     color: {
       bg: 'bg-yellow-100 dark:bg-yellow-950',
@@ -66,7 +68,7 @@ const fallbackStatusConfig: Record<TaskStatus, StatusConfig> = {
     },
   },
   Done: {
-    label: 'Done',
+    label: t('common:status.done'),
     icon: CheckCircle2,
     color: {
       bg: 'bg-green-100 dark:bg-green-950',
@@ -76,7 +78,7 @@ const fallbackStatusConfig: Record<TaskStatus, StatusConfig> = {
     },
   },
   Blocked: {
-    label: 'Blocked',
+    label: t('common:status.blocked'),
     icon: XCircle,
     color: {
       bg: 'bg-red-100 dark:bg-red-950',
@@ -85,7 +87,7 @@ const fallbackStatusConfig: Record<TaskStatus, StatusConfig> = {
       dot: 'bg-red-500',
     },
   },
-};
+});
 
 /**
  * Map icon name from API to Lucide icon component
@@ -160,9 +162,11 @@ function StatusBadge({
   className,
 }: StatusBadgeProps) {
   const { statuses, isLoading } = useTaskStatuses();
+  const { t } = useTranslation('common');
 
   // Build status config from API data or fallback
   const config = useMemo<StatusConfig | null>(() => {
+    const fallbackConfig = getFallbackStatusConfig(t);
     const lookupItem = getLookupItem(statuses, status);
     
     if (lookupItem) {
@@ -175,17 +179,17 @@ function StatusBadge({
         label: lookupItem.label,
         icon: Icon,
         color: {
-          bg: metadata.bgColor || fallbackStatusConfig[status]?.color.bg || 'bg-muted',
-          text: metadata.textColor || fallbackStatusConfig[status]?.color.text || 'text-muted-foreground',
-          border: metadata.borderColor || fallbackStatusConfig[status]?.color.border || 'border-muted',
-          dot: metadata.dotColor || fallbackStatusConfig[status]?.color.dot || 'bg-muted',
+          bg: metadata.bgColor || fallbackConfig[status]?.color.bg || 'bg-muted',
+          text: metadata.textColor || fallbackConfig[status]?.color.text || 'text-muted-foreground',
+          border: metadata.borderColor || fallbackConfig[status]?.color.border || 'border-muted',
+          dot: metadata.dotColor || fallbackConfig[status]?.color.dot || 'bg-muted',
         },
       };
     }
 
     // Fallback to hardcoded config if API doesn't have this status
-    return fallbackStatusConfig[status] || null;
-  }, [statuses, status]);
+    return fallbackConfig[status] || null;
+  }, [statuses, status, t]);
 
   // Show loading skeleton while fetching
   if (isLoading && !config) {
@@ -318,14 +322,25 @@ export default memo(StatusBadge);
  * ```
  */
 // eslint-disable-next-line react-refresh/only-export-components
-export function getStatusColor(status: TaskStatus, statuses?: Array<{ value: string; metadata?: { textColor?: string } }>): string {
+export function getStatusColor(status: TaskStatus, statuses?: Array<{ value: string; metadata?: { textColor?: string } }>, t?: (key: string) => string): string {
   if (statuses) {
     const item = statuses.find((s) => s.value === status);
     if (item?.metadata?.textColor) {
       return item.metadata.textColor;
     }
   }
-  return fallbackStatusConfig[status]?.color.text || 'text-gray-700 dark:text-gray-300';
+  if (t) {
+    const fallbackConfig = getFallbackStatusConfig(t);
+    return fallbackConfig[status]?.color.text || 'text-gray-700 dark:text-gray-300';
+  }
+  // Fallback without translation
+  const fallbackColors: Record<TaskStatus, string> = {
+    Todo: 'text-blue-700 dark:text-blue-300',
+    InProgress: 'text-yellow-700 dark:text-yellow-300',
+    Done: 'text-green-700 dark:text-green-300',
+    Blocked: 'text-red-700 dark:text-red-300',
+  };
+  return fallbackColors[status] || 'text-gray-700 dark:text-gray-300';
 }
 
 /**
@@ -343,14 +358,25 @@ export function getStatusColor(status: TaskStatus, statuses?: Array<{ value: str
  * ```
  */
 // eslint-disable-next-line react-refresh/only-export-components
-export function getStatusLabel(status: TaskStatus, statuses?: Array<{ value: string; label: string }>): string {
+export function getStatusLabel(status: TaskStatus, statuses?: Array<{ value: string; label: string }>, t?: (key: string) => string): string {
   if (statuses) {
     const item = statuses.find((s) => s.value === status);
     if (item) {
       return item.label;
     }
   }
-  return fallbackStatusConfig[status]?.label || status;
+  if (t) {
+    const fallbackConfig = getFallbackStatusConfig(t);
+    return fallbackConfig[status]?.label || status;
+  }
+  // Fallback without translation (should not happen in normal usage)
+  const statusLabels: Record<TaskStatus, string> = {
+    Todo: 'To Do',
+    InProgress: 'In Progress',
+    Done: 'Done',
+    Blocked: 'Blocked',
+  };
+  return statusLabels[status] || status;
 }
 
 /**
@@ -369,7 +395,7 @@ export function getStatusLabel(status: TaskStatus, statuses?: Array<{ value: str
  * ```
  */
 // eslint-disable-next-line react-refresh/only-export-components
-export function getStatusIcon(status: TaskStatus, statuses?: Array<{ value: string; metadata?: { icon?: string } }>): LucideIcon {
+export function getStatusIcon(status: TaskStatus, statuses?: Array<{ value: string; metadata?: { icon?: string } }>, t?: (key: string) => string): LucideIcon {
   if (statuses) {
     const item = statuses.find((s) => s.value === status);
     if (item?.metadata?.icon) {
@@ -379,6 +405,17 @@ export function getStatusIcon(status: TaskStatus, statuses?: Array<{ value: stri
       }
     }
   }
-  return fallbackStatusConfig[status]?.icon || Circle;
+  if (t) {
+    const fallbackConfig = getFallbackStatusConfig(t);
+    return fallbackConfig[status]?.icon || Circle;
+  }
+  // Fallback without translation
+  const fallbackIcons: Record<TaskStatus, LucideIcon> = {
+    Todo: Circle,
+    InProgress: Clock,
+    Done: CheckCircle2,
+    Blocked: XCircle,
+  };
+  return fallbackIcons[status] || Circle;
 }
 

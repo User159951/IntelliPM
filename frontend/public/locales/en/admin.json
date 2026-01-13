@@ -1,0 +1,470 @@
+{
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "description": "Overview of your organization's statistics and activity",
+    "stats": {
+      "totalUsers": "Total Users",
+      "activeUsers": "active",
+      "inactiveUsers": "inactive",
+      "totalProjects": "Total Projects",
+      "activeProjects": "active projects",
+      "organizations": "Organizations",
+      "totalOrganizations": "Total organizations",
+      "systemHealth": "System Health"
+    },
+    "charts": {
+      "userGrowth": "User Growth (Last 6 Months)",
+      "roleDistribution": "Role Distribution",
+      "recentActivities": "Recent Activities",
+      "noGrowthData": "No growth data available",
+      "noRoleData": "No role distribution data available",
+      "noActivities": "No recent activities",
+      "newUsers": "New Users"
+    },
+    "errors": {
+      "loadError": "Error loading dashboard statistics. Please try again later."
+    }
+  },
+  "users": {
+    "title": "User Management",
+    "description": "Manage users in your organization. View, edit roles, and delete users.",
+    "table": {
+      "headers": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "projects": "Projects",
+        "created": "Created",
+        "lastLogin": "Last Login",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "searchPlaceholder": "Search by name or email...",
+      "noUsers": "No users found.",
+      "noUsersMatching": "No users found matching your search."
+    },
+    "filters": {
+      "allRoles": "All Roles",
+      "allStatus": "All Status",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "invite": "Invite User",
+      "exportCSV": "Export CSV",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "clear": "Clear",
+      "processing": "Processing...",
+      "selected": "user(s) selected",
+      "selectAll": "Select at least one user to activate",
+      "selectToDeactivate": "Select at least one user to deactivate"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "never": "Never",
+      "toggleSuccess": "User status updated successfully",
+      "toggleError": "Failed to update user status"
+    },
+    "bulkUpdate": {
+      "success": "user(s) updated successfully.",
+      "failed": " failed.",
+      "error": "Failed to update users",
+      "errors": "Some errors occurred"
+    },
+    "export": {
+      "noData": "No data to export",
+      "noDataMessage": "There are no users to export.",
+      "success": "Exported {count} user(s) to CSV.",
+      "count": "user(s)"
+    },
+    "tooltips": {
+      "viewDetails": "View details",
+      "cannotEditInactive": "Cannot edit inactive user. Activate user first.",
+      "cannotDeleteInactive": "Cannot delete inactive user",
+      "activate": "Activate user",
+      "deactivate": "Deactivate user",
+      "delete": "Delete user permanently"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "never": "Never",
+      "toggleSuccess": "User status updated successfully",
+      "toggleError": "Failed to update user status"
+    }
+  },
+  "permissions": {
+    "title": "Permissions Matrix",
+    "description": "Toggle which permissions apply to Admin and User roles.",
+    "saveChanges": "Save Changes",
+    "matrix": {
+      "permission": "Permission",
+      "admin": "Admin",
+      "user": "User"
+    },
+    "confirmDialog": {
+      "title": "Save permission changes?",
+      "description": "This will replace role-permission mappings for Admin and User.",
+      "cancel": "Cancel",
+      "confirm": "Confirm Save",
+      "saving": "Saving..."
+    },
+    "messages": {
+      "saveSuccess": "Permissions updated",
+      "saveSuccessDetail": "Role permissions have been saved.",
+      "saveError": "Failed to update permissions",
+      "noChanges": "No changes to save"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Configure global application settings.",
+    "tabs": {
+      "general": "General",
+      "security": "Security",
+      "email": "Email",
+      "featureFlags": "Feature Flags"
+    },
+    "general": {
+      "projectCreation": {
+        "title": "Project Creation",
+        "description": "Control who can create new projects in the system.",
+        "allowedRoles": "Allowed Roles",
+        "adminOnly": "Admin Only",
+        "allUsers": "All Users",
+        "adminOnlyDescription": "Only administrators can create new projects.",
+        "allUsersDescription": "All authenticated users can create new projects."
+      },
+      "application": {
+        "title": "Application Settings",
+        "description": "Configure general application settings.",
+        "appName": "Application Name",
+        "timezone": "Default Timezone",
+        "timezoneDescription": "Default timezone for the application (e.g., UTC, America/New_York)",
+        "language": "Default Language",
+        "languageDescription": "Default language code (e.g., en, fr, es)",
+        "dateFormat": "Date Format",
+        "dateFormatDescription": "Default date format (e.g., MM/dd/yyyy, dd/MM/yyyy, yyyy-MM-dd)"
+      }
+    },
+    "security": {
+      "title": "Security Settings",
+      "description": "Configure security-related settings.",
+      "tokenExpiration": "Access Token Expiration (minutes)",
+      "tokenExpirationDescription": "Duration in minutes before access tokens expire (default: 15 minutes)",
+      "passwordPolicy": "Password Policy",
+      "minLength": "Minimum Password Length",
+      "requireUppercase": "Require uppercase letter",
+      "requireLowercase": "Require lowercase letter",
+      "requireNumber": "Require number",
+      "requireSpecialChar": "Require special character",
+      "maxLoginAttempts": "Max Login Attempts",
+      "maxLoginAttemptsDescription": "Maximum number of failed login attempts before account lockout",
+      "sessionDuration": "Session Duration (hours)",
+      "sessionDurationDescription": "Duration in hours before user session expires",
+      "require2FA": "Require Two-Factor Authentication"
+    },
+    "email": {
+      "title": "Email Settings",
+      "description": "Configure email server and notification settings.",
+      "smtpConfig": "SMTP Configuration",
+      "smtpHost": "SMTP Host",
+      "smtpPort": "SMTP Port",
+      "useSsl": "Use SSL/TLS",
+      "useSslEnabled": "Enabled",
+      "useSslDisabled": "Disabled",
+      "smtpUsername": "SMTP Username",
+      "smtpPassword": "SMTP Password",
+      "smtpPasswordDescription": "For Gmail, use an App Password instead of your regular password",
+      "fromEmail": "From Email",
+      "fromName": "From Name",
+      "testEmail": {
+        "title": "Test Email Configuration",
+        "description": "Send a test email to verify your SMTP settings",
+        "addressPlaceholder": "Email address for test email",
+        "send": "Send Test Email",
+        "required": "Email required",
+        "requiredMessage": "Please enter an email address or use your account email.",
+        "success": "Test email sent",
+        "error": "Failed to send test email",
+        "errorDetail": "Failed to send test email. Please check SMTP configuration."
+      }
+    },
+    "featureFlags": {
+      "title": "Feature Flags",
+      "description": "Manage feature flags from the Feature Flags admin page.",
+      "usePage": "Use the Feature Flags page to manage feature flags.",
+      "featureFlagsLink": "Feature Flags"
+    },
+    "saveChanges": "Save Changes",
+    "messages": {
+      "saveSuccess": "Settings updated",
+      "saveSuccessDetail": "All settings have been successfully saved.",
+      "saveError": "Failed to update settings"
+    }
+  },
+  "auditLogs": {
+    "title": "Audit Logs",
+    "description": "View system audit logs and track administrative actions.",
+    "table": {
+      "headers": {
+        "timestamp": "Timestamp",
+        "user": "User",
+        "action": "Action",
+        "entityType": "Entity Type",
+        "entityName": "Entity Name",
+        "ipAddress": "IP Address"
+      },
+      "system": "System",
+      "noLogs": "No audit logs found.",
+      "noLogsMatching": "No audit logs found matching your search."
+    },
+    "filters": {
+      "searchPlaceholder": "Search logs...",
+      "allActions": "All Actions",
+      "allEntities": "All Entities"
+    },
+    "actions": {
+      "exportCSV": "Export CSV"
+    },
+    "export": {
+      "noData": "No data to export",
+      "noDataMessage": "There are no audit logs to export.",
+      "success": "Exported {count} audit log(s) to CSV.",
+      "count": "audit log(s)"
+    },
+    "errors": {
+      "loadError": "Error loading audit logs: {error}"
+    },
+    "entityTypes": {
+      "User": "User",
+      "Project": "Project",
+      "Setting": "Setting",
+      "FeatureFlag": "Feature Flag",
+      "Permission": "Permission",
+      "Organization": "Organization"
+    },
+    "actionTypes": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "login": "Login",
+      "logout": "Logout",
+      "invite": "Invite",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    }
+  },
+  "systemHealth": {
+    "title": "System Health",
+    "description": "Monitor system resources and service status in real-time.",
+    "refresh": "Refresh",
+    "resources": {
+      "cpuUsage": "CPU Usage",
+      "memoryUsage": "Memory Usage",
+      "database": "Database",
+      "responseTime": "Response time",
+      "cpuStatus": {
+        "high": "High usage",
+        "moderate": "Moderate usage",
+        "normal": "Normal usage"
+      }
+    },
+    "externalServices": {
+      "title": "External Services",
+      "description": "Status of external services and dependencies",
+      "operational": "Operational",
+      "unavailable": "Unavailable"
+    },
+    "systemInfo": {
+      "title": "System Information",
+      "description": "Last updated system metrics",
+      "lastUpdated": "Last Updated:",
+      "totalMemory": "Total Memory:",
+      "usedMemory": "Used Memory:",
+      "availableMemory": "Available Memory:"
+    },
+    "status": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "unhealthy": "Unhealthy",
+      "unknown": "Unknown"
+    },
+    "errors": {
+      "loadError": "Error loading system health. Please try again later.",
+      "noData": "No system health data available."
+    }
+  },
+  "aiGovernance": {
+    "title": "AI Governance",
+    "description": "Manage AI usage, quotas, and decisions across all organizations",
+    "tabs": {
+      "overview": "Overview",
+      "decisions": "AI Decisions",
+      "quotas": "Quotas"
+    },
+    "quotas": {
+      "description": "Manage AI quotas for all organizations. Users can view their personal quota details in",
+      "settingsLink": "Settings → AI Quota"
+    },
+    "actions": {
+      "exportDecisions": "Export Decisions"
+    },
+    "overview": {
+      "loadError": "Failed to load AI governance statistics. Please try again later.",
+      "orgStatus": {
+        "enabled": "AI Enabled",
+        "disabled": "AI Disabled"
+      },
+      "topAgents": "Top AI Agents by Usage",
+      "topAgentsTokens": "Tokens (K)",
+      "topAgentsDecisions": "Decisions"
+    }
+  },
+  "organizations": {
+    "title": "Organizations",
+    "description": "Manage all organizations",
+    "create": "Create Organization",
+    "searchPlaceholder": "Search organizations...",
+    "table": {
+      "headers": {
+        "name": "Name",
+        "code": "Code",
+        "members": "Members",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "noOrganizations": "No organizations found"
+    },
+    "createDialog": {
+      "title": "Create Organization",
+      "description": "Create a new organization. The code must be unique and URL-friendly.",
+      "name": "Name",
+      "code": "Code",
+      "namePlaceholder": "Organization Name",
+      "codePlaceholder": "organization-code",
+      "codeHint": "Lowercase letters, numbers, and hyphens only",
+      "cancel": "Cancel",
+      "create": "Create",
+      "validationError": "Validation Error",
+      "validationMessage": "Name and Code are required"
+    },
+    "deleteDialog": {
+      "title": "Delete Organization",
+      "description": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+      "warning": "⚠️ Warning: This organization has {count} member(s). You must remove or reassign all members before deleting the organization.",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "cannotDelete": "Cannot delete organization",
+      "cannotDeleteMessage": "This organization has members. Please remove or reassign all members before deleting.",
+      "deleteError": "Failed to delete organization"
+    },
+    "messages": {
+      "createSuccess": "Organization created successfully",
+      "createError": "Failed to create organization",
+      "deleteSuccess": "Organization deleted successfully"
+    }
+  },
+  "dialogs": {
+    "invite": {
+      "title": "Invite User",
+      "description": "Send an invitation to a new user. They will receive an email with a link to create their account.",
+      "email": "Email *",
+      "firstName": "First Name *",
+      "lastName": "Last Name *",
+      "role": "Role *",
+      "rolePlaceholder": "Select a role",
+      "roleUser": "User",
+      "roleAdmin": "Administrator",
+      "cancel": "Cancel",
+      "send": "Send Invitation",
+      "invitationLink": "Invitation Link",
+      "copyLink": "Copy link",
+      "linkCopied": "Invitation link copied to clipboard.",
+      "linkExpires": "Share this link with the user. It will expire in 72 hours.",
+      "done": "Done",
+      "emailFailed": "Invitation created but email failed",
+      "emailFailedWarning": "⚠️ The invitation was created but email sending failed",
+      "emailFailedMessage": "You can manually share the invitation link below with the user.",
+      "copyFailed": "Copy failed",
+      "copyFailedMessage": "Please copy the link manually.",
+      "inviteSuccess": "Invitation sent",
+      "inviteError": "Invitation failed",
+      "inviteErrorMessage": "Failed to send invitation",
+      "emailError": "Email sending failed",
+      "emailErrorMessage": "The invitation was created but email sending failed. You can share the invitation link manually."
+    },
+    "edit": {
+      "title": "Edit user",
+      "description": "Update user details. Changes will be saved immediately.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "role": "Role",
+      "rolePlaceholder": "Select role",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "success": "User updated",
+      "successDetail": "The user has been successfully updated.",
+      "error": "Failed to update user"
+    },
+    "delete": {
+      "title": "Delete user?",
+      "description": "This action will permanently delete the user account. This action cannot be undone.",
+      "warningTitle": "⚠️ Permanent user deletion",
+      "warningMessage": "User \"{{name}}\" ({{email}}) will be permanently deleted from the system.",
+      "irreversible": "⚠️ WARNING: This action is permanent and cannot be reversed. All user data will be permanently removed.",
+      "confirmLabel": "Type {{confirmText}} to confirm:",
+      "confirmPlaceholder": "Type {{confirmText}} to confirm",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "success": "User deleted",
+      "successDetail": "User \"{{name}}\" has been successfully deleted.",
+      "error": "Failed to delete user",
+      "errorMessage": "Please try again"
+    },
+    "userDetail": {
+      "title": "User Details",
+      "description": "View detailed information about this user",
+      "tabs": {
+        "details": "Details",
+        "projects": "Projects ({count})",
+        "history": "Activity History"
+      },
+      "fields": {
+        "email": "Email",
+        "memberSince": "Member Since",
+        "organization": "Organization",
+        "projects": "Projects",
+        "projectsCount": "{count} project(s)",
+        "lastLogin": "Last Login"
+      },
+      "projects": {
+        "headers": {
+          "name": "Project Name",
+          "type": "Type",
+          "status": "Status",
+          "created": "Created",
+          "actions": "Actions"
+        },
+        "none": "This user is not a member of any projects.",
+        "view": "View",
+        "noProjects": "No projects found.",
+        "showing": "Showing {start} to {end} of {total} projects",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "activity": {
+        "headers": {
+          "timestamp": "Timestamp",
+          "action": "Action",
+          "entity": "Entity",
+          "project": "Project"
+        },
+        "noActivity": "No activity history found."
+      }
+    }
+  }
+}

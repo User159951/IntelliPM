@@ -193,7 +193,7 @@ public class UsersController : BaseApiController
     }
 
     /// <summary>
-    /// Delete a user (soft delete, admin only)
+    /// Delete a user permanently (admin only)
     /// </summary>
     [HttpDelete("{id}")]
     [RequirePermission("users.delete")]
@@ -224,6 +224,7 @@ public class UsersController : BaseApiController
         }
         catch (IntelliPM.Application.Common.Exceptions.ValidationException ex)
         {
+            _logger.LogWarning("Validation error deleting user {UserId}: {Message}. Errors: {@Errors}", id, ex.Message, ex.Errors);
             return BadRequest(new { error = ex.Message, errors = ex.Errors });
         }
         catch (IntelliPM.Application.Common.Exceptions.UnauthorizedException)

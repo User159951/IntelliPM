@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
   Dialog,
   DialogContent,
@@ -47,17 +48,6 @@ interface EditReleaseDialogProps {
   onSuccess?: () => void;
 }
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required').max(200, 'Name cannot exceed 200 characters'),
-  description: z.string().max(2000, 'Description cannot exceed 2000 characters').optional(),
-  plannedDate: z.string().min(1, 'Planned date is required'),
-  status: z.enum(['Planned', 'InProgress', 'Testing', 'ReadyForDeployment', 'Cancelled'] as [ReleaseStatus, ...ReleaseStatus[]]),
-  isPreRelease: z.boolean(),
-  tagName: z.string().max(100, 'Tag name cannot exceed 100 characters').optional(),
-});
-
-type FormData = z.infer<typeof schema>;
-
 export function EditReleaseDialog({
   release,
   open,
@@ -65,6 +55,25 @@ export function EditReleaseDialog({
   onSuccess,
 }: EditReleaseDialogProps) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('errors');
+
+  // Create schema inside component so it has access to t function
+  const schema = useMemo(() => z.object({
+    name: z.string()
+      .min(1, t('validation.nameRequired'))
+      .max(200, t('validation.nameMaxLength', { max: 200 })),
+    description: z.string()
+      .max(2000, t('validation.descriptionMaxLength', { max: 2000 }))
+      .optional(),
+    plannedDate: z.string().min(1, t('validation.plannedDateRequired')),
+    status: z.enum(['Planned', 'InProgress', 'Testing', 'ReadyForDeployment', 'Cancelled'] as [ReleaseStatus, ...ReleaseStatus[]]),
+    isPreRelease: z.boolean(),
+    tagName: z.string()
+      .max(100, t('validation.tagNameMaxLength', { max: 100 }))
+      .optional(),
+  }), [t]);
+
+  type FormData = z.infer<typeof schema>;
 
   const getValidStatus = (status: string): FormData['status'] => {
     const validStatuses: FormData['status'][] = ['Planned', 'InProgress', 'Testing', 'ReadyForDeployment', 'Cancelled'];

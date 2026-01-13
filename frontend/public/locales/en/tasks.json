@@ -1,0 +1,26 @@
+{
+  "title": "Tasks",
+  "description": {
+    "board": "Organize your tasks in status columns",
+    "list": "View all tasks in a detailed list format",
+    "timeline": "See tasks organized by time and dependencies"
+  },
+  "views": {
+    "board": "Board",
+    "list": "List",
+    "timeline": "Timeline"
+  },
+  "selectProject": "Select project",
+  "create": {
+    "button": "New task"
+  },
+  "empty": {
+    "noProject": "Please select a project to view tasks"
+  },
+  "columns": {
+    "todo": "Todo",
+    "inProgress": "In Progress",
+    "blocked": "Blocked",
+    "done": "Done"
+  }
+}

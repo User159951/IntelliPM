@@ -85,6 +85,7 @@ public class OrganizationsController : BaseApiController
     /// <returns>Organization details</returns>
     [HttpGet("{orgId}")]
     [ProducesResponseType(typeof(OrganizationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetOrganizationById(
@@ -93,9 +94,21 @@ public class OrganizationsController : BaseApiController
     {
         try
         {
+            // Validate orgId
+            if (orgId <= 0)
+            {
+                _logger.LogWarning("Invalid organization ID: {OrganizationId}", orgId);
+                return BadRequest(new { message = "Organization ID must be greater than 0" });
+            }
+
             var query = new GetOrganizationByIdQuery { OrganizationId = orgId };
             var result = await _mediator.Send(query, ct);
             return Ok(result);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error getting organization {OrganizationId}", orgId);
+            return BadRequest(new { message = ex.Message, errors = ex.Errors });
         }
         catch (UnauthorizedException ex)
         {

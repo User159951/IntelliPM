@@ -1,0 +1,24 @@
+{
+  "title": "Analyses",
+  "description": "Analyses et recommandations alimentées par l'IA",
+  "selectProject": "Sélectionner un projet",
+  "filters": {
+    "status": {
+      "all": "Tous les statuts",
+      "open": "Ouvert",
+      "resolved": "Résolu"
+    }
+  },
+  "empty": {
+    "noProject": "Sélectionnez un projet pour voir les analyses",
+    "noInsights": {
+      "title": "Aucune analyse pour le moment",
+      "message": "Exécutez des agents IA pour générer des analyses pour votre projet"
+    }
+  },
+  "list": {
+    "generatedBy": "Généré par {{agent}}",
+    "date": "Date"
+  }
+}
+

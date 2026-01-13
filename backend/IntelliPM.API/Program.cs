@@ -113,14 +113,17 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 
 // Configure Semantic Kernel with Ollama
+// Support both config file and environment variables (Agent__TimeoutSeconds)
 var ollamaEndpoint = builder.Configuration["Ollama:Endpoint"] ?? "http://localhost:11434";
 var ollamaModel = builder.Configuration["Ollama:Model"] ?? "llama3.2:3b";
+var agentTimeoutSeconds = builder.Configuration.GetValue<int>("Agent:TimeoutSeconds", 60);
 
 builder.Services.AddSingleton<Kernel>(serviceProvider =>
 {
     var kernelBuilder = Kernel.CreateBuilder();
     
     // Add Ollama chat completion
+    // Note: Timeout is controlled via CancellationToken in the service layer
     kernelBuilder.AddOllamaChatCompletion(
         modelId: ollamaModel,
         endpoint: new Uri(ollamaEndpoint)
@@ -136,8 +139,8 @@ builder.Services.AddSingleton<Kernel>(serviceProvider =>
     return kernelBuilder.Build();
 });
 
-Log.Logger.Information("Semantic Kernel configured with Ollama at {Endpoint} using model {Model}", 
-    ollamaEndpoint, ollamaModel);
+Log.Logger.Information("Semantic Kernel configured with Ollama at {Endpoint} using model {Model} (Agent Timeout: {Timeout}s)", 
+    ollamaEndpoint, ollamaModel, agentTimeoutSeconds);
 
 // Add authentication
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
@@ -808,6 +811,11 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthentication();
+
+// Tenant middleware must run after authentication (to access user claims)
+// and before authorization (so authorization handlers can access tenant context)
+app.UseMiddleware<IntelliPM.API.Middleware.TenantMiddleware>();
+
 app.UseRateLimiter(); // Add rate limiting middleware
 app.UseAuthorization();
 

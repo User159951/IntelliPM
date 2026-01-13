@@ -5,6 +5,7 @@ using IntelliPM.Application.AI.Queries;
 using IntelliPM.Application.Agent.Queries;
 using IntelliPM.Application.AI.Commands;
 using IntelliPM.Application.Common.Models;
+using IntelliPM.Application.Common.Interfaces;
 
 namespace IntelliPM.API.Controllers;
 
@@ -19,14 +20,19 @@ public class AIGovernanceController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly ILogger<AIGovernanceController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
     /// <summary>
     /// Initializes a new instance of the AIGovernanceController.
     /// </summary>
-    public AIGovernanceController(IMediator mediator, ILogger<AIGovernanceController> logger)
+    public AIGovernanceController(
+        IMediator mediator, 
+        ILogger<AIGovernanceController> logger,
+        ICurrentUserService currentUserService)
     {
         _mediator = mediator;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -63,7 +69,7 @@ public class AIGovernanceController : BaseApiController
         {
             var query = new GetAIDecisionLogsQuery
             {
-                OrganizationId = GetOrganizationId(),
+                OrganizationId = _currentUserService.GetOrganizationId(),
                 DecisionType = decisionType,
                 AgentType = agentType,
                 EntityType = entityType,
@@ -107,7 +113,7 @@ public class AIGovernanceController : BaseApiController
             var query = new GetAIDecisionByIdQuery
             {
                 DecisionId = decisionId,
-                OrganizationId = GetOrganizationId()
+                OrganizationId = _currentUserService.GetOrganizationId()
             };
 
             var result = await _mediator.Send(query, ct);
@@ -239,18 +245,43 @@ public class AIGovernanceController : BaseApiController
     /// Get current AI quota status for organization.
     /// Returns real-time quota usage, limits, and status information.
     /// </summary>
+    /// <param name="organizationId">Optional organization ID. If not provided, uses current user's organization.</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Current AI quota status</returns>
     [HttpGet("quota")]
     [ProducesResponseType(typeof(AIQuotaStatusDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetQuotaStatus(CancellationToken ct)
+    public async Task<IActionResult> GetQuotaStatus(
+        [FromQuery] int? organizationId = null,
+        CancellationToken ct = default)
     {
         try
         {
+            // Use provided organizationId or fall back to current user's organization
+            int targetOrganizationId;
+            try
+            {
+                targetOrganizationId = organizationId ?? _currentUserService.GetOrganizationId();
+            }
+            catch (Exception orgEx)
+            {
+                _logger.LogError(orgEx, "Error getting organization ID for user {UserId}", _currentUserService.GetUserId());
+                return Problem(
+                    title: "Authentication Error",
+                    detail: "Unable to determine organization. Please ensure you are properly authenticated.",
+                    statusCode: StatusCodes.Status401Unauthorized
+                );
+            }
+            
+            if (targetOrganizationId == 0)
+            {
+                _logger.LogWarning("Organization ID is required but not found for user {UserId}", _currentUserService.GetUserId());
+                return BadRequest(new { error = "Organization ID is required. Please ensure you are properly authenticated." });
+            }
+
             var query = new GetAIQuotaStatusQuery
             {
-                OrganizationId = GetOrganizationId()
+                OrganizationId = targetOrganizationId
             };
 
             var result = await _mediator.Send(query, ct);
@@ -258,10 +289,11 @@ public class AIGovernanceController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting AI quota status");
+            _logger.LogError(ex, "Error getting AI quota status for organization {OrganizationId}. Exception type: {ExceptionType}, Message: {Message}, StackTrace: {StackTrace}", 
+                organizationId, ex.GetType().Name, ex.Message, ex.StackTrace);
             return Problem(
                 title: "Error retrieving quota status",
-                detail: ex.Message,
+                detail: $"An error occurred while retrieving quota status: {ex.Message}",
                 statusCode: StatusCodes.Status500InternalServerError
             );
         }
@@ -287,7 +319,7 @@ public class AIGovernanceController : BaseApiController
         {
             var query = new GetAIUsageStatisticsQuery
             {
-                OrganizationId = GetOrganizationId(),
+                OrganizationId = _currentUserService.GetOrganizationId(),
                 StartDate = startDate ?? DateTimeOffset.UtcNow.AddDays(-30),
                 EndDate = endDate ?? DateTimeOffset.UtcNow
             };

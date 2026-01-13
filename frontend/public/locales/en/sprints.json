@@ -1,0 +1,51 @@
+{
+  "title": "Sprints",
+  "description": "Manage your project sprints",
+  "selectProject": "Select project",
+  "create": {
+    "button": "Create Sprint",
+    "title": "Create new sprint",
+    "description": "Plan your next sprint iteration.",
+    "submit": "Create sprint"
+  },
+  "form": {
+    "name": "Sprint name",
+    "namePlaceholder": "Sprint 1",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "capacity": "Capacity (story points)",
+    "goal": "Sprint goal (optional)",
+    "goalPlaceholder": "What do we want to achieve in this sprint?"
+  },
+  "status": {
+    "active": "Active",
+    "completed": "Completed",
+    "planned": "Planned"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "start": "Start Sprint",
+    "complete": "Complete Sprint",
+    "addTasks": "Add Tasks"
+  },
+  "messages": {
+    "created": "Sprint created",
+    "started": "Sprint started successfully",
+    "completed": "Sprint completed successfully",
+    "createError": "Failed to create sprint",
+    "startError": "Failed to start sprint",
+    "completeError": "Failed to complete sprint"
+  },
+  "empty": {
+    "title": "No sprints yet",
+    "message": "Create your first sprint to start planning",
+    "button": "Create Sprint"
+  },
+  "list": {
+    "tasks": "tasks",
+    "capacity": "Capacity",
+    "goal": "Goal",
+    "noGoal": "No goal set"
+  }
+}
+

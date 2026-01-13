@@ -6,7 +6,9 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { milestonesApi } from '@/api/milestones';
 import { Rocket, Flag, Calendar, Star, AlertCircle } from 'lucide-react';
-import { format, isBefore, isAfter, isToday } from 'date-fns';
+import { isBefore, isAfter, isToday } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate, DateFormats } from '@/utils/dateFormat';
 import { cn } from '@/lib/utils';
 import type { MilestoneDto } from '@/types/milestones';
 
@@ -58,6 +60,7 @@ function getStatusColor(status: string): string {
  * Displays milestones along a time axis with today's date marker.
  */
 export function MilestoneTimeline({ projectId, onMilestoneClick }: MilestoneTimelineProps) {
+  const { language } = useLanguage();
   const timelineRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
 
@@ -151,7 +154,7 @@ export function MilestoneTimeline({ projectId, onMilestoneClick }: MilestoneTime
       <CardHeader>
         <CardTitle>Milestone Timeline</CardTitle>
         <CardDescription>
-          Timeline view of project milestones from {format(timelineData.startDate, 'MMM d, yyyy')} to {format(timelineData.endDate, 'MMM d, yyyy')}
+          Timeline view of project milestones from {formatDate(timelineData.startDate, DateFormats.LONG(language), language)} to {formatDate(timelineData.endDate, DateFormats.LONG(language), language)}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -253,7 +256,7 @@ export function MilestoneTimeline({ projectId, onMilestoneClick }: MilestoneTime
 
                         {/* Due Date */}
                         <div className="text-xs text-muted-foreground">
-                          {format(milestone.date, 'MMM d, yyyy')}
+                          {formatDate(milestone.date, DateFormats.LONG(language), language)}
                         </div>
 
                         {/* Days Until/Past */}

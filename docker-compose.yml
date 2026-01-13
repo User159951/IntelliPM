@@ -86,7 +86,7 @@ services:
       - ConnectionStrings__SqlServer=Server=sqlserver,1433;Database=IntelliPM;User Id=sa;Password=${SQL_SERVER_PASSWORD};Encrypt=True;TrustServerCertificate=True;
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=IntelliPM;User Id=sa;Password=${SQL_SERVER_PASSWORD};Encrypt=True;TrustServerCertificate=True;
       - ConnectionStrings__VectorDb=Host=postgres;Port=5432;Username=postgres;Password=${POSTGRES_PASSWORD};Database=intellipm_vector;Pooling=true;Maximum Pool Size=20;
-      - Ollama__Endpoint=http://ollama:11434
+      - Ollama__Endpoint=http://ollama:11435
       - Ollama__Model=llama3.2:3b
       - Jwt__Issuer=IntelliPM
       - Jwt__Audience=IntelliPM

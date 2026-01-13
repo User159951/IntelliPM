@@ -18,6 +18,7 @@ import { Sparkles } from 'lucide-react';
 import { SprintPlanningAI } from './SprintPlanningAI';
 import { showToast } from '@/lib/sweetalert';
 import type { Sprint } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface StartSprintDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ export function StartSprintDialog({
   isLoading = false,
 }: StartSprintDialogProps) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('common');
   const [showAIPlanning, setShowAIPlanning] = useState(false);
 
   const { data: tasksData } = useQuery({
@@ -48,10 +50,10 @@ export function StartSprintDialog({
     onSuccess: (_, taskIds) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', sprint.projectId] });
       queryClient.invalidateQueries({ queryKey: ['sprints', sprint.projectId] });
-      showToast(`${taskIds.length} tâches ajoutées au sprint`, 'success');
+      showToast(t('sprint.tasksAdded', { count: taskIds.length }), 'success');
     },
     onError: () => {
-      showToast('Erreur lors de l\'assignation des tâches', 'error');
+      showToast(t('sprint.tasksAddedError'), 'error');
     },
   });
 
@@ -72,14 +74,14 @@ export function StartSprintDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Start Sprint {sprint.name}?</AlertDialogTitle>
+          <AlertDialogTitle>{t('buttons.startSprint')} {sprint.name}?</AlertDialogTitle>
           <AlertDialogDescription>
             <div className="space-y-4 mt-2">
               {/* AI Planning Section */}
               {taskCount === 0 && (
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold">Sélectionner les Tâches</h3>
+                    <h3 className="text-lg font-semibold">{t('sprint.selectTasks')}</h3>
                     <Button
                       type="button"
                       variant="outline"
@@ -88,7 +90,7 @@ export function StartSprintDialog({
                       className="flex items-center gap-2"
                     >
                       <Sparkles className="h-4 w-4 text-purple-500" />
-                      {showAIPlanning ? 'Masquer' : 'Afficher'} Planification IA
+                      {showAIPlanning ? t('sprint.hideAIPlanning') : t('sprint.showAIPlanning')}
                     </Button>
                   </div>
                   {showAIPlanning && (
@@ -109,38 +111,38 @@ export function StartSprintDialog({
               {!canStart ? (
                 <div className="space-y-2">
                   {taskCount === 0 && (
-                    <p className="text-destructive">⚠️ Sprint must have at least 1 task</p>
+                    <p className="text-destructive">⚠️ {t('sprint.mustHaveTask')}</p>
                   )}
                   {(!startDate || !endDate) && (
-                    <p className="text-destructive">⚠️ Sprint must have dates defined</p>
+                    <p className="text-destructive">⚠️ {t('sprint.mustHaveDates')}</p>
                   )}
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <p className="font-medium">Sprint Summary:</p>
+                    <p className="font-medium">{t('sprint.summary')}</p>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                       <li>
-                        <strong>{taskCount}</strong> {taskCount === 1 ? 'task' : 'tasks'} ({storyPoints} story points)
+                        <strong>{taskCount}</strong> {taskCount === 1 ? t('sprint.task') : t('sprint.tasks')} ({storyPoints} {t('sprint.storyPoints')})
                       </li>
                       {startDate && endDate && (
                         <li>
-                          Duration: {format(startDate, 'MMM d, yyyy')} to {format(endDate, 'MMM d, yyyy')} ({duration} {duration === 1 ? 'day' : 'days'})
+                          {t('sprint.duration')} {format(startDate, 'MMM d, yyyy')} to {format(endDate, 'MMM d, yyyy')} ({duration} {duration === 1 ? t('sprint.day') : t('sprint.days')})
                         </li>
                       )}
-                      <li>Team capacity: {capacity} SP</li>
+                      <li>{t('sprint.teamCapacity')} {capacity} SP</li>
                     </ul>
                   </div>
-                  <p className="text-sm">This will mark the sprint as active and notify all team members.</p>
+                  <p className="text-sm">{t('sprint.willMarkActive')}</p>
                 </div>
               )}
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('buttons.cancel')}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} disabled={!canStart || isLoading}>
-            {isLoading ? 'Starting...' : 'Start Sprint'}
+            {isLoading ? t('loading.starting') : t('buttons.startSprint')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

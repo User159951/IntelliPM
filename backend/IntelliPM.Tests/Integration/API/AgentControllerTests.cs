@@ -8,9 +8,8 @@ using IntelliPM.Application.Agent.Queries;
 using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
 using IntelliPM.Infrastructure.Persistence;
-using IntelliPM.Infrastructure.Identity;
+using IntelliPM.Tests.Infrastructure.TestAuthentication;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using SystemTask = System.Threading.Tasks.Task;
@@ -47,9 +46,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         var request = new { Description = "Make login work" };
 
@@ -77,9 +74,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         var request = new { Description = "" };
 
@@ -94,7 +89,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
     public async SystemTask ImproveTask_WithoutAuth_Returns401()
     {
         // Arrange
-        _client.DefaultRequestHeaders.Authorization = null;
+        _client.ClearAuthentication();
         var request = new { Description = "Test task" };
 
         // Act
@@ -124,9 +119,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.Projects.Add(project);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         // Act
         var response = await _client.PostAsync($"/api/v1/Agent/analyze-project/{project.Id}", null);
@@ -152,9 +145,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         var nonExistentProjectId = 99999;
 
@@ -186,9 +177,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.Projects.Add(project);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         // Act
         var response = await _client.PostAsync($"/api/v1/Agent/detect-risks/{project.Id}", null);
@@ -235,9 +224,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.Sprints.Add(sprint);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         // Act
         var response = await _client.PostAsync($"/api/v1/Agent/plan-sprint/{sprint.Id}", null);
@@ -283,9 +270,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.AgentExecutionLogs.Add(log1);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         // Act
         var response = await _client.GetAsync("/api/v1/Agent/audit-log?page=1&pageSize=10");
@@ -312,9 +297,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         // Act
         var response = await _client.GetAsync("/api/v1/Agent/audit-log?page=0&pageSize=10");
@@ -339,9 +322,7 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user.Id, user.Username, user.Email);
-        _client.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        _client.AuthenticateAs(user.Id, user.Username, user.Email, org.Id, user.GlobalRole);
 
         // Act
         var response = await _client.GetAsync("/api/v1/Agent/metrics");
@@ -401,12 +382,8 @@ public class AgentControllerTests : IClassFixture<AIAgentApiTestFactory>
         };
     }
 
-    private string GenerateJwtToken(int userId, string username, string email)
-    {
-        var configuration = _factory.Services.GetRequiredService<IConfiguration>();
-        var tokenService = new JwtTokenService(configuration);
-        return tokenService.GenerateAccessToken(userId, username, email, new List<string>());
-    }
+    // JWT token generation removed - using TestAuthHandler instead
+    // Use _client.AuthenticateAs() extension method for authentication
 
     #endregion
 }

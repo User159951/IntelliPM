@@ -1,0 +1,74 @@
+{
+  "http": {
+    "400": "Requête invalide. Veuillez vérifier vos données.",
+    "401": "Session expirée. Veuillez vous reconnecter.",
+    "403": "Vous n'avez pas la permission d'effectuer cette action.",
+    "404": "Ressource introuvable.",
+    "429": "Trop de requêtes. Veuillez réessayer plus tard.",
+    "500": "Erreur serveur. Veuillez contacter le support.",
+    "502": "Service temporairement indisponible.",
+    "503": "Service temporairement indisponible.",
+    "504": "Service temporairement indisponible."
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "minLength": "Doit contenir au moins {{min}} caractères",
+    "maxLength": "Ne doit pas dépasser {{max}} caractères",
+    "email": "Adresse e-mail invalide",
+    "url": "URL invalide",
+    "number": "Doit être un nombre",
+    "min": "Doit être au moins {{min}}",
+    "max": "Doit être au plus {{max}}",
+    "positive": "Doit être un nombre positif",
+    "integer": "Doit être un entier",
+    "date": "Date invalide",
+    "futureDate": "La date doit être dans le futur",
+    "pastDate": "La date doit être dans le passé",
+    "pattern": "Format invalide",
+    "semanticVersion": "Doit être une version sémantique (ex. : 2.1.0)",
+    "nameRequired": "Le nom est obligatoire",
+    "nameMaxLength": "Le nom ne peut pas dépasser {{max}} caractères",
+    "titleRequired": "Le titre est obligatoire",
+    "titleMaxLength": "Le titre doit contenir {{max}} caractères ou moins",
+    "descriptionMaxLength": "La description ne peut pas dépasser {{max}} caractères",
+    "versionRequired": "La version est obligatoire",
+    "dueDateRequired": "La date d'échéance est obligatoire",
+    "dueDateInvalid": "La date d'échéance doit être aujourd'hui ou dans le futur",
+    "plannedDateRequired": "La date prévue est obligatoire",
+    "tagNameMaxLength": "Le nom de tag ne peut pas dépasser {{max}} caractères"
+  },
+  "network": {
+    "connectionFailed": "Échec de la connexion. Veuillez vérifier votre connexion Internet.",
+    "timeout": "La requête a expiré. Veuillez réessayer.",
+    "offline": "Vous êtes hors ligne. Veuillez vérifier votre connexion.",
+    "serverUnavailable": "Le serveur est indisponible. Veuillez réessayer plus tard."
+  },
+  "generic": {
+    "operationFailed": "Opération échouée",
+    "tryAgain": "Veuillez réessayer",
+    "unexpectedError": "Une erreur inattendue s'est produite",
+    "contactSupport": "Veuillez contacter le support si le problème persiste",
+    "requestFailed": "Requête échouée",
+    "failedToLoad": "Échec du chargement des données",
+    "failedToSave": "Échec de l'enregistrement",
+    "failedToDelete": "Échec de la suppression",
+    "failedToUpdate": "Échec de la mise à jour",
+    "failedToCreate": "Échec de la création",
+    "accessDenied": "Accès refusé",
+    "notFound": "Ressource introuvable",
+    "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action",
+    "forbidden": "Vous n'avez pas la permission d'accéder à cette ressource"
+  },
+  "quota": {
+    "exceeded": "Limite mensuelle d'IA {{quotaType}} dépassée ({{currentUsage}}/{{maxLimit}}). Veuillez mettre à niveau pour continuer à utiliser les fonctionnalités IA.",
+    "title": "Quota Dépassé"
+  },
+  "ai": {
+    "disabled": "Les fonctionnalités IA sont actuellement désactivées pour votre organisation. Veuillez contacter un administrateur pour obtenir de l'aide.",
+    "title": "Accès Refusé"
+  },
+  "permission": {
+    "missing": "Vous avez besoin de la permission {{permission}} pour effectuer cette action.",
+    "title": "Accès Refusé"
+  }
+}

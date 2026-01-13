@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatRelativeTime } from '@/utils/dateFormat';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +35,7 @@ export default function CommentItem({
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const { user } = useAuth();
+  const { language } = useLanguage();
 
   const replies = allComments.filter((c) => c.parentCommentId === comment.id);
   const isOwnComment = user?.userId === comment.authorId;
@@ -105,7 +107,7 @@ export default function CommentItem({
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm">{comment.authorName}</span>
               <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                {formatRelativeTime(comment.createdAt, language)}
               </span>
               {comment.isEdited && (
                 <span className="text-xs text-muted-foreground">(edited)</span>

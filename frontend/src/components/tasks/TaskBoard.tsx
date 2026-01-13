@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { formatDistanceToNow, isAfter } from 'date-fns';
+import { isAfter } from 'date-fns';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatRelativeTime } from '@/utils/dateFormat';
+import { formatNumber } from '@/utils/numberFormat';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -565,6 +568,8 @@ interface TaskCardProps {
  * TaskCard component representing a single draggable task card.
  */
 function TaskCard({ task, index, onClick, isDragDisabled, blockingInfo }: TaskCardProps) {
+  const { language } = useLanguage();
+  
   // Get assignee info
   const getAssigneeInfo = () => {
     if ('assignee' in task && task.assignee) {
@@ -695,7 +700,7 @@ function TaskCard({ task, index, onClick, isDragDisabled, blockingInfo }: TaskCa
                       {/* Story Points */}
                       {task.storyPoints && (
                         <Badge variant="outline" className="text-xs">
-                          {task.storyPoints} SP
+                          {formatNumber(task.storyPoints, language)} SP
                         </Badge>
                       )}
 
@@ -706,7 +711,7 @@ function TaskCard({ task, index, onClick, isDragDisabled, blockingInfo }: TaskCa
                             'flex items-center gap-1 text-xs',
                             overdue ? 'text-red-500' : 'text-muted-foreground'
                           )}
-                          title={overdue ? 'Overdue' : `Due ${formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}`}
+                          title={overdue ? 'Overdue' : `Due ${formatRelativeTime(task.dueDate, language)}`}
                         >
                           {overdue && <AlertCircle className="h-3 w-3" />}
                           <Clock className="h-3 w-3" />

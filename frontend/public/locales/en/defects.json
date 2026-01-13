@@ -1,0 +1,59 @@
+{
+  "title": "Defects",
+  "description": "Track and manage bugs and issues",
+  "selectProject": "Select project",
+  "create": {
+    "button": "Report Defect",
+    "tooltip": "Select a project first to report a defect"
+  },
+  "list": {
+    "title": "Defect List",
+    "showing": "Showing all {{total}} defects",
+    "filtered": "Showing {{filtered}} of {{total}} defects"
+  },
+  "filters": {
+    "status": {
+      "all": "All Status",
+      "open": "Open",
+      "inProgress": "In Progress",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "severity": {
+      "all": "All Severity",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "assignee": {
+      "all": "All Assignees",
+      "unassigned": "Unassigned"
+    },
+    "clear": "Clear filters",
+    "activeCount": "{{count}} active"
+  },
+  "search": {
+    "placeholder": "Search defects..."
+  },
+  "sort": {
+    "label": "Sort by",
+    "severity": "Severity",
+    "created": "Date Created",
+    "status": "Status",
+    "title": "Title"
+  },
+  "columns": {
+    "id": "ID",
+    "title": "Title",
+    "severity": "Severity",
+    "status": "Status",
+    "assignee": "Assignee",
+    "created": "Created"
+  },
+  "empty": {
+    "title": "No defects found",
+    "message": "No defects match the current filters. Try adjusting your filters or create a new defect."
+  }
+}
+

@@ -96,13 +96,12 @@ public class TasksController : BaseApiController
             var query = new GetTaskByIdQuery(taskId);
             var result = await _mediator.Send(query, ct);
             
-            if (result == null)
-            {
-                _logger.LogWarning("Task {TaskId} not found", taskId);
-                return NotFound(new { message = $"Task with ID {taskId} not found" });
-            }
-            
             return Ok(result);
+        }
+        catch (IntelliPM.Application.Common.Exceptions.NotFoundException)
+        {
+            // NotFoundException is handled by global exception handler
+            throw;
         }
         catch (Exception ex)
         {
@@ -119,7 +118,10 @@ public class TasksController : BaseApiController
     /// Get all blocked tasks for a project
     /// </summary>
     [HttpGet("project/{projectId}/blocked")]
+    [RequirePermission("tasks.view")]
     [ProducesResponseType(typeof(GetBlockedTasksResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetBlockedTasks(int projectId, CancellationToken ct = default)
     {
@@ -146,7 +148,10 @@ public class TasksController : BaseApiController
     /// Get all tasks assigned to a specific user
     /// </summary>
     [HttpGet("assignee/{assigneeId}")]
+    [RequirePermission("tasks.view")]
     [ProducesResponseType(typeof(List<TaskDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetTasksByAssignee(int assigneeId, CancellationToken ct = default)
     {

@@ -1,0 +1,74 @@
+{
+  "http": {
+    "400": "Bad request. Please check your input.",
+    "401": "Session expired. Please log in again.",
+    "403": "You don't have permission for this action.",
+    "404": "Resource not found.",
+    "429": "Too many requests. Please try again later.",
+    "500": "Server error. Please contact support.",
+    "502": "Service temporarily unavailable.",
+    "503": "Service temporarily unavailable.",
+    "504": "Service temporarily unavailable."
+  },
+  "validation": {
+    "required": "This field is required",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must not exceed {{max}} characters",
+    "email": "Invalid email address",
+    "url": "Invalid URL",
+    "number": "Must be a number",
+    "min": "Must be at least {{min}}",
+    "max": "Must be at most {{max}}",
+    "positive": "Must be a positive number",
+    "integer": "Must be an integer",
+    "date": "Invalid date",
+    "futureDate": "Date must be in the future",
+    "pastDate": "Date must be in the past",
+    "pattern": "Invalid format",
+    "semanticVersion": "Must be semantic version (e.g., 2.1.0)",
+    "nameRequired": "Name is required",
+    "nameMaxLength": "Name cannot exceed {{max}} characters",
+    "titleRequired": "Title is required",
+    "titleMaxLength": "Title must be {{max}} characters or less",
+    "descriptionMaxLength": "Description cannot exceed {{max}} characters",
+    "versionRequired": "Version is required",
+    "dueDateRequired": "Due date is required",
+    "dueDateInvalid": "Due date must be today or in the future",
+    "plannedDateRequired": "Planned date is required",
+    "tagNameMaxLength": "Tag name cannot exceed {{max}} characters"
+  },
+  "network": {
+    "connectionFailed": "Connection failed. Please check your internet connection.",
+    "timeout": "Request timed out. Please try again.",
+    "offline": "You are offline. Please check your connection.",
+    "serverUnavailable": "Server is unavailable. Please try again later."
+  },
+  "generic": {
+    "operationFailed": "Operation failed",
+    "tryAgain": "Please try again",
+    "unexpectedError": "An unexpected error occurred",
+    "contactSupport": "Please contact support if the problem persists",
+    "requestFailed": "Request failed",
+    "failedToLoad": "Failed to load data",
+    "failedToSave": "Failed to save",
+    "failedToDelete": "Failed to delete",
+    "failedToUpdate": "Failed to update",
+    "failedToCreate": "Failed to create",
+    "accessDenied": "Access denied",
+    "notFound": "Resource not found",
+    "unauthorized": "You are not authorized to perform this action",
+    "forbidden": "You don't have permission to access this resource"
+  },
+  "quota": {
+    "exceeded": "Monthly AI {{quotaType}} limit exceeded ({{currentUsage}}/{{maxLimit}}). Please upgrade to continue using AI features.",
+    "title": "Quota Exceeded"
+  },
+  "ai": {
+    "disabled": "AI features are currently disabled for your organization. Please contact an administrator for assistance.",
+    "title": "Access Denied"
+  },
+  "permission": {
+    "missing": "You need {{permission}} permission to perform this action.",
+    "title": "Access Denied"
+  }
+}

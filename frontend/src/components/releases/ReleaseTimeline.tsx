@@ -8,7 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { releasesApi } from '@/api/releases';
 import { Package, Calendar } from 'lucide-react';
-import { format, parseISO, isPast } from 'date-fns';
+import { parseISO, isPast } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate, DateFormats } from '@/utils/dateFormat';
 import { cn } from '@/lib/utils';
 import type { ReleaseDto } from '@/types/releases';
 
@@ -74,6 +76,7 @@ const getQualityGateColor = (status: string | null): string => {
 };
 
 function TimelineNode({ release, isLeft, onClick, isPast }: TimelineNodeProps) {
+  const { language } = useLanguage();
   const statusColor = getStatusColor(release.status);
   const qualityGateColor = getQualityGateColor(release.overallQualityStatus);
   const completionPercentage =
@@ -138,7 +141,7 @@ function TimelineNode({ release, isLeft, onClick, isPast }: TimelineNodeProps) {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <time dateTime={releaseDate.toISOString()}>
-                {format(releaseDate, 'MMM dd, yyyy')}
+                {formatDate(releaseDate, DateFormats.LONG(language), language)}
               </time>
             </div>
 

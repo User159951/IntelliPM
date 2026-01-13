@@ -47,11 +47,20 @@ public class UpdateUserAIQuotaOverrideCommandHandler : IRequestHandler<UpdateUse
             throw new UnauthorizedException("User not authenticated");
         }
 
-        // Verify user exists and check organization access
-        var user = await _unitOfWork.Repository<User>()
-            .Query()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, ct);
+        // Verify user exists and check organization access with error handling
+        User? user;
+        try
+        {
+            user = await _unitOfWork.Repository<User>()
+                .Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == request.UserId, ct);
+        }
+        catch (Exception userEx)
+        {
+            _logger.LogError(userEx, "Database error when querying user {UserId}", request.UserId);
+            throw new NotFoundException($"User {request.UserId} not found");
+        }
 
         if (user == null)
         {
@@ -63,11 +72,20 @@ public class UpdateUserAIQuotaOverrideCommandHandler : IRequestHandler<UpdateUse
 
         var organizationId = user.OrganizationId;
 
-        // Get organization's active quota for period
-        var orgQuota = await _unitOfWork.Repository<AIQuota>()
-            .Query()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, ct);
+        // Get organization's active quota for period with error handling
+        AIQuota? orgQuota;
+        try
+        {
+            orgQuota = await _unitOfWork.Repository<AIQuota>()
+                .Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, ct);
+        }
+        catch (Exception quotaEx)
+        {
+            _logger.LogError(quotaEx, "Database error when querying AI quota for organization {OrganizationId}", organizationId);
+            throw new NotFoundException("No active AI quota found for your organization");
+        }
 
         if (orgQuota == null)
         {
@@ -77,13 +95,22 @@ public class UpdateUserAIQuotaOverrideCommandHandler : IRequestHandler<UpdateUse
         var periodStart = orgQuota.PeriodStartDate;
         var periodEnd = orgQuota.PeriodEndDate;
 
-        // Find existing override or create new one
+        // Find existing override or create new one with error handling
         var overrideRepo = _unitOfWork.Repository<UserAIQuotaOverride>();
-        var existingOverride = await overrideRepo
-            .Query()
-            .FirstOrDefaultAsync(o => o.UserId == request.UserId &&
-                                     o.PeriodStartDate == periodStart &&
-                                     o.PeriodEndDate == periodEnd, ct);
+        UserAIQuotaOverride? existingOverride = null;
+        try
+        {
+            existingOverride = await overrideRepo
+                .Query()
+                .FirstOrDefaultAsync(o => o.UserId == request.UserId &&
+                                         o.PeriodStartDate == periodStart &&
+                                         o.PeriodEndDate == periodEnd, ct);
+        }
+        catch (Exception overrideQueryEx)
+        {
+            _logger.LogError(overrideQueryEx, "Database error when querying existing override for user {UserId}", request.UserId);
+            throw new IntelliPM.Application.Common.Exceptions.ApplicationException("Error querying quota override");
+        }
 
         UserAIQuotaOverride overrideEntity;
 
@@ -119,17 +146,50 @@ public class UpdateUserAIQuotaOverrideCommandHandler : IRequestHandler<UpdateUse
                 UpdatedAt = DateTimeOffset.UtcNow
             };
 
-            await overrideRepo.AddAsync(overrideEntity, ct);
+            try
+            {
+                await overrideRepo.AddAsync(overrideEntity, ct);
+            }
+            catch (Exception addEx)
+            {
+                _logger.LogError(addEx, "Error adding quota override for user {UserId}", request.UserId);
+                throw new IntelliPM.Application.Common.Exceptions.ApplicationException("Error creating quota override");
+            }
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(ct);
+        }
+        catch (Exception saveEx)
+        {
+            _logger.LogError(saveEx, "Error saving quota override for user {UserId}", request.UserId);
+            throw new IntelliPM.Application.Common.Exceptions.ApplicationException("Error saving quota override");
+        }
 
         _logger.LogInformation(
             "User AI quota override updated for user {UserId} by admin {AdminUserId}",
             request.UserId, currentUserId);
 
-        // Compute effective quota
-        var effectiveQuota = overrideEntity.GetEffectiveLimits(orgQuota);
+        // Compute effective quota with error handling
+        Domain.Entities.EffectiveQuotaLimits effectiveQuota;
+        try
+        {
+            effectiveQuota = overrideEntity.GetEffectiveLimits(orgQuota);
+        }
+        catch (Exception effectiveEx)
+        {
+            _logger.LogWarning(effectiveEx, "Error computing effective quota for user {UserId}. Using default values.", request.UserId);
+            // Use default values if GetEffectiveLimits fails
+            effectiveQuota = new Domain.Entities.EffectiveQuotaLimits
+            {
+                MaxTokensPerPeriod = overrideEntity.MaxTokensPerPeriod ?? orgQuota.MaxTokensPerPeriod,
+                MaxRequestsPerPeriod = overrideEntity.MaxRequestsPerPeriod ?? orgQuota.MaxRequestsPerPeriod,
+                MaxDecisionsPerPeriod = overrideEntity.MaxDecisionsPerPeriod ?? orgQuota.MaxDecisionsPerPeriod,
+                MaxCostPerPeriod = overrideEntity.MaxCostPerPeriod ?? orgQuota.MaxCostPerPeriod,
+                HasOverride = existingOverride != null
+            };
+        }
 
         return new UpdateUserAIQuotaOverrideResponse(
             overrideEntity.Id,

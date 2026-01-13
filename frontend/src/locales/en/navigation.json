@@ -1,0 +1,77 @@
+{
+  "menuItems": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "tasks": "Tasks",
+    "sprints": "Sprints",
+    "teams": "Teams",
+    "backlog": "Backlog",
+    "defects": "Defects",
+    "milestones": "Milestones",
+    "releases": "Releases",
+    "metrics": "Metrics",
+    "insights": "Insights",
+    "aiAgents": "AI Agents",
+    "users": "Users",
+    "settings": "Settings",
+    "profile": "Profile",
+    "aiQuota": "AI Quota"
+  },
+  "adminMenuItems": {
+    "adminDashboard": "Admin Dashboard",
+    "users": "Users",
+    "permissions": "Permissions",
+    "settings": "Settings",
+    "auditLogs": "Audit Logs",
+    "systemHealth": "System Health",
+    "aiGovernance": "AI Governance",
+    "organizations": "Organizations",
+    "myOrganization": "My Organization",
+    "members": "Members",
+    "memberAIQuotas": "Member AI Quotas",
+    "memberPermissions": "Member Permissions",
+    "aiQuota": "AI Quota"
+  },
+  "sections": {
+    "main": "Main",
+    "project": "Project",
+    "teamInsights": "Team & Insights",
+    "settings": "Settings",
+    "admin": "Admin",
+    "superAdmin": "SuperAdmin",
+    "organization": "Organization"
+  },
+  "header": {
+    "searchPlaceholder": "Search projects, tasks...",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "logOut": "Log out"
+  },
+  "admin": {
+    "adminArea": "Admin Area",
+    "adminDescription": "Manage global settings & permissions",
+    "backToApp": "Back to App",
+    "roleBadge": "Admin"
+  },
+  "breadcrumbs": {
+    "projects": "Projects",
+    "tasks": "Tasks",
+    "sprints": "Sprints",
+    "backlog": "Backlog",
+    "defects": "Defects",
+    "milestones": "Milestones",
+    "releases": "Releases",
+    "dashboard": "Dashboard",
+    "teams": "Teams",
+    "metrics": "Metrics",
+    "insights": "Insights",
+    "aiAgents": "AI Agents",
+    "users": "Users",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "footer": {
+    "copyright": "© 2025 IntelliPM",
+    "tagline": "Intelligent Project Management"
+  }
+}

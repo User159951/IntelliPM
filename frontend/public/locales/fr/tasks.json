@@ -1,0 +1,26 @@
+{
+  "title": "Tâches",
+  "description": {
+    "board": "Organisez vos tâches en colonnes de statut",
+    "list": "Voir toutes les tâches dans un format de liste détaillé",
+    "timeline": "Voir les tâches organisées par temps et dépendances"
+  },
+  "views": {
+    "board": "Tableau",
+    "list": "Liste",
+    "timeline": "Chronologie"
+  },
+  "selectProject": "Sélectionner un projet",
+  "create": {
+    "button": "Nouvelle tâche"
+  },
+  "empty": {
+    "noProject": "Veuillez sélectionner un projet pour voir les tâches"
+  },
+  "columns": {
+    "todo": "À faire",
+    "inProgress": "En cours",
+    "blocked": "Bloqué",
+    "done": "Terminé"
+  }
+}

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { showSuccess, showError } from "@/lib/sweetalert";
+import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 
 interface EditUserDialogProps {
@@ -16,6 +17,7 @@ interface EditUserDialogProps {
 }
 
 export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps) {
+  const { t } = useTranslation('admin');
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<UpdateUserRequest>({
     firstName: user.firstName,
@@ -41,10 +43,10 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       onOpenChange(false);
-      showSuccess("User updated", "The user has been successfully updated.");
+      showSuccess(t('dialogs.edit.success'), t('dialogs.edit.successDetail'));
     },
     onError: () => {
-      showError('Failed to update user');
+      showError(t('dialogs.edit.error'));
     },
   });
 
@@ -82,32 +84,32 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit user</DialogTitle>
+            <DialogTitle>{t('dialogs.edit.title')}</DialogTitle>
             <DialogDescription>
-              Update user details. Changes will be saved immediately.
+              {t('dialogs.edit.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-firstName">First name</Label>
+                <Label htmlFor="edit-firstName">{t('dialogs.edit.firstName')}</Label>
                 <Input
                   id="edit-firstName"
                   name="firstName"
                   autoComplete="given-name"
-                  placeholder="First name"
+                  placeholder={t('dialogs.edit.firstName')}
                   value={formData.firstName || ''}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   maxLength={100}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-lastName">Last name</Label>
+                <Label htmlFor="edit-lastName">{t('dialogs.edit.lastName')}</Label>
                 <Input
                   id="edit-lastName"
                   name="lastName"
                   autoComplete="family-name"
-                  placeholder="Last name"
+                  placeholder={t('dialogs.edit.lastName')}
                   value={formData.lastName || ''}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   maxLength={100}
@@ -115,7 +117,7 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email">{t('dialogs.edit.email')}</Label>
               <Input
                 id="edit-email"
                 name="email"
@@ -128,13 +130,13 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-role">Role</Label>
+              <Label htmlFor="edit-role">{t('dialogs.edit.role')}</Label>
               <Select
                 value={formData.globalRole || 'User'}
                 onValueChange={(value) => setFormData({ ...formData, globalRole: value })}
               >
                 <SelectTrigger id="edit-role">
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder={t('dialogs.edit.rolePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="User">User</SelectItem>
@@ -145,11 +147,11 @@ export function EditUserDialog({ open, onOpenChange, user }: EditUserDialogProps
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleCancel} disabled={updateMutation.isPending}>
-              Cancel
+              {t('dialogs.edit.cancel')}
             </Button>
             <Button type="submit" disabled={updateMutation.isPending}>
               {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save changes
+              {t('dialogs.edit.save')}
             </Button>
           </DialogFooter>
         </form>

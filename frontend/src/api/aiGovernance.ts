@@ -250,26 +250,13 @@ export const aiGovernanceApi = {
    * @returns AI quota status with usage information
    */
   getQuotaStatus: async (organizationId?: number): Promise<QuotaStatus> => {
-    const primaryEndpoint = organizationId 
-      ? `/api/v1/ai/quota/status?organizationId=${organizationId}`
-      : '/api/v1/ai/quota/status';
-    const fallbackEndpoint = organizationId 
+    // Backend endpoint is /api/v1/ai/quota (not /quota/status)
+    const endpoint = organizationId 
       ? `/api/v1/ai/quota?organizationId=${organizationId}`
       : '/api/v1/ai/quota';
     
     try {
-      // Try the new endpoint first
-      let response: AIQuotaStatusResponse;
-      try {
-        response = await apiClient.get<AIQuotaStatusResponse>(primaryEndpoint);
-      } catch (error) {
-        // If 404, try the fallback endpoint (backward compatibility)
-        if (error instanceof Error && error.message.includes('404')) {
-          response = await apiClient.get<AIQuotaStatusResponse>(fallbackEndpoint);
-        } else {
-          throw error;
-        }
-      }
+      const response = await apiClient.get<AIQuotaStatusResponse>(endpoint);
       
       // Transform backend response to frontend QuotaStatus format
       return {

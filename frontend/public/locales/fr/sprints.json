@@ -1,0 +1,51 @@
+{
+  "title": "Sprints",
+  "description": "Gérez les sprints de votre projet",
+  "selectProject": "Sélectionner un projet",
+  "create": {
+    "button": "Créer un sprint",
+    "title": "Créer un nouveau sprint",
+    "description": "Planifiez votre prochaine itération de sprint.",
+    "submit": "Créer le sprint"
+  },
+  "form": {
+    "name": "Nom du sprint",
+    "namePlaceholder": "Sprint 1",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "capacity": "Capacité (points d'histoire)",
+    "goal": "Objectif du sprint (optionnel)",
+    "goalPlaceholder": "Que voulons-nous accomplir dans ce sprint ?"
+  },
+  "status": {
+    "active": "Actif",
+    "completed": "Terminé",
+    "planned": "Planifié"
+  },
+  "actions": {
+    "cancel": "Annuler",
+    "start": "Démarrer le sprint",
+    "complete": "Terminer le sprint",
+    "addTasks": "Ajouter des tâches"
+  },
+  "messages": {
+    "created": "Sprint créé",
+    "started": "Sprint démarré avec succès",
+    "completed": "Sprint terminé avec succès",
+    "createError": "Échec de la création du sprint",
+    "startError": "Échec du démarrage du sprint",
+    "completeError": "Échec de la finalisation du sprint"
+  },
+  "empty": {
+    "title": "Aucun sprint pour le moment",
+    "message": "Créez votre premier sprint pour commencer la planification",
+    "button": "Créer un sprint"
+  },
+  "list": {
+    "tasks": "tâches",
+    "capacity": "Capacité",
+    "goal": "Objectif",
+    "noGoal": "Aucun objectif défini"
+  }
+}
+

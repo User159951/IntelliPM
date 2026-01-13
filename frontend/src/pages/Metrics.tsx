@@ -29,7 +29,9 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { format } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate, DateFormats } from '@/utils/dateFormat';
+import { formatNumber, formatPercentage } from '@/utils/numberFormat';
 
 const severityColors: Record<string, string> = {
   Critical: 'hsl(0, 72%, 50%)',
@@ -39,6 +41,7 @@ const severityColors: Record<string, string> = {
 };
 
 export default function Metrics() {
+  const { language } = useLanguage();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
   const projectIdNum = selectedProjectId === 'all' ? undefined : parseInt(selectedProjectId);
@@ -97,7 +100,7 @@ export default function Metrics() {
     return velocityChart.sprints.map((s) => ({
       sprint: `Sprint ${s.number}`,
       points: s.storyPoints,
-      date: format(new Date(s.completedDate), 'MMM d'),
+      date: formatDate(new Date(s.completedDate), DateFormats.MONTH_DAY(language), language),
     }));
   }, [velocityChart]);
 
@@ -126,28 +129,28 @@ export default function Metrics() {
   const metricCards = [
     {
       title: 'Velocity',
-      value: metrics?.velocity ?? 38,
+      value: formatNumber(metrics?.velocity ?? 38, language),
       unit: 'pts/sprint',
       icon: TrendingUp,
       description: 'Average story points completed per sprint',
     },
     {
       title: 'Throughput',
-      value: metrics?.throughput ?? 24,
+      value: formatNumber(metrics?.throughput ?? 24, language),
       unit: 'tasks/sprint',
       icon: Activity,
       description: 'Average tasks completed per sprint',
     },
     {
       title: 'Delivery Predictability',
-      value: `${metrics?.deliveryPredictability ?? 85}%`,
+      value: formatPercentage((metrics?.deliveryPredictability ?? 85) / 100, language, { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
       unit: '',
       icon: Target,
       description: 'Percentage of committed work delivered',
     },
     {
       title: 'Defect Rate',
-      value: `${metrics?.defectRate ?? 4.2}%`,
+      value: formatPercentage((metrics?.defectRate ?? 4.2) / 100, language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
       unit: '',
       icon: Bug,
       description: 'Defects per total tasks completed',
@@ -161,7 +164,7 @@ export default function Metrics() {
     },
     {
       title: 'Open Defects',
-      value: metrics?.defectsCount ?? 12,
+      value: formatNumber(metrics?.defectsCount ?? 12, language),
       unit: '',
       icon: BarChart3,
       description: 'Total open defects across projects',

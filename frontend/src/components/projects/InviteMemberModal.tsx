@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useMemo } from 'react';
 import { projectsApi } from '@/api/projects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ import { showSuccess, showError } from "@/lib/sweetalert";
 import { Loader2 } from 'lucide-react';
 import type { ProjectRole } from '@/types';
 import { ProjectRole as ProjectRoleType } from '@/types/generated/enums';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface InviteMemberModalProps {
   projectId: number;
@@ -50,22 +52,25 @@ const projectRoleEnum = z.enum([
   'Viewer'
 ] as [ProjectRoleType, ...ProjectRoleType[]]);
 
-const inviteMemberSchema = z.object({
-  email: z.string().email('Invalid email'),
-  role: projectRoleEnum,
-});
-
-type InviteMemberFormValues = z.infer<typeof inviteMemberSchema>;
-
-const projectRoleOptions: { value: ProjectRole; label: string; description: string }[] = [
-  { value: 'ProductOwner', label: 'Product Owner', description: 'Can manage project settings and all members' },
-  { value: 'ScrumMaster', label: 'Scrum Master', description: 'Can manage sprints and invite members' },
-  { value: 'Developer', label: 'Developer', description: 'Can create and edit tasks' },
-  { value: 'Tester', label: 'Tester', description: 'Can create and edit tasks' },
-  { value: 'Viewer', label: 'Viewer', description: 'Read-only access to project' },
+const getProjectRoleOptions = (t: (key: string) => string): { value: ProjectRole; label: string; description: string }[] => [
+  { value: 'ProductOwner', label: t('common:roles.productOwner'), description: t('common:roles.roleDescriptions.productOwner') },
+  { value: 'ScrumMaster', label: t('common:roles.scrumMaster'), description: t('common:roles.roleDescriptions.scrumMaster') },
+  { value: 'Developer', label: t('common:roles.developer'), description: t('common:roles.roleDescriptions.developer') },
+  { value: 'Tester', label: t('common:roles.tester'), description: t('common:roles.roleDescriptions.tester') },
+  { value: 'Viewer', label: t('common:roles.viewer'), description: t('common:roles.roleDescriptions.viewer') },
 ];
 
 export function InviteMemberModal({ projectId, isOpen, onClose, onSuccess }: InviteMemberModalProps) {
+  const { t } = useTranslation('common');
+  
+  // Create schema inside component so it has access to t function
+  const inviteMemberSchema = useMemo(() => z.object({
+    email: z.string().email(t('errors.validation.email')),
+    role: projectRoleEnum,
+  }), [t]);
+
+  type InviteMemberFormValues = z.infer<typeof inviteMemberSchema>;
+
   const form = useForm<InviteMemberFormValues>({
     resolver: zodResolver(inviteMemberSchema),
     defaultValues: {
@@ -78,13 +83,13 @@ export function InviteMemberModal({ projectId, isOpen, onClose, onSuccess }: Inv
     mutationFn: (data: { email: string; role: ProjectRole }) => 
       projectsApi.inviteMember(projectId, data),
     onSuccess: () => {
-      showSuccess("Member invited", "An invitation has been sent to the member.");
+      showSuccess(t('messages.success.memberInvited'), t('messages.success.memberInvitedDesc'));
       form.reset();
       onSuccess();
       onClose();
     },
     onError: () => {
-      showError('Failed to invite member');
+      showError(t('messages.error.failedToInvite'));
     },
   });
 
@@ -108,9 +113,9 @@ export function InviteMemberModal({ projectId, isOpen, onClose, onSuccess }: Inv
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Invite Member</DialogTitle>
+              <DialogTitle>{t('buttons.create')} {t('labels.member')}</DialogTitle>
               <DialogDescription>
-                Invite a user to join this project by email. They will receive an invitation.
+                {t('descriptions.inviteMemberDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -119,17 +124,17 @@ export function InviteMemberModal({ projectId, isOpen, onClose, onSuccess }: Inv
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email address</FormLabel>
+                    <FormLabel>{t('labels.email')}</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="user@example.com"
+                        placeholder={t('placeholders.userExample')}
                         disabled={inviteMutation.isPending}
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Enter the email address of the user you want to invite
+                      {t('placeholders.enterEmail')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -138,36 +143,39 @@ export function InviteMemberModal({ projectId, isOpen, onClose, onSuccess }: Inv
               <FormField
                 control={form.control}
                 name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={inviteMutation.isPending}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {projectRoleOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{option.label}</span>
-                              <span className="text-xs text-muted-foreground">{option.description}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Select the role for this member in the project
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const projectRoleOptions = getProjectRoleOptions(t);
+                  return (
+                    <FormItem>
+                      <FormLabel>{t('labels.role')}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={inviteMutation.isPending}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('placeholders.selectRole')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {projectRoleOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{option.label}</span>
+                                <span className="text-xs text-muted-foreground">{option.description}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        {t('descriptions.selectRoleDesc')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
             <DialogFooter>
@@ -177,11 +185,11 @@ export function InviteMemberModal({ projectId, isOpen, onClose, onSuccess }: Inv
                 onClick={onClose} 
                 disabled={inviteMutation.isPending}
               >
-                Cancel
+                {t('buttons.cancel')}
               </Button>
               <Button type="submit" disabled={inviteMutation.isPending}>
                 {inviteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Send Invitation
+                {t('buttons.sendInvitation')}
               </Button>
             </DialogFooter>
           </form>

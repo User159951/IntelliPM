@@ -4,7 +4,7 @@ using IntelliPM.Domain.Enums;
 
 namespace IntelliPM.Domain.Entities;
 
-public class Project : IAggregateRoot
+public class Project : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

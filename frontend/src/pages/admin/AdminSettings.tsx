@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { showToast, showSuccess, showError } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Settings, Lock, Mail, Flag } from 'lucide-react';
 
 const PROJECT_CREATION_KEY = 'ProjectCreation.AllowedRoles';
@@ -59,6 +60,7 @@ export default function AdminSettings() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation('admin');
   const [activeTab, setActiveTab] = useState<Category>(CATEGORIES.General);
   const [testEmailAddress, setTestEmailAddress] = useState<string>('');
 
@@ -199,11 +201,11 @@ export default function AdminSettings() {
       categories.forEach(category => {
         queryClient.invalidateQueries({ queryKey: ['settings', category] });
       });
-      showSuccess("Settings updated", "All settings have been successfully saved.");
+      showSuccess(t('settings.messages.saveSuccess'), t('settings.messages.saveSuccessDetail'));
     },
     onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update settings';
-      showError('Failed to update settings', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : t('settings.messages.saveError');
+      showError(t('settings.messages.saveError'), errorMessage);
     },
   });
 
@@ -395,27 +397,27 @@ export default function AdminSettings() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-1">Settings</h1>
-        <p className="text-muted-foreground">Configure global application settings.</p>
+        <h1 className="text-3xl font-bold mb-1">{t('settings.title')}</h1>
+        <p className="text-muted-foreground">{t('settings.description')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Category)} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value={CATEGORIES.General} className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            General
+            {t('settings.tabs.general')}
           </TabsTrigger>
           <TabsTrigger value={CATEGORIES.Security} className="flex items-center gap-2">
             <Lock className="h-4 w-4" />
-            Security
+            {t('settings.tabs.security')}
           </TabsTrigger>
           <TabsTrigger value={CATEGORIES.Email} className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
-            Email
+            {t('settings.tabs.email')}
           </TabsTrigger>
           <TabsTrigger value={CATEGORIES.FeatureFlags} className="flex items-center gap-2">
             <Flag className="h-4 w-4" />
-            Feature Flags
+            {t('settings.tabs.featureFlags')}
           </TabsTrigger>
         </TabsList>
 
@@ -423,8 +425,8 @@ export default function AdminSettings() {
         <TabsContent value={CATEGORIES.General} className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Project Creation</CardTitle>
-              <CardDescription>Control who can create new projects in the system.</CardDescription>
+              <CardTitle>{t('settings.general.projectCreation.title')}</CardTitle>
+              <CardDescription>{t('settings.general.projectCreation.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {isLoadingGeneral ? (
@@ -435,7 +437,7 @@ export default function AdminSettings() {
               ) : (
                 <>
                   <div className="space-y-4">
-                    <Label id="project-creation-roles-label" className="text-base font-semibold">Allowed Roles</Label>
+                    <Label id="project-creation-roles-label" className="text-base font-semibold">{t('settings.general.projectCreation.allowedRoles')}</Label>
                     <RadioGroup
                       id="project-creation-roles"
                       aria-labelledby="project-creation-roles-label"
@@ -446,20 +448,20 @@ export default function AdminSettings() {
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Admin" id="admin-only" />
                         <Label htmlFor="admin-only" className="font-normal cursor-pointer">
-                          Admin Only
+                          {t('settings.general.projectCreation.adminOnly')}
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="Admin,User" id="all-users" />
                         <Label htmlFor="all-users" className="font-normal cursor-pointer">
-                          All Users
+                          {t('settings.general.projectCreation.allUsers')}
                         </Label>
                       </div>
                     </RadioGroup>
                     <p className="text-sm text-muted-foreground">
                       {generalForm.projectCreation === 'Admin'
-                        ? 'Only administrators can create new projects.'
-                        : 'All authenticated users can create new projects.'}
+                        ? t('settings.general.projectCreation.adminOnlyDescription')
+                        : t('settings.general.projectCreation.allUsersDescription')}
                     </p>
                   </div>
                 </>
@@ -470,8 +472,8 @@ export default function AdminSettings() {
           {/* General Application Settings */}
           <Card>
             <CardHeader>
-              <CardTitle>Application Settings</CardTitle>
-              <CardDescription>Configure general application settings.</CardDescription>
+              <CardTitle>{t('settings.general.application.title')}</CardTitle>
+              <CardDescription>{t('settings.general.application.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {isLoadingGeneral ? (
@@ -483,7 +485,7 @@ export default function AdminSettings() {
                 <>
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="appName">Application Name</Label>
+                      <Label htmlFor="appName">{t('settings.general.application.appName')}</Label>
                       <Input
                         id="appName"
                         name="applicationName"
@@ -496,7 +498,7 @@ export default function AdminSettings() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="timezone">Default Timezone</Label>
+                      <Label htmlFor="timezone">{t('settings.general.application.timezone')}</Label>
                       <Input
                         id="timezone"
                         name="timezone"
@@ -507,12 +509,12 @@ export default function AdminSettings() {
                         disabled={isSaving}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Default timezone for the application (e.g., UTC, America/New_York)
+                        {t('settings.general.application.timezoneDescription')}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="language">Default Language</Label>
+                      <Label htmlFor="language">{t('settings.general.application.language')}</Label>
                       <Input
                         id="language"
                         name="language"
@@ -523,12 +525,12 @@ export default function AdminSettings() {
                         disabled={isSaving}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Default language code (e.g., en, fr, es)
+                        {t('settings.general.application.languageDescription')}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="dateFormat">Date Format</Label>
+                      <Label htmlFor="dateFormat">{t('settings.general.application.dateFormat')}</Label>
                       <Input
                         id="dateFormat"
                         name="dateFormat"
@@ -539,7 +541,7 @@ export default function AdminSettings() {
                         disabled={isSaving}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Default date format (e.g., MM/dd/yyyy, dd/MM/yyyy, yyyy-MM-dd)
+                        {t('settings.general.application.dateFormatDescription')}
                       </p>
                     </div>
                   </div>
@@ -550,7 +552,7 @@ export default function AdminSettings() {
                       disabled={!hasGeneralChanges || isSaving}
                     >
                       {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Save Changes
+                      {t('settings.saveChanges')}
                     </Button>
                   </div>
                 </>
@@ -563,8 +565,8 @@ export default function AdminSettings() {
         <TabsContent value={CATEGORIES.Security} className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>Configure security-related settings.</CardDescription>
+              <CardTitle>{t('settings.security.title')}</CardTitle>
+              <CardDescription>{t('settings.security.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {isLoadingSecurity ? (
@@ -577,7 +579,7 @@ export default function AdminSettings() {
                   <div className="space-y-6">
                     {/* Token Expiration */}
                     <div className="space-y-2">
-                      <Label htmlFor="tokenExpiration">Access Token Expiration (minutes)</Label>
+                      <Label htmlFor="tokenExpiration">{t('settings.security.tokenExpiration')}</Label>
                       <Input
                         id="tokenExpiration"
                         name="tokenExpiration"
@@ -589,16 +591,16 @@ export default function AdminSettings() {
                         disabled={isSaving}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Duration in minutes before access tokens expire (default: 15 minutes)
+                        {t('settings.security.tokenExpirationDescription')}
                       </p>
                     </div>
 
                     {/* Password Policy */}
                     <div className="space-y-4" role="group" aria-labelledby="password-policy-label">
-                      <Label id="password-policy-label" className="text-base font-semibold">Password Policy</Label>
+                      <Label id="password-policy-label" className="text-base font-semibold">{t('settings.security.passwordPolicy')}</Label>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="minPasswordLength">Minimum Password Length</Label>
+                        <Label htmlFor="minPasswordLength">{t('settings.security.minLength')}</Label>
                         <Input
                           id="minPasswordLength"
                           name="passwordMinLength"
@@ -620,7 +622,7 @@ export default function AdminSettings() {
                           disabled={isSaving}
                         />
                         <Label htmlFor="requireUppercase" className="cursor-pointer">
-                          Require uppercase letter
+                          {t('settings.security.requireUppercase')}
                         </Label>
                       </div>
 
@@ -633,7 +635,7 @@ export default function AdminSettings() {
                           disabled={isSaving}
                         />
                         <Label htmlFor="requireLowercase" className="cursor-pointer">
-                          Require lowercase letter
+                          {t('settings.security.requireLowercase')}
                         </Label>
                       </div>
 
@@ -646,7 +648,7 @@ export default function AdminSettings() {
                           disabled={isSaving}
                         />
                         <Label htmlFor="requireNumber" className="cursor-pointer">
-                          Require number
+                          {t('settings.security.requireNumber')}
                         </Label>
                       </div>
 
@@ -659,14 +661,14 @@ export default function AdminSettings() {
                           disabled={isSaving}
                         />
                         <Label htmlFor="requireSpecialChar" className="cursor-pointer">
-                          Require special character
+                          {t('settings.security.requireSpecialChar')}
                         </Label>
                       </div>
                     </div>
 
                     {/* Max Login Attempts */}
                     <div className="space-y-2">
-                      <Label htmlFor="maxLoginAttempts">Max Login Attempts</Label>
+                      <Label htmlFor="maxLoginAttempts">{t('settings.security.maxLoginAttempts')}</Label>
                       <Input
                         id="maxLoginAttempts"
                         name="maxLoginAttempts"
@@ -678,13 +680,13 @@ export default function AdminSettings() {
                         disabled={isSaving}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Maximum number of failed login attempts before account lockout
+                        {t('settings.security.maxLoginAttemptsDescription')}
                       </p>
                     </div>
 
                     {/* Session Duration */}
                     <div className="space-y-2">
-                      <Label htmlFor="sessionDuration">Session Duration (hours)</Label>
+                      <Label htmlFor="sessionDuration">{t('settings.security.sessionDuration')}</Label>
                       <Input
                         id="sessionDuration"
                         name="sessionDuration"
@@ -696,7 +698,7 @@ export default function AdminSettings() {
                         disabled={isSaving}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Duration in hours before user session expires
+                        {t('settings.security.sessionDurationDescription')}
                       </p>
                     </div>
 
@@ -710,7 +712,7 @@ export default function AdminSettings() {
                         disabled={isSaving}
                       />
                       <Label htmlFor="require2FA" className="cursor-pointer">
-                        Require Two-Factor Authentication
+                        {t('settings.security.require2FA')}
                       </Label>
                     </div>
                   </div>
@@ -721,7 +723,7 @@ export default function AdminSettings() {
                       disabled={!hasSecurityChanges || isSaving}
                     >
                       {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Save Changes
+                      {t('settings.saveChanges')}
                     </Button>
                   </div>
                 </>
@@ -734,8 +736,8 @@ export default function AdminSettings() {
         <TabsContent value={CATEGORIES.Email} className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Email Settings</CardTitle>
-              <CardDescription>Configure email server and notification settings.</CardDescription>
+              <CardTitle>{t('settings.email.title')}</CardTitle>
+              <CardDescription>{t('settings.email.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {isLoadingEmail ? (
@@ -748,10 +750,10 @@ export default function AdminSettings() {
                   <div className="space-y-6">
                     {/* SMTP Configuration */}
                     <div className="space-y-4" role="group" aria-labelledby="smtp-config-label">
-                      <Label id="smtp-config-label" className="text-base font-semibold">SMTP Configuration</Label>
+                      <Label id="smtp-config-label" className="text-base font-semibold">{t('settings.email.smtpConfig')}</Label>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="smtpHost">SMTP Host</Label>
+                        <Label htmlFor="smtpHost">{t('settings.email.smtpHost')}</Label>
                         <Input
                           id="smtpHost"
                           name="smtpHost"
@@ -765,7 +767,7 @@ export default function AdminSettings() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="smtpPort">SMTP Port</Label>
+                          <Label htmlFor="smtpPort">{t('settings.email.smtpPort')}</Label>
                           <Input
                             id="smtpPort"
                             name="smtpPort"
@@ -789,14 +791,14 @@ export default function AdminSettings() {
                               disabled={isSaving}
                             />
                             <Label htmlFor="useSsl" className="cursor-pointer">
-                              Use SSL/TLS ({emailForm.useSsl ? 'Enabled' : 'Disabled'})
+                              {t('settings.email.useSsl')} ({emailForm.useSsl ? t('settings.email.useSslEnabled') : t('settings.email.useSslDisabled')})
                             </Label>
                           </div>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="smtpUsername">SMTP Username</Label>
+                        <Label htmlFor="smtpUsername">{t('settings.email.smtpUsername')}</Label>
                         <Input
                           id="smtpUsername"
                           name="smtpUsername"
@@ -809,7 +811,7 @@ export default function AdminSettings() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="smtpPassword">SMTP Password</Label>
+                        <Label htmlFor="smtpPassword">{t('settings.email.smtpPassword')}</Label>
                         <Input
                           id="smtpPassword"
                           name="smtpPassword"
@@ -820,12 +822,12 @@ export default function AdminSettings() {
                           disabled={isSaving}
                         />
                         <p className="text-sm text-muted-foreground">
-                          For Gmail, use an App Password instead of your regular password
+                          {t('settings.email.smtpPasswordDescription')}
                         </p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="fromEmail">From Email</Label>
+                        <Label htmlFor="fromEmail">{t('settings.email.fromEmail')}</Label>
                         <Input
                           id="fromEmail"
                           name="fromEmail"
@@ -838,7 +840,7 @@ export default function AdminSettings() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="fromName">From Name</Label>
+                        <Label htmlFor="fromName">{t('settings.email.fromName')}</Label>
                         <Input
                           id="fromName"
                           name="fromName"
@@ -855,13 +857,13 @@ export default function AdminSettings() {
                     <div className="pt-4 border-t">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-base font-semibold">Test Email Configuration</h3>
+                          <h3 className="text-base font-semibold">{t('settings.email.testEmail.title')}</h3>
                           <p className="text-sm text-muted-foreground">
-                            Send a test email to verify your SMTP settings
+                            {t('settings.email.testEmail.description')}
                           </p>
                         </div>
                         <div className="flex flex-col gap-2">
-                          <Label htmlFor="test-email-address" className="sr-only">Email address for test email</Label>
+                          <Label htmlFor="test-email-address" className="sr-only">{t('settings.email.testEmail.addressPlaceholder')}</Label>
                           <div className="flex items-center gap-2">
                             <Input
                               id="test-email-address"
@@ -877,25 +879,25 @@ export default function AdminSettings() {
                               onClick={async () => {
                                 const email = testEmailAddress || user?.email;
                                 if (!email) {
-                                  showError("Email required", "Please enter an email address or use your account email.");
+                                  showError(t('settings.email.testEmail.required'), t('settings.email.testEmail.requiredMessage'));
                                   return;
                                 }
                                 try {
                                   const result = await settingsApi.sendTestEmail(email);
                                   if (result.success) {
-                                    showToast('Test email sent', "success");
+                                    showToast(t('settings.email.testEmail.success'), "success");
                                   } else {
-                                    showError('Failed to send test email', result.message || 'Unknown error');
+                                    showError(t('settings.email.testEmail.error'), result.message || 'Unknown error');
                                   }
                                 } catch (error) {
-                                  const errorMessage = error instanceof Error ? error.message : 'Failed to send test email. Please check SMTP configuration.';
-                                  showError('Error sending test email', errorMessage);
+                                  const errorMessage = error instanceof Error ? error.message : t('settings.email.testEmail.errorDetail');
+                                  showError(t('settings.email.testEmail.error'), errorMessage);
                                 }
                               }}
                               disabled={isSaving}
                             >
                               <Mail className="mr-2 h-4 w-4" />
-                              Send Test Email
+                              {t('settings.email.testEmail.send')}
                             </Button>
                           </div>
                         </div>
@@ -909,7 +911,7 @@ export default function AdminSettings() {
                       disabled={!hasEmailChanges || isSaving}
                     >
                       {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Save Changes
+                      {t('settings.saveChanges')}
                     </Button>
                   </div>
                 </>
@@ -922,18 +924,18 @@ export default function AdminSettings() {
         <TabsContent value={CATEGORIES.FeatureFlags} className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Feature Flags</CardTitle>
-              <CardDescription>Manage feature flags from the Feature Flags admin page.</CardDescription>
+              <CardTitle>{t('settings.featureFlags.title')}</CardTitle>
+              <CardDescription>{t('settings.featureFlags.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center py-8 text-muted-foreground">
-                <p>Use the Feature Flags page to manage feature flags.</p>
+                <p>{t('settings.featureFlags.usePage')}</p>
                 <Button
                   variant="link"
                   className="p-0 h-auto mt-4"
                   onClick={() => navigate('/admin/feature-flags')}
                 >
-                  Feature Flags
+                  {t('settings.featureFlags.featureFlagsLink')}
                 </Button>
               </div>
             </CardContent>

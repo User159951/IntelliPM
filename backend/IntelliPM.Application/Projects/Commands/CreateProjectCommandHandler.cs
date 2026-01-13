@@ -14,11 +14,13 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICacheService _cache;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateProjectCommandHandler(IUnitOfWork unitOfWork, ICacheService cache)
+    public CreateProjectCommandHandler(IUnitOfWork unitOfWork, ICacheService cache, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
         _cache = cache;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CreateProjectResponse> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
@@ -109,12 +111,33 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
             }
         }
 
-        // Verify all member IDs exist
+        // Verify all member IDs exist and belong to the same organization
+        var organizationId = _currentUserService.GetOrganizationId();
         var userRepo = _unitOfWork.Repository<User>();
-        var existingUserIds = await userRepo.Query()
+        var existingUsers = await userRepo.Query()
             .Where(u => memberIds.Contains(u.Id))
-            .Select(u => u.Id)
             .ToListAsync(cancellationToken);
+
+        // Validate all members are in the same organization
+        var invalidMemberIds = existingUsers
+            .Where(u => u.OrganizationId != organizationId)
+            .Select(u => u.Id)
+            .ToList();
+
+        if (invalidMemberIds.Any())
+        {
+            throw new ValidationException(
+                $"Cannot add members from other organizations. The following user IDs do not belong to your organization: {string.Join(", ", invalidMemberIds)}");
+        }
+
+        // Check if any requested member IDs don't exist
+        var existingUserIds = existingUsers.Select(u => u.Id).ToHashSet();
+        var missingMemberIds = memberIds.Where(id => !existingUserIds.Contains(id)).ToList();
+        if (missingMemberIds.Any())
+        {
+            throw new ValidationException(
+                $"The following user IDs were not found: {string.Join(", ", missingMemberIds)}");
+        }
 
         var notificationRepo = _unitOfWork.Repository<Notification>();
         var ownerRepo = _unitOfWork.Repository<User>();

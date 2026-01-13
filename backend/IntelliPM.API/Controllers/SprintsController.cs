@@ -69,13 +69,12 @@ public class SprintsController : BaseApiController
             var query = new GetSprintByIdQuery(id);
             var result = await _mediator.Send(query, ct);
             
-            if (result == null)
-            {
-                _logger.LogWarning("Sprint {SprintId} not found", id);
-                return NotFound(new { message = $"Sprint with ID {id} not found" });
-            }
-            
             return Ok(result);
+        }
+        catch (IntelliPM.Application.Common.Exceptions.NotFoundException)
+        {
+            // NotFoundException is handled by global exception handler
+            throw;
         }
         catch (Exception ex)
         {

@@ -1,0 +1,57 @@
+{
+  "title": "Metrics",
+  "description": "Track your team's performance and health",
+  "selectProject": "Select project",
+  "allProjects": "All Projects",
+  "cards": {
+    "velocity": {
+      "title": "Velocity",
+      "unit": "pts/sprint",
+      "description": "Average story points completed per sprint"
+    },
+    "throughput": {
+      "title": "Throughput",
+      "unit": "tasks/sprint",
+      "description": "Average tasks completed per sprint"
+    },
+    "deliveryPredictability": {
+      "title": "Delivery Predictability",
+      "description": "Percentage of committed work delivered"
+    },
+    "defectRate": {
+      "title": "Defect Rate",
+      "description": "Defects per total tasks completed"
+    },
+    "sprintHealth": {
+      "title": "Sprint Health",
+      "description": "Overall sprint health assessment"
+    },
+    "openDefects": {
+      "title": "Open Defects",
+      "description": "Total open defects across projects"
+    }
+  },
+  "charts": {
+    "velocity": {
+      "title": "Sprint Velocity",
+      "description": "Story points completed over time"
+    },
+    "taskDistribution": {
+      "title": "Task Distribution",
+      "description": "Tasks by status"
+    },
+    "defectsBySeverity": {
+      "title": "Defects by Severity",
+      "description": "Distribution of defects by severity level"
+    },
+    "burndown": {
+      "title": "Sprint Burndown",
+      "description": "Progress tracking for current sprint"
+    },
+    "teamVelocity": {
+      "title": "Team Velocity Trend",
+      "description": "Velocity trends across teams"
+    }
+  }
+}
+

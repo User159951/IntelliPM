@@ -35,136 +35,199 @@ public class GetAdminAiQuotaMembersQueryHandler : IRequestHandler<GetAdminAiQuot
 
     public async Task<PagedResponse<AdminAiQuotaMemberDto>> Handle(GetAdminAiQuotaMembersQuery request, CancellationToken ct)
     {
-        // Verify admin permissions
-        if (!_currentUserService.IsAdmin())
+        try
         {
-            throw new UnauthorizedException("Only administrators can view AI quota members");
+            // Verify admin permissions
+            if (!_currentUserService.IsAdmin())
+            {
+                throw new UnauthorizedException("Only administrators can view AI quota members");
+            }
+
+        var isSuperAdmin = _currentUserService.IsSuperAdmin();
+        
+        // Determine target organization ID
+        int? targetOrganizationId;
+        if (isSuperAdmin)
+        {
+            // SuperAdmin: use provided organizationId or null (all orgs)
+            targetOrganizationId = request.OrganizationId;
+        }
+        else
+        {
+            // Admin: use their own organization (ignore provided organizationId)
+            var adminOrgId = _currentUserService.GetOrganizationId();
+            if (adminOrgId == 0)
+            {
+                throw new UnauthorizedException("User not authenticated");
+            }
+            targetOrganizationId = adminOrgId;
         }
 
-        // Get scoped organization ID (0 for SuperAdmin = all orgs, or specific org for Admin)
-        var scopedOrganizationId = _scopingService.GetScopedOrganizationId();
-        var isSuperAdmin = _currentUserService.IsSuperAdmin();
-
-        // For SuperAdmin, we need to handle multiple organizations differently
-        // For Admin, we get their organization's quota
+        // Get organization's active quota for period calculation
         AIQuota? orgQuota = null;
         DateTimeOffset periodStart;
         DateTimeOffset periodEnd;
 
-        if (isSuperAdmin)
+        if (targetOrganizationId.HasValue)
         {
-            // SuperAdmin: For now, we'll use the first active quota found, or a default period
-            // In a full implementation, you might want to allow filtering by organization
-            orgQuota = await _unitOfWork.Repository<AIQuota>()
-                .Query()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(q => q.IsActive, ct);
-            
-            if (orgQuota == null)
+            // Get quota for specific organization
+            try
             {
-                // Use default period if no quota exists
-                periodStart = DateTimeOffset.UtcNow.AddDays(-30);
-                periodEnd = DateTimeOffset.UtcNow.AddDays(30);
+                orgQuota = await _unitOfWork.Repository<AIQuota>()
+                    .Query()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(q => q.OrganizationId == targetOrganizationId.Value && q.IsActive, ct);
             }
-            else
+            catch (Exception quotaEx)
             {
-                periodStart = orgQuota.PeriodStartDate;
-                periodEnd = orgQuota.PeriodEndDate;
+                _logger.LogWarning(quotaEx, "Error querying AI quota for organization {OrganizationId}. Using default period.", targetOrganizationId.Value);
+                orgQuota = null;
             }
         }
         else
         {
-            var organizationId = _currentUserService.GetOrganizationId();
-            if (organizationId == 0)
+            // SuperAdmin viewing all orgs: use first active quota or default period
+            try
             {
-                throw new UnauthorizedException("User not authenticated");
+                orgQuota = await _unitOfWork.Repository<AIQuota>()
+                    .Query()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(q => q.IsActive, ct);
             }
-
-            // Get organization's active quota for defaults
-            orgQuota = await _unitOfWork.Repository<AIQuota>()
-                .Query()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(q => q.OrganizationId == organizationId && q.IsActive, ct);
-
-            if (orgQuota == null)
+            catch (Exception quotaEx)
             {
-                _logger.LogWarning("No active AI quota found for organization {OrganizationId}", organizationId);
-                // Return empty result if no org quota exists
-                return new PagedResponse<AdminAiQuotaMemberDto>(
-                    new List<AdminAiQuotaMemberDto>(),
-                    request.Page,
-                    request.PageSize,
-                    0
-                );
+                _logger.LogWarning(quotaEx, "Error querying AI quota for SuperAdmin. Using default period.");
+                orgQuota = null;
             }
+        }
 
+        if (orgQuota == null)
+        {
+            // Use default period if no quota exists
+            periodStart = DateTimeOffset.UtcNow.AddDays(-30);
+            periodEnd = DateTimeOffset.UtcNow.AddDays(30);
+        }
+        else
+        {
             periodStart = orgQuota.PeriodStartDate;
             periodEnd = orgQuota.PeriodEndDate;
         }
 
-        // Query users with organization scoping (SuperAdmin sees all, Admin sees only their org)
-        var userQuery = _unitOfWork.Repository<User>()
-            .Query()
-            .AsNoTracking();
-        
-        // Apply organization scoping first
-        userQuery = _scopingService.ApplyOrganizationScope(userQuery);
-        
-        // Then include navigation properties
-        userQuery = userQuery.Include(u => u.Organization);
-        
-        // Apply search filter
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-        {
-            var searchTerm = request.SearchTerm.ToLower();
-            userQuery = userQuery.Where(u =>
-                u.Email.ToLower().Contains(searchTerm) ||
-                u.FirstName.ToLower().Contains(searchTerm) ||
-                u.LastName.ToLower().Contains(searchTerm) ||
-                (u.FirstName + " " + u.LastName).ToLower().Contains(searchTerm));
-        }
-
-        // Get total count
-        var totalCount = await userQuery.CountAsync(ct);
-
-        // Apply pagination
+        // Query users with organization filtering
+        List<User> users;
+        int totalCount;
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Max(1, Math.Min(request.PageSize, 100));
 
-        var users = await userQuery
-            .OrderBy(u => u.FirstName)
-            .ThenBy(u => u.LastName)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(ct);
+        try
+        {
+            var userQuery = _unitOfWork.Repository<User>()
+                .Query()
+                .AsNoTracking();
+            
+            // Apply organization filter
+            if (targetOrganizationId.HasValue)
+            {
+                // Filter by specific organization
+                userQuery = userQuery.Where(u => u.OrganizationId == targetOrganizationId.Value);
+            }
+            // If targetOrganizationId is null (SuperAdmin viewing all), don't filter by org
+            
+            // Then include navigation properties
+            userQuery = userQuery.Include(u => u.Organization);
+            
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var searchTerm = request.SearchTerm.ToLower();
+                userQuery = userQuery.Where(u =>
+                    u.Email.ToLower().Contains(searchTerm) ||
+                    u.FirstName.ToLower().Contains(searchTerm) ||
+                    u.LastName.ToLower().Contains(searchTerm) ||
+                    (u.FirstName + " " + u.LastName).ToLower().Contains(searchTerm));
+            }
+
+            // Get total count
+            totalCount = await userQuery.CountAsync(ct);
+
+            // Apply pagination
+            users = await userQuery
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+        }
+        catch (Exception userQueryEx)
+        {
+            _logger.LogError(userQueryEx, "Database error when querying users for AI quota members. Page: {Page}, PageSize: {PageSize}", page, pageSize);
+            // Return empty result on database error
+            return new PagedResponse<AdminAiQuotaMemberDto>(
+                new List<AdminAiQuotaMemberDto>(),
+                page,
+                pageSize,
+                0
+            );
+        }
+
+        if (users == null || users.Count == 0)
+        {
+            _logger.LogInformation("No users found for AI quota members query");
+            return new PagedResponse<AdminAiQuotaMemberDto>(
+                new List<AdminAiQuotaMemberDto>(),
+                page,
+                pageSize,
+                totalCount
+            );
+        }
 
         var userIds = users.Select(u => u.Id).ToList();
 
-        // Get quota overrides for these users
-        var overrides = await _unitOfWork.Repository<UserAIQuotaOverride>()
-            .Query()
-            .AsNoTracking()
-            .Where(o => userIds.Contains(o.UserId) &&
-                       o.PeriodStartDate == periodStart &&
-                       o.PeriodEndDate == periodEnd)
-            .ToDictionaryAsync(o => o.UserId, ct);
+        // Get quota overrides for these users with error handling
+        Dictionary<int, UserAIQuotaOverride> overrides;
+        try
+        {
+            overrides = await _unitOfWork.Repository<UserAIQuotaOverride>()
+                .Query()
+                .AsNoTracking()
+                .Where(o => userIds.Contains(o.UserId) &&
+                           o.PeriodStartDate == periodStart &&
+                           o.PeriodEndDate == periodEnd)
+                .ToDictionaryAsync(o => o.UserId, ct);
+        }
+        catch (Exception overrideEx)
+        {
+            _logger.LogWarning(overrideEx, "Error querying quota overrides. Using empty dictionary.");
+            overrides = new Dictionary<int, UserAIQuotaOverride>();
+        }
 
-        // Get usage counters for these users
-        var usageCounters = await _unitOfWork.Repository<UserAIUsageCounter>()
-            .Query()
-            .AsNoTracking()
-            .Where(c => userIds.Contains(c.UserId) &&
-                       c.PeriodStartDate == periodStart &&
-                       c.PeriodEndDate == periodEnd)
-            .ToDictionaryAsync(c => c.UserId, ct);
+        // Get usage counters for these users with error handling
+        Dictionary<int, UserAIUsageCounter> usageCounters;
+        try
+        {
+            usageCounters = await _unitOfWork.Repository<UserAIUsageCounter>()
+                .Query()
+                .AsNoTracking()
+                .Where(c => userIds.Contains(c.UserId) &&
+                           c.PeriodStartDate == periodStart &&
+                           c.PeriodEndDate == periodEnd)
+                .ToDictionaryAsync(c => c.UserId, ct);
+        }
+        catch (Exception counterEx)
+        {
+            _logger.LogWarning(counterEx, "Error querying usage counters. Using empty dictionary.");
+            usageCounters = new Dictionary<int, UserAIUsageCounter>();
+        }
 
         // Build DTOs
         var memberDtos = new List<AdminAiQuotaMemberDto>();
 
         foreach (var user in users)
         {
-            var overrideEntity = overrides.GetValueOrDefault(user.Id);
-            var usageCounter = usageCounters.GetValueOrDefault(user.Id);
+            try
+            {
+                var overrideEntity = overrides.GetValueOrDefault(user.Id);
+                var usageCounter = usageCounters.GetValueOrDefault(user.Id);
 
             // Compute effective quota
             // For SuperAdmin, we may not have an orgQuota, so use defaults
@@ -221,7 +284,7 @@ public class GetAdminAiQuotaMembersQueryHandler : IRequestHandler<GetAdminAiQuot
                 $"{user.FirstName} {user.LastName}",
                 user.GlobalRole.ToString(),
                 user.OrganizationId,
-                user.Organization.Name,
+                user.Organization?.Name ?? "Unknown Organization",
                 new EffectiveQuotaDto(
                     effectiveQuota.MaxTokensPerPeriod,
                     effectiveQuota.MaxRequestsPerPeriod,
@@ -238,7 +301,15 @@ public class GetAdminAiQuotaMembersQueryHandler : IRequestHandler<GetAdminAiQuot
                 )
             );
 
-            memberDtos.Add(memberDto);
+                memberDtos.Add(memberDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing user {UserId} in AI quota members query. User email: {Email}, OrganizationId: {OrgId}", 
+                    user.Id, user.Email, user.OrganizationId);
+                // Skip this user and continue with others
+                continue;
+            }
         }
 
         return new PagedResponse<AdminAiQuotaMemberDto>(
@@ -247,6 +318,18 @@ public class GetAdminAiQuotaMembersQueryHandler : IRequestHandler<GetAdminAiQuot
             pageSize,
             totalCount
         );
+        }
+        catch (UnauthorizedException)
+        {
+            // Re-throw authorization exceptions
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error in GetAdminAiQuotaMembersQueryHandler. Page: {Page}, PageSize: {PageSize}, SearchTerm: {SearchTerm}", 
+                request.Page, request.PageSize, request.SearchTerm);
+            throw;
+        }
     }
 }
 

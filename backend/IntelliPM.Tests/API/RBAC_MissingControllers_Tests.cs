@@ -5,6 +5,7 @@ using IntelliPM.Domain.Entities;
 using IntelliPM.Domain.Enums;
 using IntelliPM.Infrastructure.Identity;
 using IntelliPM.Infrastructure.Persistence;
+using IntelliPM.Tests.Infrastructure.TestAuthentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -354,6 +355,9 @@ public class RBAC_WebApplicationFactory : WebApplicationFactory<Program>
             });
 
             // JWT configuration is already set in ConfigureAppConfiguration above
+
+            // Add test authentication handler
+            services.AddTestAuthentication();
 
             // Create database
             var serviceProvider = services.BuildServiceProvider();

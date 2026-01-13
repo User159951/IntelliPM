@@ -19,10 +19,12 @@ import { SprintPlanningAssistant } from '@/components/agents/SprintPlanningAssis
 import { StartSprintDialog } from '@/components/sprints/StartSprintDialog';
 import { CompleteSprintDialog } from '@/components/sprints/CompleteSprintDialog';
 import { AddTasksToSprintDialog } from '@/components/sprints/AddTasksToSprintDialog';
+import { useTranslation } from 'react-i18next';
 import type { CreateSprintRequest, Sprint } from '@/types';
 
 export default function Sprints() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('sprints');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [startingSprint, setStartingSprint] = useState<Sprint | null>(null);
@@ -55,10 +57,10 @@ export default function Sprints() {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
       setIsDialogOpen(false);
       setFormData({ name: '', startDate: '', endDate: '', capacity: 40, goal: '' });
-      showSuccess("Sprint created");
+      showSuccess(t('messages.created'));
     },
     onError: () => {
-      showError('Failed to create sprint');
+      showError(t('messages.createError'));
     },
   });
 
@@ -68,10 +70,10 @@ export default function Sprints() {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setStartingSprint(null);
-      showSuccess("Sprint started successfully");
+      showSuccess(t('messages.started'));
     },
     onError: () => {
-      showError('Failed to start sprint');
+      showError(t('messages.startError'));
     },
   });
 
@@ -82,10 +84,10 @@ export default function Sprints() {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setCompletingSprint(null);
-      showSuccess("Sprint completed successfully");
+      showSuccess(t('messages.completed'));
     },
     onError: () => {
-      showError('Failed to complete sprint');
+      showError(t('messages.completeError'));
     },
   });
 
@@ -110,8 +112,8 @@ export default function Sprints() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Sprints</h1>
-          <p className="text-muted-foreground">Manage your project sprints</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <div className="flex items-center gap-4">
           <Select
@@ -119,7 +121,7 @@ export default function Sprints() {
             onValueChange={(value) => setSelectedProjectId(parseInt(value))}
           >
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select project" />
+              <SelectValue placeholder={t('selectProject')} />
             </SelectTrigger>
             <SelectContent>
               {projectsData?.items?.map((project: Project) => (
@@ -139,22 +141,22 @@ export default function Sprints() {
               <DialogTrigger asChild>
                 <Button disabled={!projectId}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Sprint
+                  {t('create.button')}
                 </Button>
               </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
-                  <DialogTitle>Create new sprint</DialogTitle>
-                  <DialogDescription>Plan your next sprint iteration.</DialogDescription>
+                  <DialogTitle>{t('create.title')}</DialogTitle>
+                  <DialogDescription>{t('create.description')}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="sprint-name">Sprint name</Label>
+                    <Label htmlFor="sprint-name">{t('form.name')}</Label>
                     <Input
                       id="sprint-name"
                       name="name"
-                      placeholder="Sprint 1"
+                      placeholder={t('form.namePlaceholder')}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
@@ -162,7 +164,7 @@ export default function Sprints() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="sprint-startDate">Start date</Label>
+                      <Label htmlFor="sprint-startDate">{t('form.startDate')}</Label>
                       <Input
                         id="sprint-startDate"
                         name="startDate"
@@ -173,7 +175,7 @@ export default function Sprints() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="sprint-endDate">End date</Label>
+                      <Label htmlFor="sprint-endDate">{t('form.endDate')}</Label>
                       <Input
                         id="sprint-endDate"
                         name="endDate"
@@ -185,7 +187,7 @@ export default function Sprints() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="sprint-capacity">Capacity (story points)</Label>
+                    <Label htmlFor="sprint-capacity">{t('form.capacity')}</Label>
                     <Input
                       id="sprint-capacity"
                       name="capacity"
@@ -196,11 +198,11 @@ export default function Sprints() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="sprint-goal">Sprint goal (optional)</Label>
+                    <Label htmlFor="sprint-goal">{t('form.goal')}</Label>
                     <Textarea
                       id="sprint-goal"
                       name="goal"
-                      placeholder="What do you want to achieve?"
+                      placeholder={t('form.goalPlaceholder')}
                       value={formData.goal}
                       onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
                       rows={2}
@@ -209,11 +211,11 @@ export default function Sprints() {
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
+                    {t('actions.cancel')}
                   </Button>
                   <Button type="submit" disabled={createMutation.isPending}>
                     {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create sprint
+                    {t('create.submit')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -231,13 +233,13 @@ export default function Sprints() {
         </div>
       ) : !projectId ? (
         <Card className="py-16 text-center">
-          <p className="text-muted-foreground">Select a project to view sprints</p>
+          <p className="text-muted-foreground">{t('selectProject')}</p>
         </Card>
       ) : sprintsData?.sprints?.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16">
           <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">No sprints yet</h3>
-          <p className="text-muted-foreground mb-4">Create your first sprint to get started</p>
+          <h3 className="text-lg font-medium">{t('empty.title')}</h3>
+          <p className="text-muted-foreground mb-4">{t('empty.message')}</p>
           <PermissionGuard 
             requiredPermission="sprints.create" 
             projectId={projectId || undefined}
@@ -246,7 +248,7 @@ export default function Sprints() {
           >
             <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Sprint
+              {t('empty.button')}
             </Button>
           </PermissionGuard>
         </Card>

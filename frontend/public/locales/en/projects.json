@@ -1,0 +1,80 @@
+{
+  "title": "Projects",
+  "description": "Manage all your projects in one place",
+  "showing": "Showing {{count}} of {{total}} projects",
+  "sort": {
+    "label": "Sort by",
+    "mostRecent": "Most recent",
+    "oldest": "Oldest",
+    "alphabeticalAZ": "Alphabetical A-Z",
+    "alphabeticalZA": "Alphabetical Z-A",
+    "mostTasks": "Most tasks",
+    "progress": "Progress"
+  },
+  "create": {
+    "button": "New project",
+    "title": "Create a new project",
+    "description": "Fill in the information below to create a new project",
+    "submit": "Create"
+  },
+  "form": {
+    "name": "Project name",
+    "namePlaceholder": "Enter project name",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe your project...",
+    "type": "Type",
+    "sprintDuration": "Sprint duration (days)",
+    "status": "Status",
+    "startDate": "Start date",
+    "pickDate": "Pick a date",
+    "teamMembers": "Team members",
+    "selectMembers": "Select members",
+    "searchUsers": "Search users...",
+    "noUsersFound": "No users found",
+    "loadingUsers": "Loading users...",
+    "owner": "Owner"
+  },
+  "actions": {
+    "cancel": "Cancel"
+  },
+  "tabs": {
+    "active": "Active",
+    "archived": "Archived",
+    "all": "All"
+  },
+  "list": {
+    "empty": {
+      "active": {
+        "title": "No active projects",
+        "message": "Get started by creating your first project to organize your work.",
+        "button": "Create project"
+      },
+      "archived": {
+        "title": "No archived projects",
+        "message": "Archived projects will appear here.",
+        "button": "Create project"
+      },
+      "all": {
+        "title": "No projects",
+        "message": "Get started by creating your first project to organize your work.",
+        "button": "Create project"
+      }
+    },
+    "card": {
+      "noDescription": "No description",
+      "viewDetails": "View details",
+      "edit": "Edit",
+      "archive": "Archive",
+      "delete": "Delete",
+      "sprintDuration": "{{days}} days"
+    }
+  },
+  "messages": {
+    "created": "Project created successfully",
+    "createError": "Error creating project",
+    "archived": "Project archived successfully",
+    "archiveError": "Error archiving project",
+    "invalidDate": "Invalid date",
+    "invalidDateMessage": "Start date cannot be in the past"
+  }
+}

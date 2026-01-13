@@ -29,27 +29,29 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
+// Navigation items will be translated in the component
 const adminNavItems = [
-  { title: 'Dashboard', url: '/admin/dashboard', icon: LayoutDashboard },
-  { title: 'Users', url: '/admin/users', icon: Users },
-  { title: 'Permissions', url: '/admin/permissions', icon: Shield },
-  { title: 'Settings', url: '/admin/settings', icon: Settings },
-  { title: 'Audit Logs', url: '/admin/audit-logs', icon: FileText },
-  { title: 'System Health', url: '/admin/system-health', icon: Activity },
-  { title: 'AI Governance', url: '/admin/ai-governance', icon: Brain },
-  { title: 'AI Quota', url: '/admin/ai-quota', icon: Zap },
+  { titleKey: 'adminMenuItems.adminDashboard', url: '/admin/dashboard', icon: LayoutDashboard },
+  { titleKey: 'adminMenuItems.users', url: '/admin/users', icon: Users },
+  { titleKey: 'adminMenuItems.permissions', url: '/admin/permissions', icon: Shield },
+  { titleKey: 'adminMenuItems.settings', url: '/admin/settings', icon: Settings },
+  { titleKey: 'adminMenuItems.auditLogs', url: '/admin/audit-logs', icon: FileText },
+  { titleKey: 'adminMenuItems.systemHealth', url: '/admin/system-health', icon: Activity },
+  { titleKey: 'adminMenuItems.aiGovernance', url: '/admin/ai-governance', icon: Brain },
+  { titleKey: 'adminMenuItems.aiQuota', url: '/admin/ai-quota', icon: Zap },
 ];
 
 const superAdminNavItems = [
-  { title: 'Organizations', url: '/admin/organizations', icon: Building2 },
+  { titleKey: 'adminMenuItems.organizations', url: '/admin/organizations', icon: Building2 },
 ];
 
 const adminOwnOrgNavItems = [
-  { title: 'My Organization', url: '/admin/organization', icon: Building2 },
-  { title: 'Members', url: '/admin/organization/members', icon: Users },
-  { title: 'Member AI Quotas', url: '/admin/ai-quotas', icon: Zap },
-  { title: 'Member Permissions', url: '/admin/permissions/members', icon: Shield },
+  { titleKey: 'adminMenuItems.myOrganization', url: '/admin/organization', icon: Building2 },
+  { titleKey: 'adminMenuItems.members', url: '/admin/organization/members', icon: Users },
+  { titleKey: 'adminMenuItems.memberAIQuotas', url: '/admin/ai-quotas', icon: Zap },
+  { titleKey: 'adminMenuItems.memberPermissions', url: '/admin/permissions/members', icon: Shield },
 ];
 
 export function AdminSidebar() {
@@ -57,6 +59,7 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const location = useLocation();
+  const { t } = useTranslation('navigation');
 
   const initials = user
     ? `${user.firstName?.[0] || user.username[0]}${user.lastName?.[0] || ''}`
@@ -78,7 +81,7 @@ export function AdminSidebar() {
               <span className="text-sm font-semibold text-foreground">
                 {user?.firstName || user?.username || 'Admin'}
               </span>
-              <span className="text-xs text-muted-foreground">Admin</span>
+              <span className="text-xs text-muted-foreground">{t('admin.roleBadge')}</span>
             </div>
           )}
         </div>
@@ -86,46 +89,52 @@ export function AdminSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>Admin</SidebarGroupLabel>
+          <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>{t('sections.admin')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {adminNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {adminNavItems.map((item) => {
+                const title = t(item.titleKey);
+                return (
+                  <SidebarMenuItem key={item.titleKey}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={title}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {isSuperAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>SuperAdmin</SidebarGroupLabel>
+            <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>{t('sections.superAdmin')}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {superAdminNavItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.url)}
-                      tooltip={item.title}
-                    >
-                      <NavLink to={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {superAdminNavItems.map((item) => {
+                  const title = t(item.titleKey);
+                  return (
+                    <SidebarMenuItem key={item.titleKey}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={title}
+                      >
+                        <NavLink to={item.url}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -133,23 +142,26 @@ export function AdminSidebar() {
 
         {!isSuperAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>Organization</SidebarGroupLabel>
+            <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>{t('sections.organization')}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminOwnOrgNavItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.url)}
-                      tooltip={item.title}
-                    >
-                      <NavLink to={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {adminOwnOrgNavItems.map((item) => {
+                  const title = t(item.titleKey);
+                  return (
+                    <SidebarMenuItem key={item.titleKey}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={title}
+                      >
+                        <NavLink to={item.url}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -159,10 +171,10 @@ export function AdminSidebar() {
       <SidebarFooter className="p-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Back to App">
+            <SidebarMenuButton asChild tooltip={t('admin.backToApp')}>
               <NavLink to="/dashboard">
                 <ArrowLeft className="h-4 w-4" />
-                <span>Back to App</span>
+                <span>{t('admin.backToApp')}</span>
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>

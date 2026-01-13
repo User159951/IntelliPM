@@ -1,0 +1,60 @@
+{
+  "title": "Backlog Produit",
+  "description": "Gérez les épiques, fonctionnalités et histoires utilisateur",
+  "selectProject": "Sélectionner un projet",
+  "types": {
+    "epic": "Épique",
+    "feature": "Fonctionnalité",
+    "story": "Histoire utilisateur"
+  },
+  "create": {
+    "button": "Créer un élément",
+    "title": "Créer {{type}}",
+    "epic": {
+      "title": "Créer une épique",
+      "namePlaceholder": "Entrez le nom de l'épique",
+      "descriptionPlaceholder": "Décrivez l'épique"
+    },
+    "feature": {
+      "title": "Créer une fonctionnalité",
+      "namePlaceholder": "Entrez le nom de la fonctionnalité",
+      "descriptionPlaceholder": "Décrivez la fonctionnalité",
+      "selectEpic": "Sélectionner une épique"
+    },
+    "story": {
+      "title": "Créer une histoire utilisateur",
+      "namePlaceholder": "Entrez le titre de l'histoire",
+      "descriptionPlaceholder": "Décrivez l'histoire utilisateur",
+      "storyPoints": "Points d'histoire",
+      "acceptanceCriteria": "Critères d'acceptation",
+      "domainTag": "Tag de domaine",
+      "selectFeature": "Sélectionner une fonctionnalité"
+    },
+    "submit": "Créer"
+  },
+  "form": {
+    "title": "Titre",
+    "description": "Description",
+    "cancel": "Annuler"
+  },
+  "empty": {
+    "noProject": "Sélectionnez un projet pour voir le backlog",
+    "noItems": "Aucun élément dans le backlog pour le moment. Créez votre première épique, fonctionnalité ou histoire."
+  },
+  "sprints": {
+    "title": "Sprints actifs",
+    "dragToAdd": "Glissez les éléments ici pour les ajouter au sprint"
+  },
+  "messages": {
+    "created": "Élément créé avec succès",
+    "createError": "Échec de la création de l'élément",
+    "addToSprint": "Tâche ajoutée au sprint",
+    "removeFromSprint": "Tâche retirée du sprint",
+    "addToSprintError": "Échec de l'ajout de la tâche au sprint",
+    "removeFromSprintError": "Échec du retrait de la tâche du sprint",
+    "overCapacity": "Sprint en surcapacité",
+    "confirmMultiple": "Ajouter plusieurs tâches ?",
+    "confirmMultipleMessage": "Êtes-vous sûr de vouloir ajouter {{count}} tâches à ce sprint ?"
+  }
+}
+

@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { showError, showSuccess, showWarning } from "@/lib/sweetalert";
+import { useTranslation } from 'react-i18next';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type RoleMap = Record<GlobalRole, Set<number>>;
 
 export default function AdminPermissions() {
+  const { t } = useTranslation('admin');
   const queryClient = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<RoleMap | null>(null);
@@ -80,7 +82,7 @@ export default function AdminPermissions() {
       // Don't close dialog on error - let confirmSave handle it
     },
     onSuccess: () => {
-      showSuccess("Permissions updated", "Role permissions have been saved.");
+      showSuccess(t('permissions.messages.saveSuccess'), t('permissions.messages.saveSuccessDetail'));
       setConfirmOpen(false);
       queryClient.invalidateQueries({ queryKey: ['permissions-matrix'] });
     },
@@ -103,7 +105,7 @@ export default function AdminPermissions() {
 
   const confirmSave = useCallback(async () => {
     if (!pendingPayload) {
-      showWarning('No changes to save');
+      showWarning(t('permissions.messages.noChanges'));
       return;
     }
     
@@ -115,11 +117,11 @@ export default function AdminPermissions() {
       await mutation.mutateAsync(pendingPayload);
       // Success handled in mutation.onSuccess
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update permissions';
-      showError('Failed to update permissions', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : t('permissions.messages.saveError');
+      showError(t('permissions.messages.saveError'), errorMessage);
       // Don't close dialog on error - it stays open
     }
-  }, [pendingPayload, mutation]);
+  }, [pendingPayload, mutation, t]);
 
   if (isLoading || !rolePermissions || !data) {
     return (
@@ -139,14 +141,14 @@ export default function AdminPermissions() {
     <div className="container mx-auto p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-1">Permissions Matrix</h1>
+          <h1 className="text-3xl font-bold mb-1">{t('permissions.title')}</h1>
           <p className="text-muted-foreground">
-            Toggle which permissions apply to Admin and User roles.
+            {t('permissions.description')}
           </p>
         </div>
         <Button onClick={handleSave} disabled={mutation.isPending}>
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Changes
+          {t('permissions.saveChanges')}
         </Button>
       </div>
 
@@ -157,9 +159,9 @@ export default function AdminPermissions() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 pb-3 text-sm font-semibold text-muted-foreground">
-            <div>Permission</div>
-            <div className="text-center">Admin</div>
-            <div className="text-center">User</div>
+            <div>{t('permissions.matrix.permission')}</div>
+            <div className="text-center">{t('permissions.matrix.admin')}</div>
+            <div className="text-center">{t('permissions.matrix.user')}</div>
           </div>
           <Accordion type="multiple" className="w-full" defaultValue={Object.keys(grouped)}>
             {Object.entries(grouped).map(([category, perms]) => (
@@ -205,16 +207,16 @@ export default function AdminPermissions() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Save permission changes?</AlertDialogTitle>
+            <AlertDialogTitle>{t('permissions.confirmDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will replace role-permission mappings for Admin and User.
+              {t('permissions.confirmDialog.description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={mutation.isPending}>{t('permissions.confirmDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmSave} disabled={mutation.isPending || !pendingPayload}>
               {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mutation.isPending ? 'Saving...' : 'Confirm Save'}
+              {mutation.isPending ? t('permissions.confirmDialog.saving') : t('permissions.confirmDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

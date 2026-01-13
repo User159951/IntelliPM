@@ -7,12 +7,17 @@ namespace IntelliPM.Domain.Entities;
 /// Quality gate entity representing a quality check for a release.
 /// Quality gates validate release readiness before deployment.
 /// </summary>
-public class QualityGate : IAggregateRoot
+public class QualityGate : IAggregateRoot, ITenantEntity
 {
     /// <summary>
     /// Unique identifier for the quality gate.
     /// </summary>
     public int Id { get; set; }
+
+    /// <summary>
+    /// Organization ID for multi-tenancy filtering.
+    /// </summary>
+    public int OrganizationId { get; set; }
 
     /// <summary>
     /// ID of the release this quality gate belongs to.
@@ -96,5 +101,10 @@ public class QualityGate : IAggregateRoot
     /// Null if checked by system or not yet checked.
     /// </summary>
     public User? CheckedByUser { get; set; }
+
+    /// <summary>
+    /// Organization this quality gate belongs to.
+    /// </summary>
+    public Organization Organization { get; set; } = null!;
 }
 

@@ -1,11 +1,18 @@
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { showError } from '@/lib/sweetalert';
 
 export default function LoginForm() {
+  const { t } = useTranslation('auth');
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,24 +24,40 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate login
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    
-    console.log('Login attempt:', formData);
+
+    try {
+      const user = await login({
+        username: formData.username,
+        password: formData.password,
+      });
+      // Redirect based on user role
+      if (user.globalRole === 'Admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      showError(
+        t('login.errors.loginFailed'),
+        error instanceof Error ? error.message : t('login.errors.invalidCredentials')
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2 opacity-0 animate-fade-in-up animation-delay-100" style={{ animationFillMode: 'forwards' }}>
         <Label htmlFor="username" className="text-sm font-medium text-foreground">
-          Nom d'utilisateur ou Email
+          {t('login.usernameLabel')}
         </Label>
         <Input
           id="username"
+          name="username"
           type="text"
-          placeholder="Entrez votre nom d'utilisateur"
+          autoComplete="username"
+          placeholder={t('login.usernamePlaceholder')}
           value={formData.username}
           onChange={(e) => setFormData({ ...formData, username: e.target.value })}
           className="h-12 bg-secondary/50 border-border transition-all duration-200 focus:bg-card focus:shadow-input-focus focus:border-primary"
@@ -44,13 +67,15 @@ export default function LoginForm() {
 
       <div className="space-y-2 opacity-0 animate-fade-in-up animation-delay-200" style={{ animationFillMode: 'forwards' }}>
         <Label htmlFor="password" className="text-sm font-medium text-foreground">
-          Mot de passe
+          {t('login.passwordLabel')}
         </Label>
         <div className="relative">
           <Input
             id="password"
+            name="password"
             type={showPassword ? 'text' : 'password'}
-            placeholder="Entrez votre mot de passe"
+            autoComplete="current-password"
+            placeholder={t('login.passwordPlaceholder')}
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             className="h-12 bg-secondary/50 border-border pr-12 transition-all duration-200 focus:bg-card focus:shadow-input-focus focus:border-primary"
@@ -61,6 +86,7 @@ export default function LoginForm() {
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             tabIndex={-1}
+            aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
           >
             {showPassword ? (
               <EyeOff className="h-5 w-5" />
@@ -85,15 +111,15 @@ export default function LoginForm() {
             htmlFor="remember"
             className="text-sm font-normal text-muted-foreground cursor-pointer"
           >
-            Se souvenir de moi
+            {t('login.rememberMe')}
           </Label>
         </div>
-        <a
-          href="#"
+        <Link
+          to="/forgot-password"
           className="text-sm font-medium text-primary hover:text-primary/80 transition-colors hover:underline"
         >
-          Mot de passe oublié ?
-        </a>
+          {t('login.forgotPassword')}
+        </Link>
       </div>
 
       <div className="opacity-0 animate-fade-in-up animation-delay-400" style={{ animationFillMode: 'forwards' }}>
@@ -105,13 +131,14 @@ export default function LoginForm() {
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Connexion en cours...
+              {t('login.loading')}
             </>
           ) : (
-            'Se connecter'
+            t('login.loginButton')
           )}
         </Button>
       </div>
     </form>
   );
 }
+

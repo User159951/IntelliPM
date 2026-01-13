@@ -19,11 +19,60 @@ public class PermissionsController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IPermissionService _permissionService;
 
-    public PermissionsController(IMediator mediator, ICurrentUserService currentUserService)
+    public PermissionsController(
+        IMediator mediator, 
+        ICurrentUserService currentUserService,
+        IPermissionService permissionService)
     {
         _mediator = mediator;
         _currentUserService = currentUserService;
+        _permissionService = permissionService;
+    }
+
+    /// <summary>
+    /// Get current user's permissions
+    /// </summary>
+    /// <remarks>
+    /// Returns the current authenticated user's permissions and global role.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Current user's permissions and global role</returns>
+    /// <response code="200">Permissions retrieved successfully</response>
+    /// <response code="401">Unauthorized - Authentication required</response>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(UserPermissionsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyPermissions(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+            {
+                return Unauthorized(new { error = "User ID not found in claims" });
+            }
+
+            var permissions = await _permissionService.GetUserPermissionsAsync(userId, cancellationToken);
+            var globalRole = _currentUserService.GetGlobalRole();
+
+            var response = new UserPermissionsResponse
+            {
+                Permissions = permissions.ToArray(),
+                GlobalRole = globalRole
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return Problem(
+                title: "Error retrieving user permissions",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
     }
 
     /// <summary>
@@ -93,4 +142,10 @@ public class PermissionsController : BaseApiController
 }
 
 public record UpdateRolePermissionsRequest(List<int> PermissionIds);
+
+public class UserPermissionsResponse
+{
+    public string[] Permissions { get; set; } = Array.Empty<string>();
+    public GlobalRole GlobalRole { get; set; }
+}
 

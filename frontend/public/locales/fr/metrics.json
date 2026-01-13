@@ -1,0 +1,57 @@
+{
+  "title": "Métriques",
+  "description": "Suivez les performances et la santé de votre équipe",
+  "selectProject": "Sélectionner un projet",
+  "allProjects": "Tous les projets",
+  "cards": {
+    "velocity": {
+      "title": "Vélocité",
+      "unit": "pts/sprint",
+      "description": "Moyenne des points d'histoire complétés par sprint"
+    },
+    "throughput": {
+      "title": "Débit",
+      "unit": "tâches/sprint",
+      "description": "Moyenne des tâches complétées par sprint"
+    },
+    "deliveryPredictability": {
+      "title": "Prévisibilité de livraison",
+      "description": "Pourcentage de travail engagé livré"
+    },
+    "defectRate": {
+      "title": "Taux de défauts",
+      "description": "Défauts par total de tâches complétées"
+    },
+    "sprintHealth": {
+      "title": "Santé du sprint",
+      "description": "Évaluation globale de la santé du sprint"
+    },
+    "openDefects": {
+      "title": "Défauts ouverts",
+      "description": "Total des défauts ouverts dans tous les projets"
+    }
+  },
+  "charts": {
+    "velocity": {
+      "title": "Vélocité des sprints",
+      "description": "Points d'histoire complétés au fil du temps"
+    },
+    "taskDistribution": {
+      "title": "Répartition des tâches",
+      "description": "Tâches par statut"
+    },
+    "defectsBySeverity": {
+      "title": "Défauts par sévérité",
+      "description": "Répartition des défauts par niveau de sévérité"
+    },
+    "burndown": {
+      "title": "Burndown du sprint",
+      "description": "Suivi des progrès pour le sprint actuel"
+    },
+    "teamVelocity": {
+      "title": "Tendance de vélocité de l'équipe",
+      "description": "Tendances de vélocité entre les équipes"
+    }
+  }
+}
+

@@ -1,0 +1,35 @@
+{
+  "title": "Tableau de bord",
+  "description": "Vue d'ensemble de vos métriques et performances de projet",
+  "stats": {
+    "totalProjects": "Projets totaux",
+    "activeSprints": "Sprints actives",
+    "openTasks": "Tâches ouvertes",
+    "blockedTasks": "Tâches bloquées",
+    "defects": "Défauts",
+    "velocity": "Vélocité"
+  },
+  "charts": {
+    "sprintVelocity": {
+      "title": "Vélocité des sprints",
+      "description": "Points d'histoire complétés par sprint"
+    },
+    "taskDistribution": {
+      "title": "Répartition des tâches",
+      "description": "Tâches par statut dans tous les projets"
+    }
+  },
+  "recentProjects": {
+    "title": "Projets récents",
+    "description": "Vos projets mis à jour récemment",
+    "empty": {
+      "message": "Aucun projet pour le moment. Créez votre premier projet pour commencer !",
+      "button": "Aller aux projets"
+    },
+    "viewAll": "Voir tous les projets"
+  },
+  "recentActivity": {
+    "title": "Activité récente"
+  }
+}
+

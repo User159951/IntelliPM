@@ -37,7 +37,8 @@ import {
   Pencil,
 } from 'lucide-react';
 import type { Task, TaskStatus, TaskPriority, UpdateTaskRequest } from '@/types';
-import { formatDistanceToNow } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatRelativeTime } from '@/utils/dateFormat';
 import { useTaskStatuses, useTaskPriorities } from '@/hooks/useLookups';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -59,6 +60,7 @@ export function TaskDetailSheet({
   onTaskDeleted,
 }: TaskDetailSheetProps) {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const queryClient = useQueryClient();
   const permissions = useProjectPermissions(projectId);
   const [isSaving, setIsSaving] = useState(false);
@@ -516,7 +518,7 @@ export function TaskDetailSheet({
                           )}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                          {formatRelativeTime(activity.createdAt, language)}
                         </p>
                       </div>
                     </div>

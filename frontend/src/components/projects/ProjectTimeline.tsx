@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { format } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate, DateFormats } from '@/utils/dateFormat';
 import type { Sprint } from '@/types';
 
 interface ProjectTimelineProps {
@@ -13,6 +14,7 @@ interface ProjectTimelineProps {
 
 export function ProjectTimeline({ sprints, projectStartDate, projectEndDate }: ProjectTimelineProps) {
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   const { timelineStart, timelineEnd, currentDate } = useMemo(() => {
     const now = new Date();
@@ -154,7 +156,7 @@ export function ProjectTimeline({ sprints, projectStartDate, projectEndDate }: P
                         <div className="space-y-1">
                           <p className="font-semibold">{sprint.name}</p>
                           <p className="text-xs">
-                            {format(sprintStart, 'MMM d, yyyy')} - {format(sprintEnd, 'MMM d, yyyy')}
+                            {formatDate(sprintStart, DateFormats.LONG(language), language)} - {formatDate(sprintEnd, DateFormats.LONG(language), language)}
                           </p>
                           <p className="text-xs">Status: {sprint.status}</p>
                           {sprint.goal && (
@@ -171,8 +173,8 @@ export function ProjectTimeline({ sprints, projectStartDate, projectEndDate }: P
 
           {/* Date labels */}
           <div className="flex justify-between text-xs text-muted-foreground px-2">
-            <span>{format(timelineStart, 'MMM d, yyyy')}</span>
-            <span>{format(timelineEnd, 'MMM d, yyyy')}</span>
+            <span>{formatDate(timelineStart, DateFormats.LONG(language), language)}</span>
+            <span>{formatDate(timelineEnd, DateFormats.LONG(language), language)}</span>
           </div>
 
           {/* Legend */}

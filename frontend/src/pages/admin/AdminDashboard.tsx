@@ -3,7 +3,9 @@ import { adminApi } from '@/api/admin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, FolderKanban, Building2, TrendingUp, Activity, CheckCircle, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate, DateFormats } from '@/utils/dateFormat';
+import { useTranslation } from 'react-i18next';
 import {
   LineChart,
   Line,
@@ -21,6 +23,8 @@ import {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 export default function AdminDashboard() {
+  const { language } = useLanguage();
+  const { t } = useTranslation('admin');
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-dashboard-stats'],
     queryFn: adminApi.getDashboardStats,
@@ -43,7 +47,7 @@ export default function AdminDashboard() {
     return (
       <div className="container mx-auto p-6">
         <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
-          <p>Error loading dashboard statistics. Please try again later.</p>
+          <p>{t('dashboard.errors.loadError')}</p>
         </div>
       </div>
     );
@@ -68,9 +72,9 @@ export default function AdminDashboard() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
         <p className="text-muted-foreground">
-          Overview of your organization's statistics and activity
+          {t('dashboard.description')}
         </p>
       </div>
 
@@ -78,39 +82,39 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.stats.totalUsers')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.totalUsers}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {data.activeUsers} active, {data.inactiveUsers} inactive
+              {data.activeUsers} {t('dashboard.stats.activeUsers')}, {data.inactiveUsers} {t('dashboard.stats.inactiveUsers')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.stats.totalProjects')}</CardTitle>
             <FolderKanban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.totalProjects}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {data.activeProjects} active projects
+              {data.activeProjects} {t('dashboard.stats.activeProjects')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Organizations</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.stats.organizations')}</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.totalOrganizations}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Total organizations
+              {t('dashboard.stats.totalOrganizations')}
             </p>
           </CardContent>
         </Card>
@@ -118,7 +122,7 @@ export default function AdminDashboard() {
         {data.systemHealth && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">System Health</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.stats.systemHealth')}</CardTitle>
               {data.systemHealth.databaseStatus === 'Healthy' ? (
                 <CheckCircle className="h-4 w-4 text-green-500" />
               ) : (
@@ -142,13 +146,13 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              User Growth (Last 6 Months)
+              {t('dashboard.charts.userGrowth')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {growthData.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
-                No growth data available
+                {t('dashboard.charts.noGrowthData')}
               </p>
             ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -163,7 +167,7 @@ export default function AdminDashboard() {
                   dataKey="users"
                   stroke="#0088FE"
                   strokeWidth={2}
-                  name="New Users"
+                  name={t('dashboard.charts.newUsers')}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -176,13 +180,13 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Role Distribution
+              {t('dashboard.charts.roleDistribution')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {roleDistribution.every(r => r.value === 0) ? (
               <p className="text-muted-foreground text-center py-8">
-                No role distribution data available
+                {t('dashboard.charts.noRoleData')}
               </p>
             ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -214,13 +218,13 @@ export default function AdminDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Recent Activities
+            {t('dashboard.charts.recentActivities')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!data.recentActivities || data.recentActivities.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              No recent activities
+              {t('dashboard.charts.noActivities')}
             </p>
           ) : (
             <div className="space-y-4">
@@ -238,7 +242,7 @@ export default function AdminDashboard() {
                   <div className="text-sm text-muted-foreground">
                     {activity.timestamp ? (() => {
                       try {
-                        return format(new Date(activity.timestamp), 'MMM d, yyyy HH:mm');
+                        return formatDate(activity.timestamp, DateFormats.DATETIME(language), language);
                       } catch {
                         return 'Invalid date';
                       }

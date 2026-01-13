@@ -98,6 +98,64 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.ToTable("AIDecisions");
                 });
 
+            modelBuilder.Entity("IntelliPM.Domain.Entities.AIDecisionApprovalPolicy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DecisionType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsBlockingIfNotApproved")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("OrganizationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequiredRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DecisionType")
+                        .HasDatabaseName("IX_AIDecisionApprovalPolicies_DecisionType");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_AIDecisionApprovalPolicies_IsActive");
+
+                    b.HasIndex("RequiredRole")
+                        .HasDatabaseName("IX_AIDecisionApprovalPolicies_RequiredRole");
+
+                    b.HasIndex("OrganizationId", "DecisionType", "IsActive")
+                        .HasDatabaseName("IX_AIDecisionApprovalPolicies_Org_DecisionType_Active");
+
+                    b.ToTable("AIDecisionApprovalPolicies", (string)null);
+                });
+
             modelBuilder.Entity("IntelliPM.Domain.Entities.AIDecisionLog", b =>
                 {
                     b.Property<int>("Id")
@@ -121,6 +179,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasDefaultValue("[]");
 
                     b.Property<DateTimeOffset?>("AppliedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("ApprovalDeadline")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("ApprovalNotes")
@@ -228,6 +289,12 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTimeOffset?>("RejectedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("RejectedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<int>("RequestedByUserId")
                         .HasColumnType("int");
 
@@ -240,6 +307,10 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasDefaultValue("Pending");
+
+                    b.Property<string>("StatusString")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TokensUsed")
                         .HasColumnType("int");
@@ -273,10 +344,17 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId")
                         .HasDatabaseName("IX_AIDecisionLogs_OrganizationId");
 
+                    b.HasIndex("RejectedByUserId")
+                        .HasDatabaseName("IX_AIDecisionLogs_RejectedByUserId");
+
                     b.HasIndex("RequestedByUserId");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_AIDecisionLogs_Status");
+
+                    b.HasIndex("ApprovalDeadline", "Status")
+                        .HasDatabaseName("IX_AIDecisionLogs_ApprovalDeadline_Status")
+                        .HasFilter("[ApprovalDeadline] IS NOT NULL AND [Status] = 0");
 
                     b.HasIndex("EntityType", "EntityId")
                         .HasDatabaseName("IX_AIDecisionLogs_EntityType_EntityId");
@@ -284,9 +362,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "CreatedAt")
                         .HasDatabaseName("IX_AIDecisionLogs_Organization_CreatedAt");
 
-                    b.HasIndex("RequiresHumanApproval", "ApprovedByHuman", "CreatedAt")
+                    b.HasIndex("RequiresHumanApproval", "Status", "CreatedAt")
                         .HasDatabaseName("IX_AIDecisionLogs_PendingApprovals")
-                        .HasFilter("[RequiresHumanApproval] = 1 AND [ApprovedByHuman] IS NULL");
+                        .HasFilter("[RequiresHumanApproval] = 1 AND [Status] = 0");
 
                     b.ToTable("AIDecisionLogs", (string)null);
                 });
@@ -391,12 +469,13 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Property<int>("RequestsUsed")
                         .HasColumnType("int");
 
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("int");
+
                     b.Property<string>("TierName")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Free");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("TokensUsed")
                         .HasColumnType("int");
@@ -430,6 +509,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.HasIndex("PeriodEndDate")
                         .HasDatabaseName("IX_AIQuotas_PeriodEndDate");
 
+                    b.HasIndex("TemplateId")
+                        .HasDatabaseName("IX_AIQuotas_TemplateId");
+
                     b.HasIndex("TierName")
                         .HasDatabaseName("IX_AIQuotas_TierName");
 
@@ -447,6 +529,87 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasFilter("[IsActive] = 1");
 
                     b.ToTable("AIQuotas", (string)null);
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.AIQuotaTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllowOverage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("DefaultAlertThresholdPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(80m);
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsSystemTemplate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("MaxCostPerPeriod")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("MaxDecisionsPerPeriod")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxRequestsPerPeriod")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxTokensPerPeriod")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OverageRate")
+                        .HasPrecision(10, 6)
+                        .HasColumnType("decimal(10,6)");
+
+                    b.Property<string>("TierName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TierName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AIQuotaTemplates_TierName")
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.HasIndex("IsActive", "DisplayOrder")
+                        .HasDatabaseName("IX_AIQuotaTemplates_Active_DisplayOrder")
+                        .HasFilter("[IsActive] = 1 AND [DeletedAt] IS NULL");
+
+                    b.ToTable("AIQuotaTemplates", (string)null);
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Activity", b =>
@@ -477,6 +640,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Property<string>("Metadata")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
@@ -487,6 +653,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("UserId");
 
@@ -583,6 +751,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
@@ -608,6 +779,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("ResolvedById");
 
@@ -734,6 +907,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasMaxLength(45)
                         .HasColumnType("nvarchar(45)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.Property<string>("UserAgent")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -746,6 +922,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("EntityType");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("UserId");
 
@@ -772,6 +950,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasMaxLength(13)
                         .HasColumnType("nvarchar(13)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
@@ -790,6 +971,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("BacklogItem");
 
@@ -1025,6 +1208,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Property<string>("Metadata")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
@@ -1033,6 +1219,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("ProjectId");
 
@@ -1176,6 +1364,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1207,6 +1398,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.HasIndex("AgentRunId");
 
                     b.HasIndex("AgentType");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("ProjectId", "Status");
 
@@ -1700,6 +1893,57 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_OrganizationPermissionPolicies_OrganizationId");
 
                     b.ToTable("OrganizationPermissionPolicies", (string)null);
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.OrganizationSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("General");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("UpdatedById")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.HasIndex("OrganizationId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("OrganizationSettings", (string)null);
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.OutboxMessage", b =>
@@ -2323,6 +2567,11 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<bool>("IsBlocking")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("IsRequired")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -2332,6 +2581,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
 
                     b.Property<int>("ReleaseId")
                         .HasColumnType("int");
@@ -2350,6 +2602,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CheckedByUserId");
 
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("IX_QualityGates_OrganizationId");
+
                     b.HasIndex("ReleaseId")
                         .HasDatabaseName("IX_QualityGates_ReleaseId");
 
@@ -2361,6 +2616,68 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_QualityGates_ReleaseId_Type");
 
                     b.ToTable("QualityGates", (string)null);
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.RBACPolicyVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("AppliedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("AppliedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PermissionsSnapshotJson")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RolePermissionsSnapshotJson")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("VersionNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppliedAt")
+                        .HasDatabaseName("IX_RBACPolicyVersions_AppliedAt");
+
+                    b.HasIndex("AppliedByUserId");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_RBACPolicyVersions_IsActive");
+
+                    b.HasIndex("VersionNumber")
+                        .HasDatabaseName("IX_RBACPolicyVersions_VersionNumber");
+
+                    b.ToTable("RBACPolicyVersions", (string)null);
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.RefreshToken", b =>
@@ -2521,6 +2838,9 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("OwnerId")
                         .HasColumnType("int");
 
@@ -2542,6 +2862,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("OwnerId");
 
@@ -2575,6 +2897,66 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("RolePermissions", (string)null);
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.SeedHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("AppliedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("RecordsAffected")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("SeedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("Success")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppliedAt")
+                        .HasDatabaseName("IX_SeedHistories_AppliedAt");
+
+                    b.HasIndex("SeedName")
+                        .HasDatabaseName("IX_SeedHistories_SeedName");
+
+                    b.HasIndex("Success")
+                        .HasDatabaseName("IX_SeedHistories_Success");
+
+                    b.HasIndex("SeedName", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SeedHistories_SeedName_Version");
+
+                    b.ToTable("SeedHistories", (string)null);
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Sprint", b =>
@@ -3295,6 +3677,138 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.ToTable("UserAIUsageCounters", (string)null);
                 });
 
+            modelBuilder.Entity("IntelliPM.Domain.Entities.WorkflowTransitionAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("AttemptedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DenialReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("WasAllowed")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptedAt")
+                        .HasDatabaseName("IX_WorkflowTransitionAuditLogs_AttemptedAt");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("IX_WorkflowTransitionAuditLogs_OrganizationId");
+
+                    b.HasIndex("ProjectId")
+                        .HasDatabaseName("IX_WorkflowTransitionAuditLogs_ProjectId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_WorkflowTransitionAuditLogs_UserId");
+
+                    b.HasIndex("WasAllowed")
+                        .HasDatabaseName("IX_WorkflowTransitionAuditLogs_WasAllowed");
+
+                    b.HasIndex("EntityType", "EntityId")
+                        .HasDatabaseName("IX_WorkflowTransitionAuditLogs_Entity");
+
+                    b.ToTable("WorkflowTransitionAuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.WorkflowTransitionRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AllowedRolesJson")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FromStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("RequiredConditionsJson")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityType")
+                        .HasDatabaseName("IX_WorkflowTransitionRules_EntityType");
+
+                    b.HasIndex("EntityType", "FromStatus", "ToStatus", "IsActive")
+                        .HasDatabaseName("IX_WorkflowTransitionRules_Lookup");
+
+                    b.ToTable("WorkflowTransitionRules", (string)null);
+                });
+
             modelBuilder.Entity("IntelliPM.Domain.Entities.Epic", b =>
                 {
                     b.HasBaseType("IntelliPM.Domain.Entities.BacklogItem");
@@ -3386,11 +3900,26 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Navigation("Run");
                 });
 
+            modelBuilder.Entity("IntelliPM.Domain.Entities.AIDecisionApprovalPolicy", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("IntelliPM.Domain.Entities.AIDecisionLog", b =>
                 {
                     b.HasOne("IntelliPM.Domain.Entities.User", "ApprovedByUser")
                         .WithMany()
                         .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IntelliPM.Domain.Entities.User", "RejectedByUser")
+                        .WithMany()
+                        .HasForeignKey("RejectedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("IntelliPM.Domain.Entities.User", "RequestedByUser")
@@ -3401,6 +3930,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.Navigation("ApprovedByUser");
 
+                    b.Navigation("RejectedByUser");
+
                     b.Navigation("RequestedByUser");
                 });
 
@@ -3409,14 +3940,28 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IntelliPM.Domain.Entities.AIQuotaTemplate", "Template")
+                        .WithMany("Quotas")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
+
+                    b.Navigation("Template");
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Activity", b =>
                 {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("IntelliPM.Domain.Entities.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -3428,6 +3973,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Organization");
 
                     b.Navigation("Project");
 
@@ -3454,6 +4001,12 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Alert", b =>
                 {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("IntelliPM.Domain.Entities.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -3464,6 +4017,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("ResolvedById")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Organization");
 
                     b.Navigation("Project");
 
@@ -3483,12 +4038,31 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.AuditLog", b =>
                 {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("IntelliPM.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("Organization");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.BacklogItem", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Comment", b =>
@@ -3558,11 +4132,19 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.DocumentStore", b =>
                 {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("IntelliPM.Domain.Entities.Project", "Project")
                         .WithMany("Documents")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Organization");
 
                     b.Navigation("Project");
                 });
@@ -3589,6 +4171,12 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasForeignKey("AgentRunId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("IntelliPM.Domain.Entities.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -3598,6 +4186,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Navigation("AcknowledgedBy");
 
                     b.Navigation("AgentRun");
+
+                    b.Navigation("Organization");
 
                     b.Navigation("Project");
                 });
@@ -3734,6 +4324,24 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.OrganizationSetting", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IntelliPM.Domain.Entities.User", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.PasswordResetToken", b =>
@@ -3904,6 +4512,12 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CheckedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("IntelliPM.Domain.Entities.Release", "Release")
                         .WithMany("QualityGates")
                         .HasForeignKey("ReleaseId")
@@ -3912,7 +4526,19 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
                     b.Navigation("CheckedByUser");
 
+                    b.Navigation("Organization");
+
                     b.Navigation("Release");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.RBACPolicyVersion", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.User", "AppliedByUser")
+                        .WithMany()
+                        .HasForeignKey("AppliedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AppliedByUser");
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.RefreshToken", b =>
@@ -3954,6 +4580,12 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Risk", b =>
                 {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("IntelliPM.Domain.Entities.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
@@ -3964,6 +4596,8 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Organization");
 
                     b.Navigation("Owner");
 
@@ -4206,6 +4840,32 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("IntelliPM.Domain.Entities.WorkflowTransitionAuditLog", b =>
+                {
+                    b.HasOne("IntelliPM.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IntelliPM.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("IntelliPM.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("IntelliPM.Domain.Entities.Epic", b =>
                 {
                     b.HasOne("IntelliPM.Domain.Entities.Project", "Project")
@@ -4256,6 +4916,11 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("IntelliPM.Domain.Entities.AIAgentRun", b =>
                 {
                     b.Navigation("Decisions");
+                });
+
+            modelBuilder.Entity("IntelliPM.Domain.Entities.AIQuotaTemplate", b =>
+                {
+                    b.Navigation("Quotas");
                 });
 
             modelBuilder.Entity("IntelliPM.Domain.Entities.Comment", b =>

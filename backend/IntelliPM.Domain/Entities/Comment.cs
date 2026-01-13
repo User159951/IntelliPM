@@ -7,7 +7,7 @@ namespace IntelliPM.Domain.Entities;
 /// Uses polymorphic pattern with EntityType and EntityId for flexible association.
 /// Supports comment threading with ParentCommentId for nested replies.
 /// </summary>
-public class Comment : IAggregateRoot
+public class Comment : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
     public int OrganizationId { get; set; } // Multi-tenancy

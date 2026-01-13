@@ -2,9 +2,10 @@ using IntelliPM.Domain.Interfaces;
 
 namespace IntelliPM.Domain.Entities;
 
-public class Alert : IAggregateRoot
+public class Alert : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
+    public int OrganizationId { get; set; }
     public int ProjectId { get; set; }
     public string Type { get; set; } = string.Empty; // VelocityDrop | RiskEscalation | DefectSpike | DeadlineMissing
     public string Severity { get; set; } = "Info"; // Info | Warning | Error | Critical
@@ -20,5 +21,6 @@ public class Alert : IAggregateRoot
     // Navigation
     public Project Project { get; set; } = null!;
     public User? ResolvedBy { get; set; }
+    public Organization Organization { get; set; } = null!;
 }
 

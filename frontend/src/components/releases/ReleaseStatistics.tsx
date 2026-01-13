@@ -19,7 +19,8 @@ import {
   TrendingUp,
   AlertTriangle,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber, formatDecimal, formatPercentage } from '@/utils/numberFormat';
 import { cn } from '@/lib/utils';
 import { releasesApi } from '@/api/releases';
 import type { ReleaseDto, ReleaseStatistics } from '@/types/releases';
@@ -151,6 +152,7 @@ export function ReleaseStatistics({
   className,
 }: ReleaseStatisticsProps) {
   const navigate = useNavigate();
+  const { language } = useLanguage();
 
   // Fetch statistics
   const { data: stats, isLoading: isLoadingStats } = useQuery({
@@ -243,29 +245,29 @@ export function ReleaseStatistics({
           <MetricCard
             icon={Package}
             label="Total Releases"
-            value={stats.totalReleases ?? 0}
+            value={formatNumber(stats.totalReleases ?? 0, language)}
             iconColor="text-blue-500"
           />
 
           <MetricCard
             icon={CheckCircle}
             label="Deployed"
-            value={stats.deployedReleases ?? 0}
-            subtitle={`${deploymentRate}% of total`}
+            value={formatNumber(stats.deployedReleases ?? 0, language)}
+            subtitle={`${formatPercentage(deploymentRate / 100, language, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} of total`}
             iconColor="text-green-500"
           />
 
           <MetricCard
             icon={Calendar}
             label="Planned"
-            value={stats.plannedReleases ?? 0}
+            value={formatNumber(stats.plannedReleases ?? 0, language)}
             iconColor="text-blue-500"
           />
 
           <MetricCard
             icon={XCircle}
             label="Failed"
-            value={stats.failedReleases ?? 0}
+            value={formatNumber(stats.failedReleases ?? 0, language)}
             iconColor="text-red-500"
             showAlert={stats.failedReleases > 0}
           />
@@ -273,14 +275,14 @@ export function ReleaseStatistics({
           <MetricCard
             icon={Clock}
             label="Avg Lead Time"
-            value={`${stats.averageLeadTime?.toFixed(1) ?? 0} days`}
+            value={`${formatDecimal(stats.averageLeadTime ?? 0, language, 1)} days`}
             iconColor="text-purple-500"
           />
 
           <MetricCard
             icon={TrendingUp}
             label="Success Rate"
-            value={`${successRate}%`}
+            value={formatPercentage(successRate / 100, language, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             iconColor="text-green-500"
           />
         </div>

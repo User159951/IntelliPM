@@ -1,0 +1,59 @@
+{
+  "title": "Défauts",
+  "description": "Suivez et gérez les bugs et problèmes",
+  "selectProject": "Sélectionner un projet",
+  "create": {
+    "button": "Signaler un défaut",
+    "tooltip": "Sélectionnez d'abord un projet pour signaler un défaut"
+  },
+  "list": {
+    "title": "Liste des défauts",
+    "showing": "Affichage de tous les {{total}} défauts",
+    "filtered": "Affichage de {{filtered}} défauts sur {{total}}"
+  },
+  "filters": {
+    "status": {
+      "all": "Tous les statuts",
+      "open": "Ouvert",
+      "inProgress": "En cours",
+      "resolved": "Résolu",
+      "closed": "Fermé"
+    },
+    "severity": {
+      "all": "Toutes les sévérités",
+      "critical": "Critique",
+      "high": "Élevée",
+      "medium": "Moyenne",
+      "low": "Faible"
+    },
+    "assignee": {
+      "all": "Tous les assignés",
+      "unassigned": "Non assigné"
+    },
+    "clear": "Effacer les filtres",
+    "activeCount": "{{count}} actif(s)"
+  },
+  "search": {
+    "placeholder": "Rechercher des défauts..."
+  },
+  "sort": {
+    "label": "Trier par",
+    "severity": "Sévérité",
+    "created": "Date de création",
+    "status": "Statut",
+    "title": "Titre"
+  },
+  "columns": {
+    "id": "ID",
+    "title": "Titre",
+    "severity": "Sévérité",
+    "status": "Statut",
+    "assignee": "Assigné à",
+    "created": "Créé"
+  },
+  "empty": {
+    "title": "Aucun défaut trouvé",
+    "message": "Aucun défaut ne correspond aux filtres actuels. Essayez d'ajuster vos filtres ou créez un nouveau défaut."
+  }
+}
+

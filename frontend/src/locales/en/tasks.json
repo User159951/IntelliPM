@@ -1,0 +1,19 @@
+{
+  "search": {
+    "placeholder": "Search tasks..."
+  },
+  "sort": {
+    "label": "Sort by",
+    "priority": "Priority",
+    "updated": "Last Updated",
+    "dueDate": "Due Date",
+    "points": "Story Points",
+    "alpha": "Alphabetical"
+  },
+  "columns": {
+    "todo": "Todo",
+    "inProgress": "In Progress",
+    "blocked": "Blocked",
+    "done": "Done"
+  }
+}

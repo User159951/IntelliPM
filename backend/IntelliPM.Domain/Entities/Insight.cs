@@ -2,9 +2,10 @@ using IntelliPM.Domain.Interfaces;
 
 namespace IntelliPM.Domain.Entities;
 
-public class Insight : IAggregateRoot
+public class Insight : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
+    public int OrganizationId { get; set; }
     public int ProjectId { get; set; }
     public int? AgentRunId { get; set; }
     public string AgentType { get; set; } = string.Empty; // Product | Delivery | QA | Business
@@ -25,5 +26,6 @@ public class Insight : IAggregateRoot
     public Project Project { get; set; } = null!;
     public AIAgentRun? AgentRun { get; set; }
     public User? AcknowledgedBy { get; set; }
+    public Organization Organization { get; set; } = null!;
 }
 

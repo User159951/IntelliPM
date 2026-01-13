@@ -67,6 +67,10 @@ public class QualityGateConfiguration : IEntityTypeConfiguration<QualityGate>
         builder.HasIndex(qg => qg.Status)
             .HasDatabaseName("IX_QualityGates_Status");
 
+        // Index on OrganizationId for tenant filtering
+        builder.HasIndex(qg => qg.OrganizationId)
+            .HasDatabaseName("IX_QualityGates_OrganizationId");
+
         // Relationships
         // Release relationship - cascade delete: when release is deleted, quality gates are deleted
         builder.HasOne(qg => qg.Release)
@@ -79,6 +83,13 @@ public class QualityGateConfiguration : IEntityTypeConfiguration<QualityGate>
             .WithMany()
             .HasForeignKey(qg => qg.CheckedByUserId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Organization relationship for multi-tenancy
+        builder.HasOne(qg => qg.Organization)
+            .WithMany()
+            .HasForeignKey(qg => qg.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
     }
 }
 

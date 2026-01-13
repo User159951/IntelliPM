@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import * as Sentry from "@sentry/react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { FeatureFlagsProvider } from "./contexts/FeatureFlagsContext";
 import { PermissionProvider } from "./contexts/PermissionContext";
 import { FeatureFlagsGuard } from "./components/guards/FeatureFlagsGuard";
@@ -69,133 +71,137 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <Sentry.ErrorBoundary fallback={ErrorFallback}>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <PermissionProvider>
-            <FeatureFlagsProvider>
-              <TooltipProvider>
-            <BrowserRouter
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
-              <Routes>
-                {/* Public routes - don't require feature flags */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
-                <Route path="/invite/accept/:token" element={<AcceptInvite />} />
-                <Route path="/terms" element={<Terms />} />
+  <Suspense fallback={<div>Loading...</div>}>
+    <Sentry.ErrorBoundary fallback={ErrorFallback}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <LanguageProvider>
+              <PermissionProvider>
+                <FeatureFlagsProvider>
+                <TooltipProvider>
+                  <BrowserRouter
+                    future={{
+                      v7_startTransition: true,
+                      v7_relativeSplatPath: true,
+                    }}
+                  >
+                    <Routes>
+                      {/* Public routes - don't require feature flags */}
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/reset-password/:token" element={<ResetPassword />} />
+                      <Route path="/invite/accept/:token" element={<AcceptInvite />} />
+                      <Route path="/terms" element={<Terms />} />
 
-                {/* Protected routes - require feature flags to be loaded */}
-                <Route
-                  element={
-                    <FeatureFlagsGuard>
-                      <MainLayout />
-                    </FeatureFlagsGuard>
-                  }
-                >
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route
-                    path="/projects/:projectId/releases/:releaseId"
-                    element={<ReleaseDetailPage />}
-                  />
-                  <Route
-                    path="/projects/:projectId/releases/health"
-                    element={<ReleaseHealthDashboard />}
-                  />
-                  <Route path="/projects/:id" element={<ProjectDetail />} />
-                  <Route path="/projects/:id/members" element={<ProjectMembers />} />
-                  <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/sprints" element={<Sprints />} />
-                  <Route path="/backlog" element={<Backlog />} />
-                  <Route path="/defects" element={<Defects />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/teams" element={<Teams />} />
-                  <Route path="/users" element={<Users />} />
-                  <Route path="/metrics" element={<Metrics />} />
-                  <Route path="/insights" element={<Insights />} />
-                  <Route path="/agents" element={<Agents />} />
-                  <Route path="/settings/ai-quota" element={<QuotaDetails />} />
-                </Route>
+                      {/* Protected routes - require feature flags to be loaded */}
+                      <Route
+                        element={
+                          <FeatureFlagsGuard>
+                            <MainLayout />
+                          </FeatureFlagsGuard>
+                        }
+                      >
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/projects" element={<Projects />} />
+                        <Route
+                          path="/projects/:projectId/releases/:releaseId"
+                          element={<ReleaseDetailPage />}
+                        />
+                        <Route
+                          path="/projects/:projectId/releases/health"
+                          element={<ReleaseHealthDashboard />}
+                        />
+                        <Route path="/projects/:id" element={<ProjectDetail />} />
+                        <Route path="/projects/:id/members" element={<ProjectMembers />} />
+                        <Route path="/tasks" element={<Tasks />} />
+                        <Route path="/sprints" element={<Sprints />} />
+                        <Route path="/backlog" element={<Backlog />} />
+                        <Route path="/defects" element={<Defects />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/teams" element={<Teams />} />
+                        <Route path="/users" element={<Users />} />
+                        <Route path="/metrics" element={<Metrics />} />
+                        <Route path="/insights" element={<Insights />} />
+                        <Route path="/agents" element={<Agents />} />
+                        <Route path="/settings/ai-quota" element={<QuotaDetails />} />
+                      </Route>
 
-                {/* Admin routes - require feature flags to be loaded */}
-                <Route
-                  path="/admin"
-                  element={
-                    <FeatureFlagsGuard>
-                      <RequireAdminGuard>
-                        <AdminLayout />
-                      </RequireAdminGuard>
-                    </FeatureFlagsGuard>
-                  }
-                >
-                  <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                  <Route path="dashboard" element={<AdminDashboard />} />
-                  <Route path="users" element={<AdminUsers />} />
-                  <Route path="permissions" element={<AdminPermissions />} />
-                  <Route path="settings" element={<AdminSettings />} />
-                  <Route path="audit-logs" element={<AdminAuditLogs />} />
-                  <Route path="system-health" element={<AdminSystemHealth />} />
-                  <Route path="ai-governance" element={<AIGovernance />} />
-                  <Route path="ai-quota" element={<AdminAIQuota />} />
-                  {/* SuperAdmin only routes */}
-                  <Route
-                    path="organizations"
-                    element={
-                      <RequireSuperAdminGuard>
-                        <AdminOrganizations />
-                      </RequireSuperAdminGuard>
-                    }
-                  />
-                  <Route
-                    path="organizations/:orgId"
-                    element={
-                      <RequireSuperAdminGuard>
-                        <AdminOrganizationDetail />
-                      </RequireSuperAdminGuard>
-                    }
-                  />
-                  <Route
-                    path="organizations/:orgId/ai-quota"
-                    element={
-                      <RequireSuperAdminGuard>
-                        <SuperAdminOrganizationAIQuota />
-                      </RequireSuperAdminGuard>
-                    }
-                  />
-                  <Route
-                    path="organizations/:orgId/permissions"
-                    element={
-                      <RequireSuperAdminGuard>
-                        <SuperAdminOrganizationPermissions />
-                      </RequireSuperAdminGuard>
-                    }
-                  />
-                  {/* Admin own-org routes */}
-                  <Route path="organization" element={<AdminMyOrganization />} />
-                  <Route path="organization/members" element={<AdminOrganizationMembers />} />
-                  <Route path="ai-quotas" element={<AdminMemberAIQuotas />} />
-                  <Route path="permissions/members" element={<AdminMemberPermissions />} />
-                </Route>
+                      {/* Admin routes - require feature flags to be loaded */}
+                      <Route
+                        path="/admin"
+                        element={
+                          <FeatureFlagsGuard>
+                            <RequireAdminGuard>
+                              <AdminLayout />
+                            </RequireAdminGuard>
+                          </FeatureFlagsGuard>
+                        }
+                      >
+                        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                        <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="users" element={<AdminUsers />} />
+                        <Route path="permissions" element={<AdminPermissions />} />
+                        <Route path="settings" element={<AdminSettings />} />
+                        <Route path="audit-logs" element={<AdminAuditLogs />} />
+                        <Route path="system-health" element={<AdminSystemHealth />} />
+                        <Route path="ai-governance" element={<AIGovernance />} />
+                        <Route path="ai-quota" element={<AdminAIQuota />} />
+                        {/* SuperAdmin only routes */}
+                        <Route
+                          path="organizations"
+                          element={
+                            <RequireSuperAdminGuard>
+                              <AdminOrganizations />
+                            </RequireSuperAdminGuard>
+                          }
+                        />
+                        <Route
+                          path="organizations/:orgId"
+                          element={
+                            <RequireSuperAdminGuard>
+                              <AdminOrganizationDetail />
+                            </RequireSuperAdminGuard>
+                          }
+                        />
+                        <Route
+                          path="organizations/:orgId/ai-quota"
+                          element={
+                            <RequireSuperAdminGuard>
+                              <SuperAdminOrganizationAIQuota />
+                            </RequireSuperAdminGuard>
+                          }
+                        />
+                        <Route
+                          path="organizations/:orgId/permissions"
+                          element={
+                            <RequireSuperAdminGuard>
+                              <SuperAdminOrganizationPermissions />
+                            </RequireSuperAdminGuard>
+                          }
+                        />
+                        {/* Admin own-org routes */}
+                        <Route path="organization" element={<AdminMyOrganization />} />
+                        <Route path="organization/members" element={<AdminOrganizationMembers />} />
+                        <Route path="ai-quotas" element={<AdminMemberAIQuotas />} />
+                        <Route path="permissions/members" element={<AdminMemberPermissions />} />
+                      </Route>
 
-                {/* 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-              </TooltipProvider>
-            </FeatureFlagsProvider>
-          </PermissionProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </Sentry.ErrorBoundary>
+                      {/* 404 */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </BrowserRouter>
+                </TooltipProvider>
+              </FeatureFlagsProvider>
+            </PermissionProvider>
+            </LanguageProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </Sentry.ErrorBoundary>
+  </Suspense>
 );
 
 export default App;

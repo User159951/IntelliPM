@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Authorization;
@@ -11,11 +12,13 @@ public class UpdateDefectCommandHandler : IRequestHandler<UpdateDefectCommand, U
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpdateDefectCommandHandler(IUnitOfWork unitOfWork, IMediator mediator)
+    public UpdateDefectCommandHandler(IUnitOfWork unitOfWork, IMediator mediator, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<UpdateDefectResponse> Handle(UpdateDefectCommand request, CancellationToken cancellationToken)
@@ -61,11 +64,17 @@ public class UpdateDefectCommandHandler : IRequestHandler<UpdateDefectCommand, U
 
         if (request.AssignedToId.HasValue)
         {
-            // Verify assignee exists
+            // Verify assignee exists and belongs to the same organization
+            var organizationId = _currentUserService.GetOrganizationId();
             var userRepo = _unitOfWork.Repository<User>();
-            var assignee = await userRepo.GetByIdAsync(request.AssignedToId.Value, cancellationToken);
+            var assignee = await userRepo.Query()
+                .FirstOrDefaultAsync(u => u.Id == request.AssignedToId.Value, cancellationToken);
+            
             if (assignee == null)
-                throw new InvalidOperationException($"User with ID {request.AssignedToId.Value} not found");
+                throw new ValidationException($"User with ID {request.AssignedToId.Value} not found");
+            
+            if (assignee.OrganizationId != organizationId)
+                throw new ValidationException($"User with ID {request.AssignedToId.Value} does not belong to your organization");
             
             defect.AssignedToId = request.AssignedToId;
         }

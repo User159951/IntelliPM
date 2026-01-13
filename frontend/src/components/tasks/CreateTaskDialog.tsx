@@ -58,6 +58,7 @@ import { AITaskImproverDialog, type ImprovedTask } from './AITaskImproverDialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTaskPriorities } from '@/hooks/useLookups';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from 'react-i18next';
 
 interface CreateTaskDialogProps {
   open: boolean;
@@ -91,6 +92,7 @@ export function CreateTaskDialog({
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { priorities, isLoading: isLoadingPriorities } = useTaskPriorities();
+  const { t } = useTranslation('common');
 
   const [formData, setFormData] = useState<CreateTaskRequest & { files: File[] }>({
     title: '',
@@ -150,10 +152,10 @@ export function CreateTaskDialog({
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       onOpenChange(false);
       resetForm();
-      showSuccess("Task created successfully");
+      showSuccess(t('messages.success.taskCreated'));
     },
     onError: () => {
-      showError('Failed to create task');
+      showError(t('messages.error.failedToCreate'));
     },
   });
 
@@ -257,7 +259,7 @@ export function CreateTaskDialog({
     });
 
     if (invalidFiles.length > 0) {
-      showError('Some files were rejected');
+      showError(t('messages.error.someFilesRejected'));
     }
 
     if (validFiles.length > 0) {
@@ -287,7 +289,7 @@ export function CreateTaskDialog({
       acceptanceCriteria: improved.acceptanceCriteria,
       storyPoints: improved.storyPoints,
     });
-    showSuccess('Améliorations appliquées avec succès');
+    showSuccess(t('messages.info.improvementsApplied'));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -324,19 +326,19 @@ export function CreateTaskDialog({
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create New Task</DialogTitle>
-            <DialogDescription>Fill in the details to create a new task for this project.</DialogDescription>
+            <DialogTitle>{t('buttons.createTask')}</DialogTitle>
+            <DialogDescription>{t('descriptions.createTaskDesc')}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title">
-                Title <span className="text-destructive">*</span>
+                {t('labels.name')} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="title"
-                placeholder="Enter task title"
+                placeholder={t('placeholders.enterTaskTitle')}
                 value={formData.title}
                 onChange={(e) => {
                   setFormData({ ...formData, title: e.target.value });
@@ -358,7 +360,7 @@ export function CreateTaskDialog({
             {/* Description */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t('labels.description')}</Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -371,13 +373,13 @@ export function CreateTaskDialog({
                           disabled={!formData.title?.trim() || !formData.description?.trim()}
                         >
                           <Sparkles className="mr-2 h-4 w-4" />
-                          Improve with AI
+                          {t('buttons.improveWithAI')}
                         </Button>
                       </span>
                     </TooltipTrigger>
                     {(!formData.title?.trim() || !formData.description?.trim()) && (
                       <TooltipContent>
-                        <p>Add a title and description to use AI improvements</p>
+                        <p>{t('descriptions.addTitleAndDescription')}</p>
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -385,7 +387,7 @@ export function CreateTaskDialog({
               </div>
               <Textarea
                 id="description"
-                placeholder="Describe the task in detail"
+                placeholder={t('placeholders.describeTask')}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
@@ -395,7 +397,7 @@ export function CreateTaskDialog({
             {/* Type and Priority */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="type">Type</Label>
+                <Label htmlFor="type">{t('labels.type')}</Label>
                 <Select
                   value={formData.type}
                   onValueChange={(value: string) => {
@@ -439,7 +441,7 @@ export function CreateTaskDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
+                <Label htmlFor="priority">{t('labels.priority')}</Label>
                 {isLoadingPriorities ? (
                   <Skeleton className="h-10 w-full" />
                 ) : (
@@ -467,7 +469,7 @@ export function CreateTaskDialog({
             {/* Assignee and Sprint */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="assignee">Assignee</Label>
+                <Label htmlFor="assignee">{t('labels.assignee')}</Label>
                 <Select
                   value={formData.assigneeId?.toString() || 'unassigned'}
                   onValueChange={(value) =>
@@ -489,11 +491,11 @@ export function CreateTaskDialog({
                         <span>{selectedMember.firstName} {selectedMember.lastName}</span>
                       </div>
                     ) : (
-                      <SelectValue placeholder="Unassigned" />
+                      <SelectValue placeholder={t('labels.unassigned')} />
                     )}
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">{t('labels.unassigned')}</SelectItem>
                     {membersData?.map((member: ProjectMember) => (
                       <SelectItem key={member.userId} value={member.userId.toString()}>
                         <div className="flex items-center gap-2">
@@ -512,7 +514,7 @@ export function CreateTaskDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="sprint">Sprint</Label>
+                <Label htmlFor="sprint">{t('labels.sprint')}</Label>
                 <Select
                   value={formData.sprintId?.toString() || 'backlog'}
                   onValueChange={(value) => {
@@ -529,11 +531,11 @@ export function CreateTaskDialog({
                     <SelectValue>
                       {selectedSprint && selectedSprint.startDate && selectedSprint.endDate
                         ? `${selectedSprint.name} (${format(new Date(selectedSprint.startDate), 'MMM d')} - ${format(new Date(selectedSprint.endDate), 'MMM d')})`
-                        : 'Backlog'}
+                        : t('labels.backlog')}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="backlog">Backlog</SelectItem>
+                    <SelectItem value="backlog">{t('labels.backlog')}</SelectItem>
                     {activeSprint && activeSprint.startDate && activeSprint.endDate && (
                       <SelectItem value="current">
                         Current Sprint: {activeSprint.name} ({format(new Date(activeSprint.startDate), 'MMM d')} - {format(new Date(activeSprint.endDate), 'MMM d')})
@@ -554,12 +556,12 @@ export function CreateTaskDialog({
             {/* Story Points and Due Date */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="storyPoints">Story Points</Label>
+                <Label htmlFor="storyPoints">{t('labels.storyPoints')}</Label>
                 <Input
                   id="storyPoints"
                   type="number"
                   min={0}
-                  placeholder="Optional"
+                  placeholder={t('labels.optional')}
                   value={formData.storyPoints || ''}
                   onChange={(e) =>
                     setFormData({
@@ -571,7 +573,7 @@ export function CreateTaskDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dueDate">Due Date</Label>
+                <Label htmlFor="dueDate">{t('labels.dueDate')}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -583,7 +585,7 @@ export function CreateTaskDialog({
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dueDateObj ? format(dueDateObj, 'PPP') : <span>Pick a date</span>}
+                      {dueDateObj ? format(dueDateObj, 'PPP') : <span>{t('placeholders.pickDate')}</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -614,7 +616,7 @@ export function CreateTaskDialog({
                 {isDueSoon && dueDateObj && (
                   <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
                     <AlertCircle className="h-3 w-3" />
-                    Due date is soon
+                    {t('labels.dueDate')} {t('loading.loading')}
                   </div>
                 )}
               </div>
@@ -622,7 +624,7 @@ export function CreateTaskDialog({
 
             {/* Tags */}
             <div className="space-y-2">
-              <Label>Tags</Label>
+              <Label>{t('labels.tags')}</Label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {formData.tags?.map((tag, index) => (
                   <Badge key={tag} variant="secondary" className={getTagColor(index)}>
@@ -639,7 +641,7 @@ export function CreateTaskDialog({
               </div>
               <div className="flex gap-2">
                 <Input
-                  placeholder="Add tag (e.g., Frontend, Backend, Urgent)"
+                  placeholder={t('placeholders.addTag')}
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyDown={(e) => {
@@ -661,7 +663,7 @@ export function CreateTaskDialog({
                 <Button type="button" variant="ghost" className="w-full justify-between">
                   <span className="flex items-center gap-2">
                     <CheckSquare className="h-4 w-4" />
-                    Acceptance Criteria ({formData.acceptanceCriteria?.length || 0})
+                    {t('labels.acceptanceCriteria')} ({formData.acceptanceCriteria?.length || 0})
                   </span>
                   {isCriteriaOpen ? (
                     <ChevronUp className="h-4 w-4" />
@@ -688,7 +690,7 @@ export function CreateTaskDialog({
                   ))}
                   <div className="flex gap-2 mt-2">
                     <Input
-                      placeholder="Enter acceptance criterion"
+                      placeholder={t('placeholders.enterAcceptanceCriterion')}
                       value={newCriterion}
                       onChange={(e) => setNewCriterion(e.target.value)}
                       onKeyDown={(e) => {
@@ -700,12 +702,12 @@ export function CreateTaskDialog({
                     />
                     <Button type="button" variant="outline" onClick={handleAddCriterion}>
                       <Plus className="mr-2 h-4 w-4" />
-                      Add
+                      {t('buttons.add')}
                     </Button>
                   </div>
                   {formData.acceptanceCriteria?.length === 0 && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      At least 1 acceptance criterion is recommended
+                      {t('descriptions.acceptanceCriteriaRecommended')}
                     </p>
                   )}
                 </div>
@@ -718,7 +720,7 @@ export function CreateTaskDialog({
                 <Button type="button" variant="ghost" className="w-full justify-between">
                   <span className="flex items-center gap-2">
                     <Upload className="h-4 w-4" />
-                    Attachments ({formData.files.length})
+                    {t('labels.attachments')} ({formData.files.length})
                   </span>
                   {isAttachmentsOpen ? (
                     <ChevronUp className="h-4 w-4" />
@@ -755,10 +757,10 @@ export function CreateTaskDialog({
                 >
                   <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Drag & drop files here, or click to browse
+                    {t('fileUpload.dragDrop')}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Max 10MB per file. Images, PDFs, and documents allowed.
+                    {t('fileUpload.maxSize')}
                   </p>
                   <input
                     ref={fileInputRef}
@@ -799,11 +801,11 @@ export function CreateTaskDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('buttons.cancel')}
             </Button>
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Task
+              {t('buttons.createTask')}
             </Button>
           </DialogFooter>
         </form>

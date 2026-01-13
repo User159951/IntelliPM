@@ -1,6 +1,7 @@
 import { authApi } from './auth';
 import { toast } from '@/components/ui/sonner';
 import { extractPermissionError, formatPermissionForError } from '@/lib/utils';
+import i18next from 'i18next';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 const API_VERSION = '/api/v1';
@@ -20,22 +21,58 @@ function logErrorToSentry(error: Error, context?: Record<string, unknown>): void
 }
 
 // Helper to get user-friendly error message based on HTTP status code
+// Safe to call even when i18next is not yet initialized
 function getUserFriendlyErrorMessage(status: number, defaultMessage: string): string {
-  switch (status) {
-    case 401:
-      return 'Session expired. Please log in again.';
-    case 403:
-      return "You don't have permission for this action.";
-    case 429:
-      return 'Too many requests. Please try again later.';
-    case 500:
-      return 'Server error. Please contact support.';
-    case 502:
-    case 503:
-    case 504:
-      return 'Service temporarily unavailable. Please try again later.';
-    default:
-      return defaultMessage;
+  // Check if i18next is initialized before using it
+  if (!i18next.isInitialized) {
+    // Return default messages if i18next is not ready
+    switch (status) {
+      case 400:
+        return 'Bad request. Please check your input.';
+      case 401:
+        return 'Session expired. Please log in again.';
+      case 403:
+        return "You don't have permission for this action.";
+      case 404:
+        return 'Resource not found.';
+      case 429:
+        return 'Too many requests. Please try again later.';
+      case 500:
+        return 'Server error. Please contact support.';
+      case 502:
+      case 503:
+      case 504:
+        return 'Service temporarily unavailable.';
+      default:
+        return defaultMessage;
+    }
+  }
+
+  // Use i18next translations if available
+  try {
+    switch (status) {
+      case 400:
+        return i18next.t('errors:http.400', { defaultValue: 'Bad request. Please check your input.' });
+      case 401:
+        return i18next.t('errors:http.401', { defaultValue: 'Session expired. Please log in again.' });
+      case 403:
+        return i18next.t('errors:http.403', { defaultValue: "You don't have permission for this action." });
+      case 404:
+        return i18next.t('errors:http.404', { defaultValue: 'Resource not found.' });
+      case 429:
+        return i18next.t('errors:http.429', { defaultValue: 'Too many requests. Please try again later.' });
+      case 500:
+        return i18next.t('errors:http.500', { defaultValue: 'Server error. Please contact support.' });
+      case 502:
+      case 503:
+      case 504:
+        return i18next.t(`errors:http.${status}`, { defaultValue: 'Service temporarily unavailable.' });
+      default:
+        return defaultMessage;
+    }
+  } catch (error) {
+    // Fallback to default messages if translation fails
+    return defaultMessage;
   }
 }
 
@@ -229,10 +266,10 @@ class ApiClient {
           };
           // Clear quota error when AI is disabled
           lastQuotaError = null;
-          const errorMessage = errorData.message || 'AI features are currently disabled for your organization. Please contact an administrator for assistance.';
+          const errorMessage = errorData.message || i18next.t('errors:ai.disabled', { defaultValue: 'AI features are currently disabled for your organization. Please contact an administrator for assistance.' });
           
           // Show toast notification
-          toast.error('Access Denied', {
+          toast.error(i18next.t('errors:ai.title', { defaultValue: 'Access Denied' }), {
             description: errorMessage,
           });
           
@@ -272,14 +309,17 @@ class ApiClient {
         const match = errorMessage.match(permissionPattern);
         if (match) {
           const permissionName = formatPermissionForError(match[1]);
-          errorMessage = `You need ${permissionName} permission to perform this action.`;
+          errorMessage = i18next.t('errors:permission.missing', {
+            permission: permissionName,
+            defaultValue: `You need ${permissionName} permission to perform this action.`
+          });
         }
       } catch {
         // If response is not JSON, use default message
       }
       
       // Show toast notification with permission error
-      toast.error('Access Denied', {
+      toast.error(i18next.t('errors:permission.title', { defaultValue: 'Access Denied' }), {
         description: errorMessage,
       });
       throw new Error(errorMessage);
@@ -300,10 +340,15 @@ class ApiClient {
           };
           // Clear AI disabled error when quota is exceeded
           lastAIDisabledError = null;
-          const errorMessage = errorData.message || `Monthly AI ${errorData.details.quotaType?.toLowerCase() || 'request'} limit exceeded (${errorData.details.currentUsage || 0}/${errorData.details.maxLimit || 0}). Please upgrade to continue using AI features.`;
+          const errorMessage = errorData.message || i18next.t('errors:quota.exceeded', {
+            quotaType: errorData.details.quotaType || 'request',
+            currentUsage: errorData.details.currentUsage || 0,
+            maxLimit: errorData.details.maxLimit || 0,
+            defaultValue: `Monthly AI ${errorData.details.quotaType?.toLowerCase() || 'request'} limit exceeded (${errorData.details.currentUsage || 0}/${errorData.details.maxLimit || 0}). Please upgrade to continue using AI features.`
+          });
           
           // Show toast notification
-          toast.error('Quota Exceeded', {
+          toast.error(i18next.t('errors:quota.title', { defaultValue: 'Quota Exceeded' }), {
             description: errorMessage,
           });
           
@@ -338,8 +383,8 @@ class ApiClient {
         // If response is not JSON, use header value or default
       }
       
-      const errorMessage = getUserFriendlyErrorMessage(429, `Too many requests. Please wait ${retryAfter} seconds before trying again.`);
-      toast.error('Too Many Requests', {
+      const errorMessage = getUserFriendlyErrorMessage(429, i18next.t('errors:http.429', { defaultValue: `Too many requests. Please wait ${retryAfter} seconds before trying again.` }));
+      toast.error(i18next.t('notifications:titles.tooManyRequests', { defaultValue: 'Too Many Requests' }), {
         description: errorMessage,
       });
       throw new Error(errorMessage);
@@ -389,13 +434,13 @@ class ApiClient {
       
       // Show toast notification for server errors
       if (response.status >= 500) {
-        toast.error('Server Error', {
+        toast.error(i18next.t('notifications:titles.serverError', { defaultValue: 'Server Error' }), {
           description: message,
         });
       } else if (response.status >= 400 && response.status < 500) {
         // Show toast for client errors (except 401, 403, 429 which are handled above)
         if (response.status !== 401 && response.status !== 403 && response.status !== 429) {
-          toast.error('Request Failed', {
+          toast.error(i18next.t('notifications:titles.requestFailed', { defaultValue: 'Request Failed' }), {
             description: message,
           });
         }

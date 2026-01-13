@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { showToast, showError } from '@/lib/sweetalert';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Copy, Check } from 'lucide-react';
 import { usersApi, type InviteOrganizationUserResponse } from '@/api/users';
 
@@ -34,6 +35,7 @@ interface InviteUserDialogProps {
 }
 
 export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDialogProps) {
+  const { t } = useTranslation('admin');
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -70,9 +72,9 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
       setEmailFailed(emailFailed);
       
       if (emailFailed) {
-        showToast('Invitation créée mais l\'email a échoué', 'warning');
+        showToast(t('dialogs.invite.emailFailed'), 'warning');
       } else {
-        showToast('Invitation envoyée', 'success');
+        showToast(t('dialogs.invite.inviteSuccess'), 'success');
       }
       
       if (onSuccess) {
@@ -85,7 +87,7 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
         apiError.response?.data?.detail ||
         apiError.response?.data?.error ||
         apiError.message ||
-        'Échec de l\'envoi de l\'invitation';
+        t('dialogs.invite.inviteErrorMessage');
       
       // Check if error is related to email/SMTP failure
       const isEmailError = errorMessage.toLowerCase().includes('email') || 
@@ -93,9 +95,9 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                           errorMessage.toLowerCase().includes('mail');
       
       if (isEmailError) {
-        showError('Échec de l\'envoi de l\'email', 'L\'invitation a été créée mais l\'envoi de l\'email a échoué. Vous pouvez partager le lien d\'invitation manuellement.');
+        showError(t('dialogs.invite.emailError'), t('dialogs.invite.emailErrorMessage'));
       } else {
-        showError('Échec de l\'invitation', errorMessage);
+        showError(t('dialogs.invite.inviteError'), errorMessage);
       }
     },
   });
@@ -118,10 +120,10 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
     try {
       await navigator.clipboard.writeText(invitationLink);
       setCopied(true);
-      showToast('Le lien d\'invitation a été copié dans le presse-papiers.', 'success');
+      showToast(t('dialogs.invite.linkCopied'), 'success');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      showError('Échec de la copie', 'Veuillez copier le lien manuellement.');
+      showError(t('dialogs.invite.copyFailed'), t('dialogs.invite.copyFailedMessage'));
     }
   };
 
@@ -140,9 +142,9 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Inviter un utilisateur</DialogTitle>
+          <DialogTitle>{t('dialogs.invite.title')}</DialogTitle>
           <DialogDescription>
-            Envoyez une invitation à un nouvel utilisateur. Il recevra un lien par email pour créer son compte.
+            {t('dialogs.invite.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -151,15 +153,15 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
             {emailFailed && (
               <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
                 <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
-                  ⚠️ L'invitation a été créée mais l'envoi de l'email a échoué
+                  ⚠️ {t('dialogs.invite.emailFailedWarning')}
                 </p>
                 <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                  Vous pouvez partager le lien d'invitation ci-dessous manuellement avec l'utilisateur.
+                  {t('dialogs.invite.emailFailedMessage')}
                 </p>
               </div>
             )}
             <div className="space-y-2">
-              <Label>Lien d'invitation</Label>
+              <Label>{t('dialogs.invite.invitationLink')}</Label>
               <div className="flex gap-2">
                 <Input 
                   id="invitation-link"
@@ -173,7 +175,7 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                   variant="outline"
                   size="icon"
                   onClick={handleCopyLink}
-                  title="Copier le lien"
+                  title={t('dialogs.invite.copyLink')}
                 >
                   {copied ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -183,18 +185,18 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Partagez ce lien avec l'utilisateur. Il expirera dans 72 heures.
+                {t('dialogs.invite.linkExpires')}
               </p>
             </div>
             <DialogFooter>
-              <Button onClick={handleClose}>Terminé</Button>
+              <Button onClick={handleClose}>{t('dialogs.invite.done')}</Button>
             </DialogFooter>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">{t('dialogs.invite.email')}</Label>
                 <Input
                   id="email"
                   name="email"
@@ -209,7 +211,7 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Prénom *</Label>
+                  <Label htmlFor="firstName">{t('dialogs.invite.firstName')}</Label>
                   <Input
                     id="firstName"
                     name="firstName"
@@ -223,7 +225,7 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Nom *</Label>
+                  <Label htmlFor="lastName">{t('dialogs.invite.lastName')}</Label>
                   <Input
                     id="lastName"
                     name="lastName"
@@ -238,7 +240,7 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Rôle *</Label>
+                <Label htmlFor="role">{t('dialogs.invite.role')}</Label>
                 <Select
                   value={role}
                   onValueChange={(value) => {
@@ -249,11 +251,11 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                   disabled={inviteMutation.isPending}
                 >
                   <SelectTrigger id="role">
-                    <SelectValue placeholder="Sélectionner un rôle" />
+                    <SelectValue placeholder={t('dialogs.invite.rolePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="User">Utilisateur</SelectItem>
-                    <SelectItem value="Admin">Administrateur</SelectItem>
+                    <SelectItem value="User">{t('dialogs.invite.roleUser')}</SelectItem>
+                    <SelectItem value="Admin">{t('dialogs.invite.roleAdmin')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -265,7 +267,7 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                 onClick={handleClose}
                 disabled={inviteMutation.isPending}
               >
-                Annuler
+                {t('dialogs.invite.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -277,7 +279,7 @@ export function InviteUserDialog({ open, onOpenChange, onSuccess }: InviteUserDi
                 }
               >
                 {inviteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Envoyer l'invitation
+                {t('dialogs.invite.send')}
               </Button>
             </DialogFooter>
           </form>

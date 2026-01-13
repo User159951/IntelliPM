@@ -12,12 +12,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { showSuccess, showError } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2, Users, Settings } from 'lucide-react';
-import type { RegisterTeamRequest } from '@/types';
+import type { RegisterTeamRequest, Team } from '@/types';
+import { EditTeamDialog } from '@/components/teams/EditTeamDialog';
 
 export default function Teams() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [formData, setFormData] = useState<RegisterTeamRequest>({
     name: '',
     memberIds: [],
@@ -154,7 +156,12 @@ export default function Teams() {
                   <CardTitle className="text-lg">{team.name}</CardTitle>
                   <CardDescription>{team.members?.length || 0} members</CardDescription>
                 </div>
-                <Button variant="ghost" size="icon">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setEditingTeam(team)}
+                  aria-label="Team settings"
+                >
                   <Settings className="h-4 w-4" />
                 </Button>
               </CardHeader>
@@ -194,6 +201,18 @@ export default function Teams() {
             </Card>
           ))}
         </div>
+      )}
+
+      {editingTeam && (
+        <EditTeamDialog
+          open={!!editingTeam}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingTeam(null);
+            }
+          }}
+          team={editingTeam}
+        />
       )}
     </div>
   );

@@ -19,13 +19,14 @@ import { TaskListView } from '@/components/tasks/TaskListView';
 import { TaskTimelineView } from '@/components/tasks/TaskTimelineView';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useProjectPermissions } from '@/hooks/useProjectPermissions';
+import { useTranslation } from 'react-i18next';
 import type { Task, TaskStatus, TaskPriority, Project } from '@/types';
 
-const statusColumns: { key: TaskStatus; label: string; color: string }[] = [
-  { key: 'Todo', label: 'To Do', color: 'bg-muted' },
-  { key: 'InProgress', label: 'In Progress', color: 'bg-blue-500/10' },
-  { key: 'Blocked', label: 'Blocked', color: 'bg-red-500/10' },
-  { key: 'Done', label: 'Done', color: 'bg-green-500/10' },
+const getStatusColumns = (t: (key: string) => string): { key: TaskStatus; label: string; color: string }[] => [
+  { key: 'Todo', label: t('columns.todo'), color: 'bg-muted' },
+  { key: 'InProgress', label: t('columns.inProgress'), color: 'bg-blue-500/10' },
+  { key: 'Blocked', label: t('columns.blocked'), color: 'bg-red-500/10' },
+  { key: 'Done', label: t('columns.done'), color: 'bg-green-500/10' },
 ];
 
 const priorityColors: Record<TaskPriority, string> = {
@@ -37,9 +38,12 @@ const priorityColors: Record<TaskPriority, string> = {
 
 export default function Tasks() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('tasks');
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  
+  const statusColumns = getStatusColumns(t);
   const [filters, setFilters] = useState<TaskFilters>({
     priority: 'All',
     assignee: 'All',
@@ -263,11 +267,11 @@ export default function Tasks() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Task Board</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <p className="text-muted-foreground">
-            {viewMode === 'board' && 'Drag and drop tasks to update their status'}
-            {viewMode === 'list' && 'Manage tasks in a detailed table view'}
-            {viewMode === 'timeline' && 'Visualize tasks over time with Gantt-style timeline'}
+            {viewMode === 'board' && t('description.board')}
+            {viewMode === 'list' && t('description.list')}
+            {viewMode === 'timeline' && t('description.timeline')}
           </p>
         </div>
         <div className="flex items-center gap-4 flex-wrap">
@@ -281,7 +285,7 @@ export default function Tasks() {
               }}
             >
               <LayoutGrid className="mr-2 h-4 w-4" />
-              Board
+              {t('views.board')}
             </Button>
             <Button
               variant={viewMode === 'list' ? 'default' : 'ghost'}
@@ -292,7 +296,7 @@ export default function Tasks() {
               }}
             >
               <List className="mr-2 h-4 w-4" />
-              List
+              {t('views.list')}
             </Button>
             <Button
               variant={viewMode === 'timeline' ? 'default' : 'ghost'}
@@ -303,7 +307,7 @@ export default function Tasks() {
               }}
             >
               <Calendar className="mr-2 h-4 w-4" />
-              Timeline
+              {t('views.timeline')}
             </Button>
           </div>
           {projectId && (
@@ -315,7 +319,7 @@ export default function Tasks() {
                   name="task-search"
                   type="search"
                   autoComplete="off"
-                  placeholder="Search tasks..."
+                  placeholder={t('search.placeholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 pr-9"
@@ -341,15 +345,15 @@ export default function Tasks() {
                 <SelectTrigger className="w-[180px]">
                   <div className="flex items-center gap-2">
                     <ArrowUpDown className="h-4 w-4" />
-                    <SelectValue placeholder="Sort by" />
+                    <SelectValue placeholder={t('sort.label')} />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="priority">Priority (High → Low)</SelectItem>
-                  <SelectItem value="updated">Recently updated</SelectItem>
-                  <SelectItem value="dueDate">Due date (nearest first)</SelectItem>
-                  <SelectItem value="points">Story points (high → low)</SelectItem>
-                  <SelectItem value="alpha">Alphabetical (A-Z)</SelectItem>
+                  <SelectItem value="priority">{t('sort.priority')}</SelectItem>
+                  <SelectItem value="updated">{t('sort.updated')}</SelectItem>
+                  <SelectItem value="dueDate">{t('sort.dueDate')}</SelectItem>
+                  <SelectItem value="points">{t('sort.points')}</SelectItem>
+                  <SelectItem value="alpha">{t('sort.alpha')}</SelectItem>
                 </SelectContent>
               </Select>
             </>
@@ -359,7 +363,7 @@ export default function Tasks() {
             onValueChange={(value) => setSelectedProjectId(value ? parseInt(value) : null)}
           >
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select project" />
+              <SelectValue placeholder={t('selectProject')} />
             </SelectTrigger>
             <SelectContent>
               {projectsData?.items?.map((project: Project) => (
@@ -377,7 +381,7 @@ export default function Tasks() {
             onClick={() => setIsDialogOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Create Task
+            {t('create.button')}
           </PermissionButton>
           {projectId && (
             <CreateTaskDialog
@@ -402,12 +406,12 @@ export default function Tasks() {
         </div>
       ) : !projectId ? (
         <Card className="py-16 text-center">
-          <p className="text-muted-foreground">Select a project to view tasks</p>
+          <p className="text-muted-foreground">{t('empty.noProject')}</p>
         </Card>
       ) : filteredTasks.length === 0 && (debouncedSearchQuery.trim() || filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') ? (
         <Card className="py-16 text-center">
           <p className="text-muted-foreground">
-            {debouncedSearchQuery.trim() ? 'No tasks found matching your search' : 'No tasks match the current filters'}
+            {debouncedSearchQuery.trim() ? t('empty.noResults') : t('empty.noFilters')}
           </p>
           <div className="flex gap-2 justify-center mt-4">
             {debouncedSearchQuery.trim() && (
@@ -415,7 +419,7 @@ export default function Tasks() {
                 variant="outline"
                 onClick={() => setSearchQuery('')}
               >
-                Clear search
+                {t('empty.clearSearch')}
               </Button>
             )}
             {(filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') && (
@@ -423,7 +427,7 @@ export default function Tasks() {
                 variant="outline"
                 onClick={() => setFilters({ priority: 'All', assignee: 'All', sprint: 'All', type: 'All', aiStatus: 'All' })}
               >
-                Clear filters
+                {t('empty.clearFilters')}
               </Button>
             )}
           </div>
@@ -446,7 +450,7 @@ export default function Tasks() {
           {(debouncedSearchQuery.trim() || filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') && (
             <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
               <span>
-                Showing {filteredCount} of {totalTasks} {totalTasks === 1 ? 'task' : 'tasks'}
+                {t('count.showing', { filtered: filteredCount, total: totalTasks, tasks: totalTasks === 1 ? t('count.task') : t('count.tasks') })}
               </span>
             </div>
           )}
@@ -482,7 +486,7 @@ export default function Tasks() {
                             {task.status === 'Blocked' && (
                               <div className="flex items-center gap-1 text-xs text-red-500">
                                 <AlertTriangle className="h-3 w-3" />
-                                Blocked
+                                {t('status.blocked')}
                               </div>
                             )}
                           </div>
@@ -498,7 +502,7 @@ export default function Tasks() {
                           </Badge>
                           {task.storyPoints && (
                             <span className="text-xs text-muted-foreground">
-                              {task.storyPoints} pts
+                              {task.storyPoints} {t('points')}
                             </span>
                           )}
                         </div>

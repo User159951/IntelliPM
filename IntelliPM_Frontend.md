@@ -1,7 +1,7 @@
 # IntelliPM Frontend Documentation
 
-**Version:** 2.18.0  
-**Last Updated:** January 8, 2025 (Comprehensive Codebase Scan)  
+**Version:** 2.23.0  
+**Last Updated:** January 9, 2026 (Comprehensive Codebase Scan - Updated with latest changes)  
 **Technology Stack:** React 18, TypeScript (Strict Mode), Vite, Tailwind CSS, shadcn/ui, TanStack Query
 
 ---
@@ -18,25 +18,26 @@
 8. [Components](#components)
 9. [Pages](#pages)
 10. [Styling](#styling)
-11. [Forms & Validation](#forms--validation)
-12. [Testing](#testing)
-13. [Development Setup](#development-setup)
-14. [Build & Deployment](#build--deployment)
-15. [Best Practices](#best-practices)
-16. [Troubleshooting](#troubleshooting)
-17. [TypeScript](#typescript)
-18. [API Integration Patterns](#api-integration-patterns)
-19. [Feature Flags](#feature-flags)
-20. [SweetAlert2 Integration](#sweetalert2-integration)
-21. [Custom Hooks](#custom-hooks)
-22. [Accessibility](#accessibility)
-23. [Performance Optimization](#performance-optimization)
-24. [Security](#security)
-25. [Monitoring & Analytics](#monitoring--analytics)
-26. [Future Improvements](#future-improvements)
-27. [Contributing](#contributing)
-28. [Missing Features](#missing-features)
-29. [API Integration Status](#api-integration-status)
+11. [Internationalization (i18n)](#11-internationalization-i18n)
+12. [Forms & Validation](#forms--validation)
+13. [Testing](#testing)
+14. [Development Setup](#development-setup)
+15. [Build & Deployment](#build--deployment)
+16. [Best Practices](#best-practices)
+17. [Troubleshooting](#troubleshooting)
+18. [TypeScript](#typescript)
+19. [API Integration Patterns](#api-integration-patterns)
+20. [Feature Flags](#feature-flags)
+21. [SweetAlert2 Integration](#sweetalert2-integration)
+22. [Custom Hooks](#custom-hooks)
+23. [Accessibility](#accessibility)
+24. [Performance Optimization](#performance-optimization)
+25. [Security](#security)
+26. [Monitoring & Analytics](#monitoring--analytics)
+27. [Future Improvements](#future-improvements)
+28. [Contributing](#contributing)
+29. [Missing Features](#missing-features)
+30. [API Integration Status](#api-integration-status)
 
 ---
 
@@ -66,6 +67,8 @@ IntelliPM Frontend is a modern, responsive React application built with TypeScri
 - **Milestones Management**: Complete milestone tracking with statistics and timeline views
 - **Release Management**: Release planning, quality gates, and release notes generation
 - **Task Dependencies**: Visual dependency graphs and dependency management
+- **Internationalization (i18n)**: Multi-language support (English, French) with dynamic language switching and backend sync
+- **Lookup Data API**: Reference data endpoints for project types, task statuses, and priorities with metadata
 
 ### 1.3 Design Principles
 
@@ -136,7 +139,7 @@ frontend/
 │   ├── favicon.ico
 │   └── placeholder.svg
 ├── src/
-│   ├── api/                   # API client modules (35 API clients, 3 test files = 38 files total) ✅ Verified
+│   ├── api/                   # API client modules (37 API clients, 3 test files = 40 files total) ✅ Verified
 │   │   ├── client.ts          # Base API client with token refresh
 │   │   ├── auth.ts            # Authentication API
 │   │   ├── projects.ts        # Projects API
@@ -169,10 +172,18 @@ frontend/
 │   │   ├── auditLogs.ts       # Audit logs API
 │   │   ├── comments.ts        # Comments API
 │   │   ├── attachments.ts     # Attachments API
-│   │   └── aiGovernance.ts    # AI governance API
-│   ├── components/            # React components (172 files: 170 .tsx + 2 .ts) ✅ Verified
+│   │   ├── aiGovernance.ts    # AI governance API
+│   │   ├── lookups.ts         # Lookup/reference data API (project types, task statuses, priorities) with metadata
+│   │   ├── language.ts        # Language preference API (getUserLanguage, updateUserLanguage)
+│   │   └── adminAIQuotas.ts   # Admin member AI quotas (new model with OrganizationAIQuota)
+│   ├── components/            # React components (163 files, excluding test files) ✅ Verified
 │   │   ├── ui/                # shadcn/ui components (51 components)
 │   │   ├── layout/            # Layout components
+│   │   ├── auth/              # Authentication components (4 components)
+│   │   │   ├── Logo.tsx       # IntelliPM logo with variants
+│   │   │   ├── GeometricShapes.tsx # Animated decorative shapes
+│   │   │   ├── LoginForm.tsx  # Standalone login form
+│   │   │   └── PasswordStrengthIndicator.tsx # Password strength indicator
 │   │   ├── admin/             # Admin-specific components
 │   │   ├── agents/            # AI agent components
 │   │   ├── projects/          # Project-related components
@@ -189,8 +200,10 @@ frontend/
 │   │   ├── AuthContext.tsx    # Authentication context
 │   │   ├── ThemeContext.tsx   # Theme context
 │   │   ├── ProjectContext.tsx # Project context
-│   │   └── FeatureFlagsContext.tsx # Feature flags context
-│   ├── hooks/                 # Custom hooks (15 hooks: 14 .ts + 1 .tsx) ✅ Verified
+│   │   ├── FeatureFlagsContext.tsx # Feature flags context
+│   │   ├── LanguageContext.tsx # Language/i18n context
+│   │   └── PermissionContext.tsx # Permission context
+│   ├── hooks/                 # Custom hooks (17 hooks: 16 .ts + 1 .tsx) ✅ Verified
 │   │   ├── use-debounce.ts    # Debounce hook
 │   │   ├── use-mobile.tsx     # Mobile detection hook
 │   │   ├── useProjectPermissions.ts # Project-level permission hook
@@ -211,9 +224,10 @@ frontend/
 │   │   ├── useUserRole.ts     # User role hook
 │   │   ├── useDebouncedCallback.ts # Debounced callback hook
 │   │   ├── useRequestDeduplication.ts # Request deduplication hook
-│   │   └── useReadModels.ts   # Read models hook
-│   ├── pages/                 # Page components (51 pages total)
-│   │   ├── auth/              # Authentication pages (5 pages + tests)
+│   │   ├── useReadModels.ts   # Read models hook
+│   │   └── useTranslation.ts # i18n translation hook with safeT helper
+│   ├── pages/                 # Page components (46 pages, excluding test files) ✅ Verified
+│   │   ├── auth/              # Authentication pages (5 pages: Login, Register, ForgotPassword, ResetPassword, AcceptInvite)
 │   │   │   ├── Login.tsx
 │   │   │   ├── Register.tsx
 │   │   │   ├── ForgotPassword.tsx
@@ -236,6 +250,7 @@ frontend/
 │   │   │   └── AdminMemberPermissions.tsx
 │   │   ├── superadmin/        # SuperAdmin pages (2 pages)
 │   │   │   ├── SuperAdminOrganizationAIQuota.tsx
+│   │   │   └── SuperAdminOrganizationPermissions.tsx
 │   │   │   └── SuperAdminOrganizationPermissions.tsx
 │   │   ├── ReleaseDetailPage.tsx # Release detail page
 │   │   ├── ReleaseHealthDashboard.tsx # Release health dashboard
@@ -286,7 +301,8 @@ frontend/
 API client modules organized by feature:
 - `client.ts`: Base API client with error handling
 - `auth.ts`: Authentication endpoints
-- `projects.ts`: Project management
+- `projects.ts`: Project management (CRUD, members, teams, dependency graph)
+- `permissions.ts`: Permissions API (global permissions, project permissions via getProjectPermissions)
 - `tasks.ts`: Task management
 - `sprints.ts`: Sprint management
 - `defects.ts`: Defect tracking
@@ -322,6 +338,15 @@ API client modules organized by feature:
 - `memberPermissions.ts`: Member permissions management API (Admin only)
   - getMemberPermissions: Get paginated list of members with permissions
   - updateMemberPermission: Update member role and/or permissions
+- `lookups.ts`: Lookup/reference data API (project types, task statuses, priorities with metadata)
+- `language.ts`: Language preference API (getUserLanguage, updateUserLanguage with backend sync)
+  - getProjectTypes: Get project types with metadata (Scrum, Kanban, Waterfall)
+  - getTaskStatuses: Get task statuses with metadata (Todo, InProgress, Blocked, Done)
+  - getTaskPriorities: Get task priorities with metadata (Low, Medium, High, Critical)
+- `language.ts`: Language preference API (backend sync)
+  - getUserLanguage: Get user's language preference from backend (via Settings API)
+  - updateUserLanguage: Update user's language preference on backend (via Settings API)
+  - Note: Falls back to 'en' if backend fails, allows local language change even if backend update fails
 
 #### 3.2.2 `/src/components/`
 
@@ -362,6 +387,8 @@ Component library organized by feature:
 - **`users/`**: User-related components
   - UserCard.tsx (User card display component)
   - RoleBadge.tsx (Role badge component for users)
+- **`teams/`**: Team-related components
+  - EditTeamDialog.tsx (Edit team dialog with member management)
 - **`sprints/`**: Sprint-related components
   - SprintPlanningAI.tsx (new - intelligent sprint planning)
 - **`defects/`**: Defect-related components
@@ -416,10 +443,11 @@ Component library organized by feature:
 
 Page components (route-level components):
 
-- **`auth/`**: Login, Register, AcceptInvite, ForgotPassword, ResetPassword
-- **`admin/`**: AdminDashboard, AdminUsers, AdminPermissions, AdminSettings, AdminAuditLogs, AdminSystemHealth, AdminMemberPermissions
-- **`superadmin/`**: SuperAdminOrganizationAIQuota, SuperAdminOrganizationPermissions
-- **Feature Pages**: Dashboard, Projects, Tasks, Sprints, Teams, Metrics, Insights, Agents, Backlog, Defects, Profile, Users, Milestones, Releases, ReleaseDetailPage, ReleaseHealthDashboard
+- **`auth/`**: Login, Register, AcceptInvite, ForgotPassword, ResetPassword (5 pages)
+- **`admin/`**: AdminDashboard, AdminUsers, AdminPermissions, AdminSettings, AdminAuditLogs, AdminSystemHealth, AIGovernance, AdminAIQuota, AdminOrganizations, AdminOrganizationDetail, AdminMyOrganization, AdminOrganizationMembers, AdminMemberAIQuotas, AdminMemberPermissions (14 pages)
+- **`superadmin/`**: SuperAdminOrganizationAIQuota, SuperAdminOrganizationPermissions (2 pages)
+- **Feature Pages**: Dashboard, Projects, ProjectDetail, ProjectMembers, Tasks, Sprints, Teams, Metrics, Insights, Agents, Backlog, Defects, Profile, Users, QuotaDetails, ReleaseDetailPage, ReleaseHealthDashboard, Terms, NotFound, Index (20 pages)
+- **Total**: 41 pages (excluding test files)
 
 #### 3.2.4 `/src/contexts/`
 
@@ -429,6 +457,8 @@ React Context providers:
 - **`ThemeContext`**: Theme (light/dark) management
 - **`ProjectContext`**: Current project context
 - **`FeatureFlagsContext`**: Feature flags state and management
+- **`LanguageContext`**: Language/i18n state and language switching
+- **`PermissionContext`**: Permission checking and management
 
 ---
 
@@ -836,8 +866,13 @@ export const projectsApi = {
   
   assignTeam: (projectId: number, data: { teamId: number; defaultRole?: ProjectRole; memberRoleOverrides?: Record<number, ProjectRole> }) => 
     apiClient.post(`/Projects/${projectId}/assign-team`, data),
+  
+  getAssignedTeams: (projectId: number) => 
+    apiClient.get(`/Projects/${projectId}/assigned-teams`),
 };
 ```
+
+**Note:** Project permissions are accessed via `permissionsApi.getProjectPermissions(projectId)`, not `projectsApi`.
 
 **Example: `memberService.ts`**
 ```typescript
@@ -1355,6 +1390,39 @@ Base components from shadcn/ui library:
   - Labels: Faible (Weak), Moyen (Medium), Bon (Good), Excellent
   - Calculates strength based on length, character variety, and complexity
 
+#### 8.2.2 Authentication Components
+
+- **Logo**: Reusable IntelliPM logo component
+  - Located in `src/components/auth/Logo.tsx`
+  - Props: `variant?: 'light' | 'dark'`, `size?: 'sm' | 'md' | 'lg'`
+  - Light variant: White text with backdrop blur icon background
+  - Dark variant: Foreground text with gradient primary icon background
+  - Responsive sizing: sm (8x8 icon), md (12x12 icon), lg (16x16 icon)
+  - Displays "IntelliPM" text with "Intelligent Project Management" tagline
+  - Used in login page (light variant on gradient, dark variant on mobile)
+
+- **GeometricShapes**: Animated decorative shapes for visual backgrounds
+  - Located in `src/components/auth/GeometricShapes.tsx`
+  - Floating hexagons, circles, triangles with opacity variations
+  - Animated with float, float-delayed, and pulse-glow animations
+  - Grid pattern overlay for texture
+  - Used in login page left panel for visual interest
+
+- **LoginForm**: Standalone login form component
+  - Located in `src/components/auth/LoginForm.tsx`
+  - Full authentication logic integration with `useAuth` hook
+  - Features:
+    - Username/email input with validation
+    - Password input with visibility toggle
+    - Remember me checkbox
+    - Forgot password link
+    - Loading states with spinner
+    - Error handling with SweetAlert2
+    - Role-based redirections (Admin → /admin/dashboard, User → /dashboard)
+  - Animated form fields with staggered fade-in-up effects
+  - Gradient primary button with hover effects
+  - Preserves all existing authentication functionality
+
 ### 8.3 Component Patterns
 
 #### 8.3.1 Controlled Components
@@ -1390,10 +1458,42 @@ const inputRef = useRef<HTMLInputElement>(null);
 
 #### 9.1.1 Login (`/login`)
 
-- Username/password form
-- "Remember me" option
-- Link to register
-- Redirects to dashboard on success
+**Modern Split-Screen Design** (v2.19.0)
+
+- **Layout**: Split-screen design with gradient panel (left) and login form (right)
+  - Desktop: 50/50 split (lg) or 55/45 split (xl)
+  - Mobile: Stacked layout with logo above form
+- **Left Panel** (Desktop only):
+  - Gradient dark background with animated geometric shapes
+  - Large IntelliPM logo (light variant)
+  - Tagline: "Gérez vos projets avec intelligence. Simplifiez. Automatisez. Réussissez."
+  - Bottom gradient fade effect
+- **Right Panel**:
+  - Mobile logo (dark variant) - visible on mobile only
+  - Login card with rounded corners and shadow
+  - Welcome message: "Bienvenue" with subtitle
+  - LoginForm component with full authentication logic
+  - Footer with copyright notice
+- **Features**:
+  - Username/email input with validation
+  - Password input with visibility toggle
+  - "Remember me" checkbox
+  - "Forgot password" link to `/forgot-password`
+  - Loading states with spinner and "Connexion en cours..." message
+  - Error handling with SweetAlert2
+  - Role-based redirections:
+    - Admin → `/admin/dashboard`
+    - User → `/dashboard`
+  - Automatic redirect if already authenticated
+- **Animations**:
+  - Fade-in animations for logo and elements
+  - Staggered fade-in-up for form fields
+  - Slide-in-right for login card
+  - Floating animations for geometric shapes
+- **Components Used**:
+  - `Logo` (light variant on left, dark variant on mobile)
+  - `GeometricShapes` (left panel background)
+  - `LoginForm` (standalone form component)
 
 #### 9.1.2 Register (`/register`)
 
@@ -1825,7 +1925,277 @@ import { cn } from '@/lib/utils';
 
 ---
 
-## 11. Forms & Validation
+## 11. Internationalization (i18n)
+
+### 11.1 Overview
+
+IntelliPM uses **react-i18next** for internationalization, providing support for multiple languages with dynamic language switching and backend synchronization.
+
+**Supported Languages:**
+- **English (en)** - Default language
+- **Français (fr)** - French
+
+**Key Features:**
+- 18 namespaces organized by feature
+- Dynamic language switching at runtime
+- Backend synchronization of language preference
+- Automatic browser language detection
+- Locale-aware date and number formatting
+- Translation validation script
+
+### 11.2 Translation File Structure
+
+Translation files are located in `public/locales/{lang}/{ns}.json`:
+
+```
+public/locales/
+├── en/
+│   ├── common.json
+│   ├── auth.json
+│   ├── projects.json
+│   ├── tasks.json
+│   └── ... (18 namespaces total)
+└── fr/
+    ├── common.json
+    ├── auth.json
+    ├── projects.json
+    ├── tasks.json
+    └── ... (18 namespaces total)
+```
+
+**Namespaces:**
+- `common` - Common UI elements
+- `auth` - Authentication
+- `projects` - Project management
+- `tasks` - Task management
+- `admin` - Administration
+- `navigation` - Navigation menu
+- `notifications` - Notifications
+- `errors` - Error messages
+- `dashboard` - Dashboard
+- `sprints` - Sprint management
+- `teams` - Team management
+- `backlog` - Backlog management
+- `defects` - Defect tracking
+- `metrics` - Metrics and analytics
+- `insights` - Project insights
+- `agents` - AI agents
+- `milestones` - Milestone tracking
+- `releases` - Release management
+
+### 11.3 LanguageContext API
+
+The `LanguageContext` provides language state and management:
+
+```typescript
+import { useLanguage } from '@/contexts/LanguageContext';
+
+function MyComponent() {
+  const { 
+    language,           // Current language code ('en', 'fr')
+    changeLanguage,     // Function to change language
+    availableLanguages, // Array of available languages
+    isLoading          // Loading state
+  } = useLanguage();
+  
+  return (
+    <select value={language} onChange={(e) => changeLanguage(e.target.value)}>
+      {availableLanguages.map(lang => (
+        <option key={lang.code} value={lang.code}>
+          {lang.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+```
+
+**Language Detection Priority:**
+1. Backend user preference (if authenticated)
+2. localStorage
+3. Browser language preference
+4. Default: English (en)
+
+### 11.4 Using useTranslation Hook
+
+The custom `useTranslation` hook provides translation functions:
+
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  // Basic usage with default namespace
+  const { t } = useTranslation();
+  const welcome = t('common.welcome');
+  
+  // With specific namespace
+  const { t } = useTranslation('projects');
+  const title = t('title');
+  
+  // With interpolation
+  const message = t('showing', { count: 5, total: 10 });
+  // Output: "Showing 5 of 10 projects"
+  
+  // Safe translation with fallback
+  const { safeT } = useTranslation();
+  const text = safeT('common.newKey', 'Fallback Text');
+}
+```
+
+**Multiple Namespaces:**
+```typescript
+const { t } = useTranslation(['projects', 'common']);
+
+// Use with namespace prefix
+<h1>{t('projects:title')}</h1>
+<button>{t('common:save')}</button>
+```
+
+### 11.5 Date Formatting Utilities
+
+Use `formatDate` for locale-aware date formatting:
+
+```typescript
+import { formatDate, DateFormats, formatRelativeTime } from '@/utils/dateFormat';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+function DateDisplay({ date }: { date: Date }) {
+  const { language } = useLanguage();
+  
+  // Short date: "01/08/2026" (US) or "08/01/2026" (FR)
+  const shortDate = formatDate(date, DateFormats.SHORT(language), language);
+  
+  // Long date: "January 8, 2026" (US) or "8 janvier 2026" (FR)
+  const longDate = formatDate(date, DateFormats.LONG(language), language);
+  
+  // Relative time: "2 hours ago" or "il y a 2 heures"
+  const relative = formatRelativeTime(date, language);
+  
+  return <div>{longDate}</div>;
+}
+```
+
+**Available Date Formats:**
+- `DateFormats.SHORT(language)` - Short date
+- `DateFormats.LONG(language)` - Long date
+- `DateFormats.DATETIME(language)` - Date with time
+- `DateFormats.TIME(language)` - Time only
+- `DateFormats.MONTH_DAY(language)` - Month and day
+- `DateFormats.DAY_OF_WEEK(language)` - Day of week
+- `DateFormats.PRETTY(language)` - Pretty print
+
+### 11.6 Number Formatting Utilities
+
+Use `formatNumber` for locale-aware number formatting:
+
+```typescript
+import { formatNumber, formatCurrency, formatPercentage } from '@/utils/numberFormat';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+function NumberDisplay({ value }: { value: number }) {
+  const { language } = useLanguage();
+  
+  // Formatted number: "1,234.56" (US) or "1 234,56" (FR)
+  const formatted = formatNumber(value, language);
+  
+  // Currency: "$1,234.56" (US) or "1 234,56 €" (FR)
+  const currency = formatCurrency(value, language, 'USD');
+  
+  // Percentage: "45.5%" (US) or "45,5 %" (FR)
+  const percentage = formatPercentage(value, language);
+  
+  return <div>{formatted}</div>;
+}
+```
+
+### 11.7 Language Toggle Component
+
+The `LanguageToggle` component provides a dropdown to switch languages:
+
+```typescript
+import { LanguageToggle } from '@/components/layout/LanguageToggle';
+
+function Header() {
+  return (
+    <header>
+      <LanguageToggle />
+    </header>
+  );
+}
+```
+
+The component:
+- Shows current language with flag icon
+- Provides dropdown with available languages
+- Handles language switching
+- Syncs with backend (if authenticated)
+- Persists preference in localStorage
+
+### 11.8 Adding Translations to Components
+
+**Step 1:** Identify text to translate and choose namespace
+
+**Step 2:** Add keys to translation files:
+
+```json
+// public/locales/en/projects.json
+{
+  "title": "Projects",
+  "create": {
+    "button": "Create Project"
+  }
+}
+
+// public/locales/fr/projects.json
+{
+  "title": "Projets",
+  "create": {
+    "button": "Créer un projet"
+  }
+}
+```
+
+**Step 3:** Use translations in component:
+
+```typescript
+import { useTranslation } from 'react-i18next';
+
+function ProjectsPage() {
+  const { t } = useTranslation('projects');
+  
+  return (
+    <div>
+      <h1>{t('title')}</h1>
+      <button>{t('create.button')}</button>
+    </div>
+  );
+}
+```
+
+### 11.9 Validation
+
+Run the validation script to check translation completeness:
+
+```bash
+npm run i18n:check
+```
+
+This checks:
+- All keys exist in all languages
+- No empty values
+- Valid JSON structure
+- Reports missing translations
+
+### 11.10 Documentation
+
+For detailed i18n documentation, see:
+- **[i18n Documentation](../docs/i18n.md)** - Complete i18n guide
+- **[Translation Guide](../docs/TRANSLATION_GUIDE.md)** - Contribution guide
+- **[i18n Checklist](../docs/i18n-checklist.md)** - Implementation checklist
+
+---
+
+## 12. Forms & Validation
 
 ### 11.1 React Hook Form
 
@@ -1918,9 +2288,9 @@ const schema = z.object({
 
 ---
 
-## 12. Testing
+## 13. Testing
 
-### 12.1 Testing Stack
+### 13.1 Testing Stack
 
 - **Vitest**: Test runner
 - **@testing-library/react**: Component testing
@@ -1928,7 +2298,7 @@ const schema = z.object({
 - **@testing-library/jest-dom**: DOM matchers
 - **MSW**: API mocking
 
-### 12.2 Test Structure
+### 13.2 Test Structure
 
 ```
 src/
@@ -1947,9 +2317,9 @@ src/
     └── test-utils.tsx    # Testing utilities
 ```
 
-### 12.3 Test Examples
+### 13.3 Test Examples
 
-#### 12.3.1 Component Test
+#### 13.3.1 Component Test
 
 ```typescript
 import { render, screen } from '@testing-library/react';
@@ -1961,7 +2331,7 @@ test('renders button with text', () => {
 });
 ```
 
-#### 12.3.2 Hook Test
+#### 13.3.2 Hook Test
 
 ```typescript
 import { renderHook } from '@testing-library/react';
@@ -1979,7 +2349,7 @@ test('debounces value', async () => {
 });
 ```
 
-#### 12.3.3 API Mocking
+#### 13.3.3 API Mocking
 
 ```typescript
 import { server } from '@/mocks/server';
@@ -1992,7 +2362,7 @@ server.use(
 );
 ```
 
-### 12.4 Running Tests
+### 13.4 Running Tests
 
 ```bash
 # Run all tests
@@ -2011,7 +2381,7 @@ npm run test:coverage
 npm run test:run
 ```
 
-### 12.5 Test Coverage
+### 13.5 Test Coverage
 
 Target: 70% coverage for:
 - Lines
@@ -2021,30 +2391,30 @@ Target: 70% coverage for:
 
 ---
 
-## 13. Development Setup
+## 14. Development Setup
 
-### 13.1 Prerequisites
+### 14.1 Prerequisites
 
 - **Node.js**: v18 or higher (recommend using nvm)
 - **npm**: v9 or higher (comes with Node.js)
 - **Git**: For version control
 
-### 13.2 Installation
+### 14.2 Installation
 
-#### 13.2.1 Clone Repository
+#### 14.2.1 Clone Repository
 
 ```bash
 git clone <repository-url>
 cd frontend
 ```
 
-#### 13.2.2 Install Dependencies
+#### 14.2.2 Install Dependencies
 
 ```bash
 npm install
 ```
 
-#### 13.2.3 Environment Variables
+#### 14.2.3 Environment Variables
 
 Create `.env` file in the frontend root (copy from `.env.example`):
 
@@ -2064,7 +2434,7 @@ VITE_SENTRY_ENVIRONMENT=development
 
 **Note:** All environment variables must be prefixed with `VITE_` to be accessible in the frontend code.
 
-#### 13.2.4 Start Development Server
+#### 14.2.4 Start Development Server
 
 ```bash
 npm run dev
@@ -2072,24 +2442,24 @@ npm run dev
 
 Application runs on `http://localhost:8080`
 
-### 13.3 Development Tools
+### 14.3 Development Tools
 
-#### 13.3.1 Vite Dev Server
+#### 14.3.1 Vite Dev Server
 
 - **Hot Module Replacement (HMR)**: Instant updates
 - **Fast Refresh**: Preserves component state
 - **Source Maps**: Debugging support
 - **Port**: 8080 (configurable)
 
-#### 13.3.2 Browser DevTools
+#### 14.3.2 Browser DevTools
 
 - **React DevTools**: Component inspection
 - **TanStack Query DevTools**: Query inspection (if enabled)
 - **Redux DevTools**: Not used (using Context API)
 
-### 13.4 Code Quality
+### 14.4 Code Quality
 
-#### 13.4.1 Linting
+#### 14.4.1 Linting
 
 ```bash
 npm run lint
@@ -2101,7 +2471,7 @@ npm run lint
 - Import ordering
 - Code style enforcement
 
-#### 13.4.2 Type Checking
+#### 14.4.2 Type Checking
 
 TypeScript strict mode is enabled with comprehensive type checking:
 
@@ -2175,7 +2545,7 @@ The project uses strict TypeScript configuration (`tsconfig.app.json`) with the 
 
 ---
 
-## 14. Build & Deployment
+## 15. Build & Deployment
 
 ### 14.1 Building for Production
 
@@ -2304,7 +2674,7 @@ Set environment variables in your hosting platform:
 
 ---
 
-## 15. Best Practices
+## 16. Best Practices
 
 ### 15.1 Component Design
 
@@ -2492,7 +2862,7 @@ try {
 
 ---
 
-## 16. Troubleshooting
+## 17. Troubleshooting
 
 ### 16.1 Common Issues
 
@@ -2638,7 +3008,7 @@ if (import.meta.env.DEV) {
 
 ---
 
-## 17. TypeScript
+## 18. TypeScript
 
 ### 17.1 TypeScript Strict Mode
 
@@ -2864,7 +3234,7 @@ For detailed information about the strict mode implementation and all fixes appl
 
 ---
 
-## 18. API Integration Patterns
+## 19. API Integration Patterns
 
 ### 18.1 Query Patterns
 
@@ -2984,7 +3354,7 @@ const updateMutation = useMutation({
 
 ---
 
-## 19. Feature Flags
+## 20. Feature Flags
 
 ### 19.1 Overview
 
@@ -3185,7 +3555,7 @@ This ensures feature flags are available throughout the application.
 
 ---
 
-## 20. SweetAlert2 Integration
+## 21. SweetAlert2 Integration
 
 ### 20.1 Overview
 
@@ -3420,7 +3790,7 @@ try {
 
 ---
 
-## 21. Custom Hooks
+## 22. Custom Hooks
 
 ### 21.1 Existing Hooks
 
@@ -3546,6 +3916,121 @@ Hook for managing project-level task dependencies:
 const { data: dependencies, isLoading } = useProjectTaskDependencies(projectId);
 ```
 
+#### 21.1.11 useLookups
+
+Hooks for accessing lookup/reference data:
+
+```typescript
+// Task statuses with metadata
+const { data: taskStatuses, isLoading } = useTaskStatuses();
+
+// Task priorities with metadata
+const { data: taskPriorities, isLoading } = useTaskPriorities();
+
+// Project types with metadata
+const { data: projectTypes, isLoading } = useProjectTypes();
+```
+
+**Features:**
+- Cached lookup data via TanStack Query
+- Includes metadata (colors, icons, display order)
+- Used for dropdowns, badges, and filters
+
+#### 21.1.12 useTranslation
+
+Custom translation hook with safe fallback:
+
+```typescript
+import { useTranslation } from '@/hooks/useTranslation';
+
+const { t, safeT } = useTranslation('common');
+
+// Standard usage
+const text = t('buttons.save');
+
+// Safe usage with fallback
+const safeText = safeT('buttons.newKey', 'Save');
+```
+
+**Features:**
+- Wraps react-i18next's useTranslation
+- Provides `safeT` function that returns fallback if key not found
+- Prevents displaying translation keys to users
+
+#### 21.1.13 useLanguage
+
+Hook for language management:
+
+```typescript
+import { useLanguage } from '@/contexts/LanguageContext';
+
+const { language, changeLanguage, availableLanguages, isLoading } = useLanguage();
+```
+
+**Features:**
+- Current language state
+- Language switching with backend sync
+- Available languages list
+- Loading state during language change
+
+#### 21.1.14 useDebouncedCallback
+
+Hook for debouncing callback functions:
+
+```typescript
+const debouncedCallback = useDebouncedCallback((value: string) => {
+  // Handle debounced value
+}, 300);
+```
+
+#### 21.1.15 useRequestDeduplication
+
+Hook for preventing duplicate API requests:
+
+```typescript
+const { deduplicateRequest } = useRequestDeduplication();
+
+// Prevents multiple simultaneous requests with same key
+const result = await deduplicateRequest('key', () => apiCall());
+```
+
+#### 21.1.16 useUserRole
+
+Hook for getting user role in project:
+
+```typescript
+const { userRole, isOwner, isAdmin, isLoading } = useUserRole(projectId);
+```
+
+**Features:**
+- Returns user's role in specific project
+- Helper booleans for common checks
+- Handles loading and error states
+
+#### 21.1.17 usePermissions
+
+Hook for global permission checking:
+
+```typescript
+const { hasPermission, hasAnyPermission, hasAllPermissions, isLoading } = usePermissions();
+
+// Check single permission
+if (hasPermission('projects.create')) {
+  // Show create button
+}
+
+// Check multiple permissions
+if (hasAllPermissions(['projects.edit', 'projects.delete'])) {
+  // Show edit and delete buttons
+}
+```
+
+**Features:**
+- Global permission checking
+- Project-scoped permission checking via `usePermissionsWithProject(projectId)`
+- Cached permission data
+- Loading and error states
+
 ### 21.2 Creating Custom Hooks
 
 #### 21.2.1 Hook Pattern
@@ -3572,7 +4057,7 @@ export function useCustomHook(param: string) {
 
 ---
 
-## 22. Accessibility
+## 23. Accessibility
 
 ### 22.1 Keyboard Navigation
 
@@ -3631,7 +4116,7 @@ Components use proper ARIA attributes:
 
 ---
 
-## 23. Performance Optimization
+## 24. Performance Optimization
 
 ### 23.1 Code Splitting
 
@@ -3681,7 +4166,7 @@ const HeavyComponent = lazy(() => import('./HeavyComponent'));
 
 ---
 
-## 24. Security
+## 25. Security
 
 ### 24.1 Authentication
 
@@ -3712,7 +4197,7 @@ const HeavyComponent = lazy(() => import('./HeavyComponent'));
 
 ---
 
-## 25. Monitoring & Analytics
+## 26. Monitoring & Analytics
 
 ### 24.1 Error Tracking
 
@@ -3752,7 +4237,7 @@ Sentry.init({
 
 ---
 
-## 26. Future Improvements
+## 27. Future Improvements
 
 ### 24.1 Features
 
@@ -3791,7 +4276,7 @@ Sentry.init({
 
 ---
 
-## 28. Missing Features
+## 29. Missing Features
 
 Based on comprehensive audit (December 2024), the following frontend features are identified as missing or incomplete:
 
@@ -3919,8 +4404,8 @@ Based on comprehensive audit (December 2024), the following frontend features ar
 | `milestones.ts` | 9 | ✅ | Milestone management |
 | `releases.ts` | 17 | ✅ | Release management |
 | `dependencies.ts` | 4 | ✅ | Task dependency management |
-| `permissions.ts` | 2 | ✅ | None |
-| `projects.ts` | 11 | ✅ | Fixed (v2.6) |
+| `permissions.ts` | 4 | ✅ | Includes getMyPermissions, getProjectPermissions, getMatrix, updateRolePermissions |
+| `projects.ts` | 12 | ✅ | Includes getAll, getById, create, update, archive, deletePermanent, getMembers, inviteMember, updateMemberRole, removeMember, assignTeam, getAssignedTeams |
 | `search.ts` | 1 | ✅ | None |
 | `settings.ts` | 3 | ✅ | None |
 | `sprints.ts` | 7 | ✅ | None |
@@ -3951,7 +4436,7 @@ Based on comprehensive audit (December 2024), the following frontend features ar
 
 ---
 
-## 29. API Integration Status
+## 30. API Integration Status
 
 ### 29.1 Endpoint Matching
 
@@ -3979,7 +4464,7 @@ Based on comprehensive audit (December 2024), the following frontend features ar
 
 ---
 
-## 27. Contributing
+## 28. Contributing
 
 ### 26.1 Code Style
 
@@ -4086,7 +4571,42 @@ All components located in `src/components/ui/`:
 - `GET /api/v1/superadmin/organizations/ai-quotas` - Get all organization AI quotas (SuperAdmin only, paginated)
   - Query Parameters: `page`, `pageSize`, `searchTerm`, `isAIEnabled`
   - Response: `PagedResponse<OrganizationAIQuotaDto>`
-  - Response: `OrganizationPermissionPolicyDto`
+
+### B.2.2 Admin Organization Endpoints
+
+- `GET /api/admin/organizations` - Get paginated list of organizations (SuperAdmin only)
+  - Query Parameters: `page`, `pageSize`, `searchTerm`
+  - Response: `PagedResponse<OrganizationDto>`
+- `GET /api/admin/organizations/{orgId}` - Get organization by ID (SuperAdmin only)
+  - Validates orgId > 0 (returns 400 BadRequest if invalid)
+  - Handles ValidationException and returns appropriate error responses
+  - Response: `OrganizationDto`
+- `POST /api/admin/organizations` - Create organization (SuperAdmin only)
+  - Request: `{ name: string, code: string }`
+  - Response: `CreateOrganizationResponse`
+- `PUT /api/admin/organizations/{orgId}` - Update organization (SuperAdmin only)
+  - Request: `{ organizationId: number, name: string, code: string }`
+  - Response: `UpdateOrganizationResponse`
+- `DELETE /api/admin/organizations/{orgId}` - Delete organization (SuperAdmin only)
+  - Response: `DeleteOrganizationResponse`
+
+### B.2.3 Admin AI Quota Endpoints
+
+- `GET /api/admin/ai-quota/members` - Get paginated list of organization members with AI quota (Admin/SuperAdmin)
+  - Query Parameters: `organizationId?` (SuperAdmin only, optional), `page`, `pageSize`, `searchTerm`
+  - Response: `PagedResponse<AdminAiQuotaMemberDto>`
+  - Note: SuperAdmin can filter by organizationId (or view all if null), Admin uses their own organization (organizationId ignored)
+- `GET /api/admin/ai-quota/ai-quotas/members` - Get paginated list of members with effective AI quotas (new model)
+  - Query Parameters: `page`, `pageSize`, `searchTerm`
+  - Response: `PagedResponse<MemberAIQuotaDto>`
+- `PUT /api/admin/ai-quota/members/{userId}` - Update user AI quota override (Admin only)
+  - Request: `UpdateMemberQuotaRequest`
+  - Response: `UpdateMemberQuotaResponse`
+- `POST /api/admin/ai-quota/members/{userId}/reset` - Reset user AI quota override (Admin only)
+  - Response: `ResetMemberQuotaResponse`
+- `PUT /api/admin/ai-quota/ai-quotas/members/{userId}` - Update member AI quota (new model, Admin only)
+  - Request: `UpdateMemberAIQuotaRequest`
+  - Response: `MemberAIQuotaDto`
 
 ### B.3 Projects
 
@@ -4101,6 +4621,11 @@ All components located in `src/components/ui/`:
 - `PUT /api/v1/Projects/{id}/members/{userId}/role` - Change member role
 - `DELETE /api/v1/Projects/{id}/members/{userId}` - Remove member from project
 - `GET /api/v1/Projects/{id}/my-role` - Get current user's role in project
+- `GET /api/v1/Projects/{id}/permissions` - Get current user's permissions for a project
+  - Response: `ProjectPermissionsResponse` with permissions array, project role, and project ID
+  - Returns 404 if user is not a member of the project
+- `GET /api/v1/Projects/{id}/dependency-graph` - Get complete dependency graph for a project
+  - Response: `DependencyGraphDto` with nodes (tasks) and edges (dependencies)
 - `POST /api/v1/Projects/{id}/assign-team` - Assign team to project
 
 ### B.4 Tasks
@@ -4128,7 +4653,16 @@ All components located in `src/components/ui/`:
 - `GET /api/v1/Agents/metrics` - Get agent metrics
 - `GET /api/v1/Agents/audit-logs` - Get audit logs
 
-### B.6 Settings
+### B.6 Lookups (Reference Data)
+
+- `GET /api/v1/Lookups/project-types` - Get all project types with metadata
+  - Response: `LookupResponse` with items containing value, label, displayOrder, and metadata (color, icon)
+- `GET /api/v1/Lookups/task-statuses` - Get all task statuses with metadata
+  - Response: `LookupResponse` with items containing value, label, displayOrder, and metadata (color, bgColor, textColor)
+- `GET /api/v1/Lookups/task-priorities` - Get all task priorities with metadata
+  - Response: `LookupResponse` with items containing value, label, displayOrder, and metadata (color, bgColor, textColor)
+
+### B.7 Settings
 
 - `GET /api/v1/Settings?category={category}` - Get global settings (optionally filtered by category)
 - `PUT /api/v1/Settings/{key}` - Update a global setting
@@ -4177,7 +4711,7 @@ All components located in `src/components/ui/`:
 - `POST /api/admin/ai/enable/{organizationId}` - Enable AI for organization (Admin only)
 - `GET /api/admin/ai/decisions/export` - Export AI decisions to CSV (Admin only)
 
-### B.11 Read Models
+### B.12 Read Models
 
 - `GET /api/v1/read-models/task-board/{projectId}` - Get task board read model
   - Returns pre-grouped tasks by status (Todo, InProgress, Done)
@@ -4193,7 +4727,7 @@ All components located in `src/components/ui/`:
   - Returns paginated list of project overviews
 - `POST /api/admin/read-models/rebuild` - Rebuild read models (Admin only)
 
-### B.8 Feature Flags
+### B.13 Feature Flags
 
 #### Public Endpoints (All Authenticated Users)
 
@@ -4784,6 +5318,63 @@ Automatically set by Vite:
 - ✅ **UserListDto**: Added `lastLoginAt` field to interface
 - 📝 **Documentation**: Updated API reference, component documentation, and added SweetAlert2 integration guide
 
+### Version 2.19.0 (January 8, 2025) - Comprehensive Codebase Scan & Login Design Migration
+- ✅ **Documentation Update**: Comprehensive codebase scan and verification
+  - Verified all component counts: 163 component files (excluding test files) ✅
+  - Verified all page counts: 44 pages (excluding test files) ✅
+  - Verified all API client counts: 35 API clients (38 files including 3 test files) ✅
+  - Verified all hook counts: 15 hooks (14 .ts + 1 .tsx) ✅
+  - Verified all context counts: 7 files (5 .tsx + 2 .tsx test files) ✅
+  - All counts verified against actual codebase files using PowerShell file system scanning
+  - Updated version to 2.19.0
+  - Updated "Last Updated" date to reflect comprehensive scan
+- ✅ **Login Page Design Migration**: Complete redesign of login page with modern split-screen layout
+  - **New Components Created**:
+    - `Logo.tsx`: Reusable logo component with light/dark variants and size options (sm, md, lg)
+    - `GeometricShapes.tsx`: Animated decorative shapes component for visual background
+    - `LoginForm.tsx`: Standalone login form component with full authentication logic integration
+  - **Login Page Refactored**:
+    - Split-screen design: gradient panel (left) + login form (right)
+    - Responsive layout: mobile shows logo above form, desktop shows split-screen
+    - Animated elements: fade-in, slide-in-right, float animations
+    - Preserved all authentication logic: useAuth, authApi.login, role-based redirections
+    - Removed statistics section for cleaner design
+  - **CSS Enhancements**:
+    - Added custom CSS variables for gradients and shadows
+    - Added keyframe animations: float, float-delayed, pulse-glow, fade-in-up, fade-in, slide-in-right
+    - Added utility classes: gradient-primary, gradient-dark, text-gradient, shadow-card
+  - **Tailwind Config Updates**:
+    - Added new boxShadow utilities: card, card-hover, input-focus
+    - Added new animations: float, float-delayed, pulse-glow, fade-in-up, fade-in, slide-in-right
+  - **Features**:
+    - Full authentication functionality preserved
+    - Role-based redirections (Admin → /admin/dashboard, User → /dashboard)
+    - Error handling with SweetAlert2
+    - Password visibility toggle
+    - Remember me checkbox
+    - Forgot password link
+    - Loading states and animations
+    - Mobile-responsive design
+
+### Version 2.21.0 (January 9, 2026) - Comprehensive Codebase Scan & Bug Fixes
+- ✅ **Bug Fixes**: Fixed critical API endpoint errors
+  - Fixed `GET /api/admin/organizations/{id}` 400 Bad Request error (added validation for orgId > 0)
+  - Fixed `GET /api/admin/ai-quota/members/{id}` 404 Not Found error (added organizationId query parameter support for SuperAdmin)
+  - Fixed translation key error: `common.buttons.confirm` → `buttons.confirm` with `ns: 'common'` in sweetalert.ts
+- ✅ **API Updates**: Enhanced AdminAIQuotaController
+  - Added `organizationId` query parameter to `GetMembers` endpoint (SuperAdmin can filter by org)
+  - Updated `GetAdminAiQuotaMembersQuery` to support organizationId filtering
+  - Updated handler to use request.OrganizationId for proper organization scoping
+- ✅ **Internationalization**: Fixed translation key references
+  - Corrected `sweetalert.ts` to use proper i18next namespace syntax
+  - Fixed 2 occurrences of incorrect translation key format
+- ✅ **Documentation**: Updated API endpoint documentation
+  - Added new AdminAIQuotas API client documentation
+  - Updated hook count (17 hooks total)
+  - Updated API client count (37 API clients total)
+  - Updated page count (46 pages total)
+- 📝 **Structure**: Verified all file counts against actual codebase
+
 ### Version 2.18.0 (January 8, 2025) - Comprehensive Codebase Scan
 - ✅ **Documentation Update**: Comprehensive codebase scan and verification
   - Verified all component counts: 172 component files (170 .tsx + 2 .ts) ✅
@@ -4821,6 +5412,22 @@ Automatically set by Vite:
 - ✅ **Pages**: Updated page counts (34 total pages)
 - 📝 **Structure**: Accurate file counts and organization documented
 
+### Version 2.22.0 (January 9, 2026)
+- ✅ **Bug Fixes**: Fixed translation key issue in sweetalert.ts (common.buttons.confirm → buttons.confirm with ns: 'common')
+- ✅ **API Enhancement**: Updated organizationsApi.getById to handle 400 BadRequest for invalid orgId
+- ✅ **API Enhancement**: Updated adminAIQuotasApi to use correct endpoint `/api/admin/ai-quota/ai-quotas/members`
+- ✅ **Documentation**: Updated API endpoint documentation with latest changes
+- ✅ **Documentation**: Updated changelog with bug fixes and enhancements
+
+### Version 2.23.0 (January 9, 2026)
+- ✅ **Bug Fixes**: Fixed `format is not defined` error in TaskTimelineView.tsx (added format import from date-fns)
+- ✅ **Bug Fixes**: Fixed `useNavigate() may be used only in the context of a <Router>` error in ErrorFallback.tsx (replaced with window.location.href)
+- ✅ **Translations**: Added missing translation keys in tasks.json (FR and EN)
+  - Added `search.placeholder`, `sort.label`, `sort.priority`, `sort.updated`, `sort.dueDate`, `sort.points`, `sort.alpha`
+  - Added `columns.todo`, `columns.inProgress`, `columns.blocked`, `columns.done`
+- ✅ **API Integration**: Fixed 404 error for `GET /api/v1/Projects/{id}/permissions` endpoint (now implemented in backend)
+- ✅ **Documentation**: Updated API endpoint documentation with project permissions endpoint
+
 ### Version 2.3 (December 24, 2024)
 - ✅ **API Client**: Fixed admin routes handling (excluded from automatic versioning)
 - ✅ **Feature Flags**: Fixed 404 errors for feature flags endpoints
@@ -4849,7 +5456,7 @@ Automatically set by Vite:
 
 ---
 
-**Document Version:** 2.14.5  
-**Last Updated:** January 6, 2025  
+**Document Version:** 2.23.0  
+**Last Updated:** January 9, 2026 (Comprehensive Codebase Scan)  
 **Maintained By:** Development Team
 

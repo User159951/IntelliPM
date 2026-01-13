@@ -1,0 +1,44 @@
+{
+  "title": "AI Agents",
+  "description": "Run intelligent agents to analyze your project",
+  "selectProject": "Select project",
+  "empty": {
+    "title": "Select a project to run AI agents",
+    "message": "Select a project to run AI agents"
+  },
+  "agents": {
+    "product": {
+      "name": "Product Agent",
+      "description": "Analyzes product requirements and suggests improvements for user stories and features."
+    },
+    "delivery": {
+      "name": "Delivery Agent",
+      "description": "Monitors delivery metrics and provides recommendations to improve sprint outcomes."
+    },
+    "manager": {
+      "name": "Manager Agent",
+      "description": "Provides management insights and helps with resource allocation and planning."
+    },
+    "qa": {
+      "name": "QA Agent",
+      "description": "Analyzes quality metrics and suggests testing strategies and improvements."
+    },
+    "business": {
+      "name": "Business Agent",
+      "description": "Evaluates business impact and provides ROI analysis for features and initiatives."
+    }
+  },
+  "actions": {
+    "run": "Run Agent",
+    "running": "Running...",
+    "viewResults": "View Results",
+    "runAgain": "Run Again",
+    "lastRun": "Last run: {{time}}"
+  },
+  "messages": {
+    "completed": "completed successfully",
+    "failed": "failed",
+    "inProgress": "Request already in progress"
+  }
+}
+

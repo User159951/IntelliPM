@@ -85,10 +85,10 @@ public class DefectsController : BaseApiController
             var result = await _mediator.Send(query, ct);
             return Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (IntelliPM.Application.Common.Exceptions.NotFoundException)
         {
-            _logger.LogWarning(ex, "Defect {DefectId} not found", id);
-            return NotFound(new { message = ex.Message });
+            // NotFoundException is handled by global exception handler
+            throw;
         }
         catch (Exception ex)
         {

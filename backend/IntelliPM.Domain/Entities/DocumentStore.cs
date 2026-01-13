@@ -1,8 +1,11 @@
+using IntelliPM.Domain.Interfaces;
+
 namespace IntelliPM.Domain.Entities;
 
-public class DocumentStore
+public class DocumentStore : ITenantEntity
 {
     public int Id { get; set; }
+    public int OrganizationId { get; set; }
     public int ProjectId { get; set; }
     public string Type { get; set; } = string.Empty; // "Note", "Decision", "Meeting"
     public string Content { get; set; } = string.Empty;
@@ -10,6 +13,7 @@ public class DocumentStore
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public Project Project { get; set; } = null!;
+    public Organization Organization { get; set; } = null!;
 }
 
 public class AIAgentRun

@@ -3,7 +3,7 @@ using IntelliPM.Domain.Constants;
 
 namespace IntelliPM.Domain.Entities;
 
-public class Team : IAggregateRoot
+public class Team : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

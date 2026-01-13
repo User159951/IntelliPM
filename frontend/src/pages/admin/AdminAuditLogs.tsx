@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { auditLogsApi, type AuditLogDto } from '@/api/auditLogs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ const ENTITY_TYPES = ['User', 'Project', 'Setting', 'FeatureFlag', 'Permission',
 const ACTIONS = ['create', 'update', 'delete', 'login', 'logout', 'invite', 'activate', 'deactivate'];
 
 export default function AdminAuditLogs() {
+  const { t } = useTranslation('admin');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState<string>('all');
@@ -64,7 +66,7 @@ export default function AdminAuditLogs() {
 
   const handleExportCSV = () => {
     if (!data?.items || data.items.length === 0) {
-      showError("No data to export", "There are no audit logs to export.");
+      showError(t('auditLogs.export.noData'), t('auditLogs.export.noDataMessage'));
       return;
     }
 
@@ -87,7 +89,7 @@ export default function AdminAuditLogs() {
       log.id.toString(),
       format(new Date(log.createdAt), 'yyyy-MM-dd HH:mm:ss'),
       log.userId?.toString() || '',
-      log.userName || 'System',
+      log.userName || t('auditLogs.table.system'),
       log.action,
       log.entityType,
       log.entityId?.toString() || '',
@@ -114,7 +116,7 @@ export default function AdminAuditLogs() {
     link.click();
     document.body.removeChild(link);
     
-    showToast(`Exported ${data.items.length} audit log(s) to CSV.`, 'success');
+    showToast(t('auditLogs.export.success', { count: data.items.length }), 'success');
   };
 
   const getActionBadgeVariant = (action: string) => {
@@ -130,7 +132,7 @@ export default function AdminAuditLogs() {
   if (error) {
     return (
       <div className="container mx-auto p-6 text-center text-destructive">
-        <p>Error loading audit logs: {error instanceof Error ? error.message : 'Unknown error'}</p>
+        <p>{t('auditLogs.errors.loadError', { error: error instanceof Error ? error.message : 'Unknown error' })}</p>
       </div>
     );
   }
@@ -138,9 +140,9 @@ export default function AdminAuditLogs() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Audit Logs</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('auditLogs.title')}</h1>
         <p className="text-muted-foreground">
-          View system audit logs and track administrative actions.
+          {t('auditLogs.description')}
         </p>
       </div>
 
@@ -151,7 +153,7 @@ export default function AdminAuditLogs() {
           <Input
             id="search-audit-logs"
             name="search"
-            placeholder="Search logs..."
+            placeholder={t('auditLogs.filters.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -160,10 +162,10 @@ export default function AdminAuditLogs() {
 
         <Select value={actionFilter} onValueChange={setActionFilter}>
           <SelectTrigger className="w-[150px]" id="action-filter" name="action">
-            <SelectValue placeholder="All Actions" />
+            <SelectValue placeholder={t('auditLogs.filters.allActions')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Actions</SelectItem>
+            <SelectItem value="all">{t('auditLogs.filters.allActions')}</SelectItem>
             {ACTIONS.map((action) => (
               <SelectItem key={action} value={action}>
                 {action.charAt(0).toUpperCase() + action.slice(1)}
@@ -174,10 +176,10 @@ export default function AdminAuditLogs() {
 
         <Select value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
           <SelectTrigger className="w-[150px]" id="entity-type-filter" name="entityType">
-            <SelectValue placeholder="All Entities" />
+            <SelectValue placeholder={t('auditLogs.filters.allEntities')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Entities</SelectItem>
+            <SelectItem value="all">{t('auditLogs.filters.allEntities')}</SelectItem>
             {ENTITY_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
                 {type}
@@ -188,7 +190,7 @@ export default function AdminAuditLogs() {
 
         <Button variant="outline" onClick={handleExportCSV}>
           <Download className="mr-2 h-4 w-4" />
-          Export CSV
+          {t('auditLogs.actions.exportCSV')}
         </Button>
       </div>
 
@@ -203,7 +205,7 @@ export default function AdminAuditLogs() {
         ) : filteredLogs.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-muted-foreground">
-              {searchQuery ? 'No audit logs found matching your search.' : 'No audit logs found.'}
+              {searchQuery ? t('auditLogs.table.noLogsMatching') : t('auditLogs.table.noLogs')}
             </p>
           </div>
         ) : (
@@ -211,12 +213,12 @@ export default function AdminAuditLogs() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Entity Type</TableHead>
-                  <TableHead>Entity Name</TableHead>
-                  <TableHead>IP Address</TableHead>
+                  <TableHead>{t('auditLogs.table.headers.timestamp')}</TableHead>
+                  <TableHead>{t('auditLogs.table.headers.user')}</TableHead>
+                  <TableHead>{t('auditLogs.table.headers.action')}</TableHead>
+                  <TableHead>{t('auditLogs.table.headers.entityType')}</TableHead>
+                  <TableHead>{t('auditLogs.table.headers.entityName')}</TableHead>
+                  <TableHead>{t('auditLogs.table.headers.ipAddress')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -229,7 +231,7 @@ export default function AdminAuditLogs() {
                       {log.userName ? (
                         <span className="font-medium">{log.userName}</span>
                       ) : (
-                        <span className="text-muted-foreground italic">System</span>
+                        <span className="text-muted-foreground italic">{t('auditLogs.table.system')}</span>
                       )}
                     </TableCell>
                     <TableCell>

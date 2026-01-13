@@ -1,0 +1,35 @@
+{
+  "title": "Dashboard",
+  "description": "Overview of your project metrics and performance",
+  "stats": {
+    "totalProjects": "Total Projects",
+    "activeSprints": "Active Sprints",
+    "openTasks": "Open Tasks",
+    "blockedTasks": "Blocked Tasks",
+    "defects": "Defects",
+    "velocity": "Velocity"
+  },
+  "charts": {
+    "sprintVelocity": {
+      "title": "Sprint Velocity",
+      "description": "Story points completed per sprint"
+    },
+    "taskDistribution": {
+      "title": "Task Distribution",
+      "description": "Tasks by status across all projects"
+    }
+  },
+  "recentProjects": {
+    "title": "Recent Projects",
+    "description": "Your most recently updated projects",
+    "empty": {
+      "message": "No projects yet. Create your first project to get started!",
+      "button": "Go to Projects"
+    },
+    "viewAll": "View all projects"
+  },
+  "recentActivity": {
+    "title": "Recent Activity"
+  }
+}
+

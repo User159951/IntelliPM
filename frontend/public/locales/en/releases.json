@@ -1,0 +1,19 @@
+{
+  "title": "Releases",
+  "description": "Manage product releases and deployments",
+  "create": {
+    "button": "Create Release",
+    "title": "Create Release"
+  },
+  "status": {
+    "planned": "Planned",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "empty": {
+    "title": "No releases yet",
+    "message": "Create your first release to track product versions"
+  }
+}
+

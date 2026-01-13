@@ -142,7 +142,7 @@ public class ScheduledQuotaProcessor : BackgroundService
         var quotaPeriodDays = await settingsService.GetSettingIntAsync(
             scheduledQuota.OrganizationId, 
             "AIQuota.QuotaPeriodDays", 
-            stoppingToken) 
+            cancellationToken) 
             ?? Domain.Constants.AIQuotaConstants.QuotaPeriodDays; // Fallback to constant
 
         // Activate the scheduled quota

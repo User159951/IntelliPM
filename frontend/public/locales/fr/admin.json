@@ -1,0 +1,468 @@
+{
+  "dashboard": {
+    "title": "Tableau de bord administrateur",
+    "description": "Vue d'ensemble des statistiques et activités de votre organisation",
+    "stats": {
+      "totalUsers": "Utilisateurs totaux",
+      "activeUsers": "actifs",
+      "inactiveUsers": "inactifs",
+      "totalProjects": "Projets totaux",
+      "activeProjects": "projets actifs",
+      "organizations": "Organisations",
+      "totalOrganizations": "Organisations totales",
+      "systemHealth": "État du système"
+    },
+    "charts": {
+      "userGrowth": "Croissance des utilisateurs (6 derniers mois)",
+      "roleDistribution": "Répartition des rôles",
+      "recentActivities": "Activités récentes",
+      "noGrowthData": "Aucune donnée de croissance disponible",
+      "noRoleData": "Aucune donnée de répartition des rôles disponible",
+      "noActivities": "Aucune activité récente",
+      "newUsers": "Nouveaux utilisateurs"
+    },
+    "errors": {
+      "loadError": "Erreur lors du chargement des statistiques du tableau de bord. Veuillez réessayer plus tard."
+    }
+  },
+  "users": {
+    "title": "Gestion des utilisateurs",
+    "description": "Gérez les utilisateurs de votre organisation. Consultez, modifiez les rôles et supprimez des utilisateurs.",
+    "table": {
+      "headers": {
+        "name": "Nom",
+        "email": "E-mail",
+        "role": "Rôle",
+        "projects": "Projets",
+        "created": "Créé",
+        "lastLogin": "Dernière connexion",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "searchPlaceholder": "Rechercher par nom ou e-mail...",
+      "noUsers": "Aucun utilisateur trouvé.",
+      "noUsersMatching": "Aucun utilisateur trouvé correspondant à votre recherche."
+    },
+    "filters": {
+      "allRoles": "Tous les rôles",
+      "allStatus": "Tous les statuts",
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "actions": {
+      "invite": "Inviter un utilisateur",
+      "exportCSV": "Exporter CSV",
+      "activate": "Activer",
+      "deactivate": "Désactiver",
+      "clear": "Effacer",
+      "processing": "Traitement...",
+      "selected": "utilisateur(s) sélectionné(s)",
+      "selectAll": "Sélectionnez au moins un utilisateur à activer",
+      "selectToDeactivate": "Sélectionnez au moins un utilisateur à désactiver"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "never": "Jamais"
+    },
+    "bulkUpdate": {
+      "success": "utilisateur(s) mis à jour avec succès.",
+      "failed": " échoué(s).",
+      "error": "Échec de la mise à jour des utilisateurs",
+      "errors": "Des erreurs se sont produites"
+    },
+    "export": {
+      "noData": "Aucune donnée à exporter",
+      "noDataMessage": "Il n'y a aucun utilisateur à exporter.",
+      "success": "{count} utilisateur(s) exporté(s) en CSV.",
+      "count": "utilisateur(s)"
+    },
+    "tooltips": {
+      "viewDetails": "Voir les détails",
+      "cannotEditInactive": "Impossible de modifier un utilisateur inactif. Activez d'abord l'utilisateur.",
+      "cannotDeleteInactive": "Impossible de supprimer un utilisateur inactif",
+      "activate": "Activer l'utilisateur",
+      "deactivate": "Désactiver l'utilisateur",
+      "delete": "Supprimer définitivement l'utilisateur"
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "never": "Jamais",
+      "toggleSuccess": "Statut de l'utilisateur mis à jour avec succès",
+      "toggleError": "Échec de la mise à jour du statut de l'utilisateur"
+    }
+  },
+  "permissions": {
+    "title": "Matrice des permissions",
+    "description": "Activez ou désactivez les permissions qui s'appliquent aux rôles Admin et User.",
+    "saveChanges": "Enregistrer les modifications",
+    "matrix": {
+      "permission": "Permission",
+      "admin": "Admin",
+      "user": "User"
+    },
+    "confirmDialog": {
+      "title": "Enregistrer les modifications de permissions ?",
+      "description": "Cela remplacera les mappages rôle-permissions pour Admin et User.",
+      "cancel": "Annuler",
+      "confirm": "Confirmer l'enregistrement",
+      "saving": "Enregistrement..."
+    },
+    "messages": {
+      "saveSuccess": "Permissions mises à jour",
+      "saveSuccessDetail": "Les permissions des rôles ont été enregistrées.",
+      "saveError": "Échec de la mise à jour des permissions",
+      "noChanges": "Aucune modification à enregistrer"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Configurez les paramètres globaux de l'application.",
+    "tabs": {
+      "general": "Général",
+      "security": "Sécurité",
+      "email": "E-mail",
+      "featureFlags": "Drapeaux de fonctionnalité"
+    },
+    "general": {
+      "projectCreation": {
+        "title": "Création de projet",
+        "description": "Contrôlez qui peut créer de nouveaux projets dans le système.",
+        "allowedRoles": "Rôles autorisés",
+        "adminOnly": "Administrateurs uniquement",
+        "allUsers": "Tous les utilisateurs",
+        "adminOnlyDescription": "Seuls les administrateurs peuvent créer de nouveaux projets.",
+        "allUsersDescription": "Tous les utilisateurs authentifiés peuvent créer de nouveaux projets."
+      },
+      "application": {
+        "title": "Paramètres de l'application",
+        "description": "Configurez les paramètres généraux de l'application.",
+        "appName": "Nom de l'application",
+        "timezone": "Fuseau horaire par défaut",
+        "timezoneDescription": "Fuseau horaire par défaut pour l'application (ex. : UTC, America/New_York)",
+        "language": "Langue par défaut",
+        "languageDescription": "Code de langue par défaut (ex. : en, fr, es)",
+        "dateFormat": "Format de date",
+        "dateFormatDescription": "Format de date par défaut (ex. : MM/dd/yyyy, dd/MM/yyyy, yyyy-MM-dd)"
+      }
+    },
+    "security": {
+      "title": "Paramètres de sécurité",
+      "description": "Configurez les paramètres liés à la sécurité.",
+      "tokenExpiration": "Expiration du token d'accès (minutes)",
+      "tokenExpirationDescription": "Durée en minutes avant expiration des tokens d'accès (par défaut : 15 minutes)",
+      "passwordPolicy": "Politique de mot de passe",
+      "minLength": "Longueur minimale du mot de passe",
+      "requireUppercase": "Exiger une majuscule",
+      "requireLowercase": "Exiger une minuscule",
+      "requireNumber": "Exiger un chiffre",
+      "requireSpecialChar": "Exiger un caractère spécial",
+      "maxLoginAttempts": "Tentatives de connexion max",
+      "maxLoginAttemptsDescription": "Nombre maximum de tentatives de connexion échouées avant verrouillage du compte",
+      "sessionDuration": "Durée de la session (heures)",
+      "sessionDurationDescription": "Durée en heures avant expiration de la session utilisateur",
+      "require2FA": "Exiger l'authentification à deux facteurs"
+    },
+    "email": {
+      "title": "Paramètres e-mail",
+      "description": "Configurez les paramètres du serveur e-mail et des notifications.",
+      "smtpConfig": "Configuration SMTP",
+      "smtpHost": "Hôte SMTP",
+      "smtpPort": "Port SMTP",
+      "useSsl": "Utiliser SSL/TLS",
+      "useSslEnabled": "Activé",
+      "useSslDisabled": "Désactivé",
+      "smtpUsername": "Nom d'utilisateur SMTP",
+      "smtpPassword": "Mot de passe SMTP",
+      "smtpPasswordDescription": "Pour Gmail, utilisez un mot de passe d'application au lieu de votre mot de passe habituel",
+      "fromEmail": "E-mail expéditeur",
+      "fromName": "Nom expéditeur",
+      "testEmail": {
+        "title": "Tester la configuration e-mail",
+        "description": "Envoyer un e-mail de test pour vérifier vos paramètres SMTP",
+        "addressPlaceholder": "Adresse e-mail pour l'e-mail de test",
+        "send": "Envoyer un e-mail de test",
+        "required": "E-mail requis",
+        "requiredMessage": "Veuillez saisir une adresse e-mail ou utiliser l'e-mail de votre compte.",
+        "success": "E-mail de test envoyé",
+        "error": "Échec de l'envoi de l'e-mail de test",
+        "errorDetail": "Échec de l'envoi de l'e-mail de test. Veuillez vérifier la configuration SMTP."
+      }
+    },
+    "featureFlags": {
+      "title": "Drapeaux de fonctionnalité",
+      "description": "Gérez les drapeaux de fonctionnalité à partir de la page d'administration des drapeaux de fonctionnalité.",
+      "usePage": "Utilisez la page des drapeaux de fonctionnalité pour gérer les drapeaux de fonctionnalité.",
+      "featureFlagsLink": "Drapeaux de fonctionnalité"
+    },
+    "saveChanges": "Enregistrer les modifications",
+    "messages": {
+      "saveSuccess": "Paramètres mis à jour",
+      "saveSuccessDetail": "Tous les paramètres ont été enregistrés avec succès.",
+      "saveError": "Échec de la mise à jour des paramètres"
+    }
+  },
+  "auditLogs": {
+    "title": "Journaux d'audit",
+    "description": "Consultez les journaux d'audit du système et suivez les actions administratives.",
+    "table": {
+      "headers": {
+        "timestamp": "Horodatage",
+        "user": "Utilisateur",
+        "action": "Action",
+        "entityType": "Type d'entité",
+        "entityName": "Nom de l'entité",
+        "ipAddress": "Adresse IP"
+      },
+      "system": "Système",
+      "noLogs": "Aucun journal d'audit trouvé.",
+      "noLogsMatching": "Aucun journal d'audit trouvé correspondant à votre recherche."
+    },
+    "filters": {
+      "searchPlaceholder": "Rechercher dans les journaux...",
+      "allActions": "Toutes les actions",
+      "allEntities": "Toutes les entités"
+    },
+    "actions": {
+      "exportCSV": "Exporter CSV"
+    },
+    "export": {
+      "noData": "Aucune donnée à exporter",
+      "noDataMessage": "Il n'y a aucun journal d'audit à exporter.",
+      "success": "{count} journal(s) d'audit exporté(s) en CSV.",
+      "count": "journal(s) d'audit"
+    },
+    "errors": {
+      "loadError": "Erreur lors du chargement des journaux d'audit : {error}"
+    },
+    "entityTypes": {
+      "User": "User",
+      "Project": "Project",
+      "Setting": "Setting",
+      "FeatureFlag": "Feature Flag",
+      "Permission": "Permission",
+      "Organization": "Organization"
+    },
+    "actionTypes": {
+      "create": "Créer",
+      "update": "Mettre à jour",
+      "delete": "Supprimer",
+      "login": "Connexion",
+      "logout": "Déconnexion",
+      "invite": "Inviter",
+      "activate": "Activer",
+      "deactivate": "Désactiver"
+    }
+  },
+  "systemHealth": {
+    "title": "État du système",
+    "description": "Surveillez les ressources système et le statut des services en temps réel.",
+    "refresh": "Actualiser",
+    "resources": {
+      "cpuUsage": "Utilisation CPU",
+      "memoryUsage": "Utilisation mémoire",
+      "database": "Base de données",
+      "responseTime": "Temps de réponse",
+      "cpuStatus": {
+        "high": "Utilisation élevée",
+        "moderate": "Utilisation modérée",
+        "normal": "Utilisation normale"
+      }
+    },
+    "externalServices": {
+      "title": "Services externes",
+      "description": "Statut des services externes et dépendances",
+      "operational": "Opérationnel",
+      "unavailable": "Indisponible"
+    },
+    "systemInfo": {
+      "title": "Informations système",
+      "description": "Métriques système mises à jour en dernier",
+      "lastUpdated": "Dernière mise à jour :",
+      "totalMemory": "Mémoire totale :",
+      "usedMemory": "Mémoire utilisée :",
+      "availableMemory": "Mémoire disponible :"
+    },
+    "status": {
+      "healthy": "Sain",
+      "degraded": "Dégradé",
+      "unhealthy": "Malsain",
+      "unknown": "Inconnu"
+    },
+    "errors": {
+      "loadError": "Erreur lors du chargement de l'état du système. Veuillez réessayer plus tard.",
+      "noData": "Aucune donnée d'état du système disponible."
+    }
+  },
+  "aiGovernance": {
+    "title": "Gouvernance IA",
+    "description": "Gérez l'utilisation, les quotas et les décisions de l'IA pour toutes les organisations",
+    "tabs": {
+      "overview": "Vue d'ensemble",
+      "decisions": "Décisions IA",
+      "quotas": "Quotas"
+    },
+    "quotas": {
+      "description": "Gérez les quotas IA pour toutes les organisations. Les utilisateurs peuvent consulter les détails de leur quota personnel dans",
+      "settingsLink": "Paramètres → Quota IA"
+    },
+    "actions": {
+      "exportDecisions": "Exporter les décisions"
+    },
+    "overview": {
+      "loadError": "Échec du chargement des statistiques de gouvernance IA. Veuillez réessayer plus tard.",
+      "orgStatus": {
+        "enabled": "IA activée",
+        "disabled": "IA désactivée"
+      },
+      "topAgents": "Top agents IA par utilisation",
+      "topAgentsTokens": "Tokens (K)",
+      "topAgentsDecisions": "Décisions"
+    }
+  },
+  "organizations": {
+    "title": "Organisations",
+    "description": "Gérez toutes les organisations",
+    "create": "Créer une organisation",
+    "searchPlaceholder": "Rechercher des organisations...",
+    "table": {
+      "headers": {
+        "name": "Nom",
+        "code": "Code",
+        "members": "Membres",
+        "created": "Créé",
+        "actions": "Actions"
+      },
+      "noOrganizations": "Aucune organisation trouvée"
+    },
+    "createDialog": {
+      "title": "Créer une organisation",
+      "description": "Créez une nouvelle organisation. Le code doit être unique et adapté aux URL.",
+      "name": "Nom",
+      "code": "Code",
+      "namePlaceholder": "Nom de l'organisation",
+      "codePlaceholder": "code-organisation",
+      "codeHint": "Lettres minuscules, chiffres et tirets uniquement",
+      "cancel": "Annuler",
+      "create": "Créer",
+      "validationError": "Erreur de validation",
+      "validationMessage": "Le nom et le code sont requis"
+    },
+    "deleteDialog": {
+      "title": "Supprimer l'organisation",
+      "description": "Êtes-vous sûr de vouloir supprimer \"{name}\" ? Cette action ne peut pas être annulée.",
+      "warning": "⚠️ Avertissement : Cette organisation compte {count} membre(s). Vous devez retirer ou réassigner tous les membres avant de supprimer l'organisation.",
+      "cancel": "Annuler",
+      "delete": "Supprimer",
+      "cannotDelete": "Impossible de supprimer l'organisation",
+      "cannotDeleteMessage": "Cette organisation a des membres. Veuillez retirer ou réassigner tous les membres avant de supprimer.",
+      "deleteError": "Échec de la suppression de l'organisation"
+    },
+    "messages": {
+      "createSuccess": "Organisation créée avec succès",
+      "createError": "Échec de la création de l'organisation",
+      "deleteSuccess": "Organisation supprimée avec succès"
+    }
+  },
+  "dialogs": {
+    "invite": {
+      "title": "Inviter un utilisateur",
+      "description": "Envoyez une invitation à un nouvel utilisateur. Il recevra un e-mail avec un lien pour créer son compte.",
+      "email": "E-mail *",
+      "firstName": "Prénom *",
+      "lastName": "Nom *",
+      "role": "Rôle *",
+      "rolePlaceholder": "Sélectionner un rôle",
+      "roleUser": "Utilisateur",
+      "roleAdmin": "Administrateur",
+      "cancel": "Annuler",
+      "send": "Envoyer l'invitation",
+      "invitationLink": "Lien d'invitation",
+      "copyLink": "Copier le lien",
+      "linkCopied": "Lien d'invitation copié dans le presse-papiers.",
+      "linkExpires": "Partagez ce lien avec l'utilisateur. Il expirera dans 72 heures.",
+      "done": "Terminé",
+      "emailFailed": "Invitation créée mais l'e-mail a échoué",
+      "emailFailedWarning": "⚠️ L'invitation a été créée mais l'envoi de l'e-mail a échoué",
+      "emailFailedMessage": "Vous pouvez partager le lien d'invitation ci-dessous manuellement avec l'utilisateur.",
+      "copyFailed": "Échec de la copie",
+      "copyFailedMessage": "Veuillez copier le lien manuellement.",
+      "inviteSuccess": "Invitation envoyée",
+      "inviteError": "Échec de l'invitation",
+      "inviteErrorMessage": "Échec de l'envoi de l'invitation",
+      "emailError": "Échec de l'envoi de l'e-mail",
+      "emailErrorMessage": "L'invitation a été créée mais l'envoi de l'e-mail a échoué. Vous pouvez partager le lien d'invitation manuellement."
+    },
+    "edit": {
+      "title": "Modifier l'utilisateur",
+      "description": "Mettez à jour les détails de l'utilisateur. Les modifications seront enregistrées immédiatement.",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "email": "E-mail",
+      "role": "Rôle",
+      "rolePlaceholder": "Sélectionner un rôle",
+      "cancel": "Annuler",
+      "save": "Enregistrer les modifications",
+      "success": "Utilisateur mis à jour",
+      "successDetail": "L'utilisateur a été mis à jour avec succès.",
+      "error": "Échec de la mise à jour de l'utilisateur"
+    },
+    "delete": {
+      "title": "Supprimer l'utilisateur ?",
+      "description": "Cette action supprimera définitivement le compte utilisateur. Cette action ne peut pas être annulée.",
+      "warningTitle": "⚠️ Suppression permanente de l'utilisateur",
+      "warningMessage": "L'utilisateur \"{{name}}\" ({{email}}) sera définitivement supprimé du système.",
+      "irreversible": "⚠️ ATTENTION : Cette action est permanente et ne peut pas être annulée. Toutes les données de l'utilisateur seront définitivement supprimées.",
+      "confirmLabel": "Tapez {{confirmText}} pour confirmer :",
+      "confirmPlaceholder": "Tapez {{confirmText}} pour confirmer",
+      "cancel": "Annuler",
+      "delete": "Supprimer",
+      "success": "Utilisateur supprimé",
+      "successDetail": "L'utilisateur \"{{name}}\" a été supprimé avec succès.",
+      "error": "Échec de la suppression de l'utilisateur",
+      "errorMessage": "Veuillez réessayer"
+    },
+    "userDetail": {
+      "title": "Détails de l'utilisateur",
+      "description": "Consultez les informations détaillées sur cet utilisateur",
+      "tabs": {
+        "details": "Détails",
+        "projects": "Projets ({count})",
+        "history": "Historique d'activité"
+      },
+      "fields": {
+        "email": "E-mail",
+        "memberSince": "Membre depuis",
+        "organization": "Organisation",
+        "projects": "Projets",
+        "projectsCount": "{count} projet(s)",
+        "lastLogin": "Dernière connexion"
+      },
+      "projects": {
+        "headers": {
+          "name": "Nom du projet",
+          "type": "Type",
+          "status": "Statut",
+          "created": "Créé",
+          "actions": "Actions"
+        },
+        "none": "Cet utilisateur n'est membre d'aucun projet.",
+        "view": "Voir",
+        "noProjects": "Aucun projet trouvé.",
+        "showing": "Affichage de {start} à {end} sur {total} projets",
+        "previous": "Précédent",
+        "next": "Suivant"
+      },
+      "activity": {
+        "headers": {
+          "timestamp": "Horodatage",
+          "action": "Action",
+          "entity": "Entité",
+          "project": "Projet"
+        },
+        "noActivity": "Aucun historique d'activité trouvé."
+      }
+    }
+  }
+}

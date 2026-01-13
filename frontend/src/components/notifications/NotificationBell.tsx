@@ -11,7 +11,6 @@ import {
   Calendar,
   AlertCircle,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -23,6 +22,8 @@ import { notificationsApi } from '@/api/notifications';
 import { showToast } from '@/lib/sweetalert';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatRelativeTime } from '@/utils/dateFormat';
 import type { Notification, GetNotificationsResponse } from '@/api/notifications';
 
 interface NotificationItemProps {
@@ -31,6 +32,8 @@ interface NotificationItemProps {
 }
 
 function NotificationItem({ notification, onClick }: NotificationItemProps) {
+  const { language } = useLanguage();
+  
   const getIcon = () => {
     switch (notification.type) {
       case 'TaskAssigned':
@@ -64,7 +67,7 @@ function NotificationItem({ notification, onClick }: NotificationItemProps) {
       <div className="flex-1 min-w-0 space-y-1">
         <p className="text-sm font-medium leading-tight">{notification.message}</p>
         <p className="text-xs text-muted-foreground">
-          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+          {formatRelativeTime(notification.createdAt, language)}
         </p>
       </div>
 

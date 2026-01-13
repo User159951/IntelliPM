@@ -17,6 +17,7 @@ import {
 import { showToast, showError } from '@/lib/sweetalert';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import type { Project } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface DeleteProjectDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ interface DeleteProjectDialogProps {
 export function DeleteProjectDialog({ open, onOpenChange, project, onDeleted }: DeleteProjectDialogProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation('common');
   const [confirmText, setConfirmText] = useState('');
   const isConfirmed = confirmText === 'DELETE';
 
@@ -72,9 +74,9 @@ export function DeleteProjectDialog({ open, onOpenChange, project, onDeleted }: 
               <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
             <div>
-              <AlertDialogTitle className="text-xl">Delete project permanently?</AlertDialogTitle>
+              <AlertDialogTitle className="text-xl">{t('confirmations.deleteProjectTitle')}</AlertDialogTitle>
               <AlertDialogDescription className="mt-2">
-                This action cannot be undone.
+                {t('confirmations.deleteMessage')}
               </AlertDialogDescription>
             </div>
           </div>
@@ -82,20 +84,20 @@ export function DeleteProjectDialog({ open, onOpenChange, project, onDeleted }: 
         <div className="py-4">
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 mb-4">
             <p className="text-sm font-medium text-destructive mb-2">
-              ⚠️ This action cannot be undone
+              ⚠️ {t('confirmations.destructiveAction')}
             </p>
             <p className="text-sm text-muted-foreground">
-              All tasks, sprints, and data associated with <strong>"{project.name}"</strong> will be permanently deleted.
+              {t('confirmations.deleteProjectMessage')} <strong>"{project.name}"</strong>
             </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm-delete" className="text-sm font-medium">
-              Type <span className="font-mono font-bold">DELETE</span> to confirm:
+              {t('confirmations.deleteConfirmText')}
             </Label>
             <Input
               id="confirm-delete"
               type="text"
-              placeholder="Type DELETE to confirm"
+              placeholder={t('confirmations.deleteConfirmPlaceholder')}
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               className="font-mono"
@@ -106,7 +108,7 @@ export function DeleteProjectDialog({ open, onOpenChange, project, onDeleted }: 
         </div>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleCancel} disabled={deleteMutation.isPending}>
-            Cancel
+            {t('buttons.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
@@ -114,7 +116,7 @@ export function DeleteProjectDialog({ open, onOpenChange, project, onDeleted }: 
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive"
           >
             {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Delete Forever
+            {t('buttons.deleteForever')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

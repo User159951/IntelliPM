@@ -224,11 +224,21 @@ async function generateTypes() {
     const types = await openapiTS(SWAGGER_URL);
     
     // Write the generated types to file
-    // types is a string, so we can write it directly
-    writeFileSync(OUTPUT_FILE, types as string, 'utf-8');
+    // openapi-typescript can return either a string or an array of strings
+    // Handle both cases
+    let typesContent: string;
+    if (Array.isArray(types)) {
+      // If it's an array, join all the strings together
+      typesContent = types.join('\n');
+    } else {
+      // If it's already a string, use it directly
+      typesContent = types as string;
+    }
+    
+    writeFileSync(OUTPUT_FILE, typesContent, 'utf-8');
     
     console.log(`✅ Types generated successfully to ${OUTPUT_FILE}`);
-    console.log(`   Total size: ${((types as string).length / 1024).toFixed(2)} KB`);
+    console.log(`   Total size: ${(typesContent.length / 1024).toFixed(2)} KB`);
     
     // Generate enums file
     console.log('Generating enums file...');

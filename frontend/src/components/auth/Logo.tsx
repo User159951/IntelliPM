@@ -42,3 +42,4 @@ export default function Logo({ variant = 'dark', size = 'md' }: LogoProps) {
     </div>
   );
 }
+

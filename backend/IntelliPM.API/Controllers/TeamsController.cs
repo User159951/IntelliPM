@@ -79,13 +79,12 @@ public class TeamsController : BaseApiController
             var query = new GetTeamByIdQuery(id);
             var result = await _mediator.Send(query, ct);
 
-            if (result == null)
-            {
-                _logger.LogWarning("Team {TeamId} not found", id);
-                return NotFound(new { message = $"Team with ID {id} not found" });
-            }
-
             return Ok(result);
+        }
+        catch (IntelliPM.Application.Common.Exceptions.NotFoundException)
+        {
+            // NotFoundException is handled by global exception handler
+            throw;
         }
         catch (Exception ex)
         {
@@ -260,6 +259,114 @@ public class TeamsController : BaseApiController
             );
         }
     }
+
+    /// <summary>
+    /// Add a member to a team
+    /// </summary>
+    [HttpPost("{id}/members")]
+    [RequirePermission("teams.members.add")]
+    [ProducesResponseType(typeof(TeamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> AddTeamMember(
+        int id,
+        [FromBody] AddTeamMemberRequest req,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            _logger.LogInformation("User {UserId} adding member {MemberId} to team {TeamId}", 
+                userId, req.UserId, id);
+            
+            var cmd = new AddTeamMemberCommand(id, req.UserId, userId);
+            var result = await _mediator.Send(cmd, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access when adding member to team {TeamId}", id);
+            return Problem(
+                title: "Unauthorized",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status401Unauthorized
+            );
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation when adding member to team {TeamId}: {Message}", id, ex.Message);
+            return Problem(
+                title: ex.Message.Contains("not found") ? "Not Found" : "Invalid Operation",
+                detail: ex.Message,
+                statusCode: ex.Message.Contains("not found") ? StatusCodes.Status404NotFound : StatusCodes.Status400BadRequest
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding member to team {TeamId}", id);
+            return Problem(
+                title: "Error adding team member",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Remove a member from a team
+    /// </summary>
+    [HttpDelete("{id}/members/{userId}")]
+    [RequirePermission("teams.members.remove")]
+    [ProducesResponseType(typeof(TeamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RemoveTeamMember(
+        int id,
+        int userId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var requestedByUserId = GetCurrentUserId();
+            _logger.LogInformation("User {RequestedByUserId} removing member {MemberId} from team {TeamId}", 
+                requestedByUserId, userId, id);
+            
+            var cmd = new RemoveTeamMemberCommand(id, userId, requestedByUserId);
+            var result = await _mediator.Send(cmd, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access when removing member from team {TeamId}", id);
+            return Problem(
+                title: "Unauthorized",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status401Unauthorized
+            );
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation when removing member from team {TeamId}: {Message}", id, ex.Message);
+            return Problem(
+                title: ex.Message.Contains("not found") ? "Not Found" : "Invalid Operation",
+                detail: ex.Message,
+                statusCode: ex.Message.Contains("not found") ? StatusCodes.Status404NotFound : StatusCodes.Status400BadRequest
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing member from team {TeamId}", id);
+            return Problem(
+                title: "Error removing team member",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
 }
 
 public record RegisterTeamRequest(
@@ -269,3 +376,5 @@ public record RegisterTeamRequest(
 );
 
 public record UpdateTeamCapacityRequest(int NewCapacity);
+
+public record AddTeamMemberRequest(int UserId);

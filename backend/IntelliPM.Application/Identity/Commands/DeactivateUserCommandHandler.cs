@@ -59,17 +59,20 @@ public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserComman
             throw new ValidationException("Cannot deactivate your own account");
         }
 
-        var user = await userRepo.Query()
-            .FirstOrDefaultAsync(
-                u => u.Id == request.UserId && u.OrganizationId == organizationId,
-                cancellationToken);
+        var isSuperAdmin = _currentUserService.IsSuperAdmin();
+        
+        // SuperAdmin can deactivate users from any organization, Admin can only deactivate users from their own organization
+        var user = isSuperAdmin
+            ? await userRepo.Query()
+                .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken)
+            : await userRepo.Query()
+                .FirstOrDefaultAsync(u => u.Id == request.UserId && u.OrganizationId == organizationId, cancellationToken);
 
         if (user == null)
         {
             _logger.LogWarning(
-                "User {UserId} not found in organization {OrganizationId}",
-                request.UserId,
-                organizationId);
+                "User {UserId} not found" + (isSuperAdmin ? "" : $" in organization {organizationId}"),
+                request.UserId);
             throw new NotFoundException($"User with ID {request.UserId} not found");
         }
 

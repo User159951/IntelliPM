@@ -28,28 +28,30 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
+// Navigation items will be translated in the component
 const mainNavItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Projects', url: '/projects', icon: FolderKanban },
+  { titleKey: 'menuItems.dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { titleKey: 'menuItems.projects', url: '/projects', icon: FolderKanban },
 ];
 
 const projectNavItems = [
-  { title: 'Tasks', url: '/tasks', icon: ListTodo },
-  { title: 'Sprints', url: '/sprints', icon: Zap },
-  { title: 'Backlog', url: '/backlog', icon: Layers },
-  { title: 'Defects', url: '/defects', icon: Bug },
+  { titleKey: 'menuItems.tasks', url: '/tasks', icon: ListTodo },
+  { titleKey: 'menuItems.sprints', url: '/sprints', icon: Zap },
+  { titleKey: 'menuItems.backlog', url: '/backlog', icon: Layers },
+  { titleKey: 'menuItems.defects', url: '/defects', icon: Bug },
 ];
 
 const teamNavItems = [
-  { title: 'Teams', url: '/teams', icon: Users },
-  { title: 'Metrics', url: '/metrics', icon: BarChart3 },
-  { title: 'Insights', url: '/insights', icon: Lightbulb },
-  { title: 'AI Agents', url: '/agents', icon: Bot },
+  { titleKey: 'menuItems.teams', url: '/teams', icon: Users },
+  { titleKey: 'menuItems.metrics', url: '/metrics', icon: BarChart3 },
+  { titleKey: 'menuItems.insights', url: '/insights', icon: Lightbulb },
+  { titleKey: 'menuItems.aiAgents', url: '/agents', icon: Bot },
 ];
 
 const settingsNavItems = [
-  { title: 'AI Quota', url: '/settings/ai-quota', icon: Zap },
+  { titleKey: 'menuItems.aiQuota', url: '/settings/ai-quota', icon: Zap },
 ];
 
 export function AppSidebar() {
@@ -57,6 +59,7 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const { isAdmin } = useAuth();
+  const { t } = useTranslation('navigation');
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -76,96 +79,108 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>
-            Main
+            {t('sections.main')}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainNavItems.map((item) => {
+                const title = t(item.titleKey);
+                return (
+                  <SidebarMenuItem key={item.titleKey}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={title}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
           <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>
-            Project
+            {t('sections.project')}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {projectNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {projectNavItems.map((item) => {
+                const title = t(item.titleKey);
+                return (
+                  <SidebarMenuItem key={item.titleKey}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={title}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
           <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>
-            Team & Insights
+            {t('sections.teamInsights')}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {teamNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {teamNavItems.map((item) => {
+                const title = t(item.titleKey);
+                return (
+                  <SidebarMenuItem key={item.titleKey}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={title}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
           <SidebarGroupLabel className={cn(collapsed && 'sr-only')}>
-            Settings
+            {t('sections.settings')}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {settingsNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {settingsNavItems.map((item) => {
+                const title = t(item.titleKey);
+                return (
+                  <SidebarMenuItem key={item.titleKey}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={title}
+                    >
+                      <NavLink to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -175,10 +190,10 @@ export function AppSidebar() {
         {isAdmin && (
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Admin Dashboard">
+              <SidebarMenuButton asChild tooltip={t('adminMenuItems.adminDashboard')}>
                 <NavLink to="/admin/dashboard">
                   <Shield className="h-4 w-4" />
-                  <span>Admin Dashboard</span>
+                  <span>{t('adminMenuItems.adminDashboard')}</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

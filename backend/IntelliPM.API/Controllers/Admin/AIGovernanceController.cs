@@ -243,10 +243,11 @@ public class AdminAIGovernanceController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting all AI quotas");
+            _logger.LogError(ex, "Error getting all AI quotas. TierName: {TierName}, IsActive: {IsActive}, IsExceeded: {IsExceeded}, Page: {Page}, PageSize: {PageSize}. Exception type: {ExceptionType}, Message: {Message}", 
+                tierName, isActive, isExceeded, page, pageSize, ex.GetType().Name, ex.Message);
             return Problem(
                 title: "Error retrieving quotas",
-                detail: ex.Message,
+                detail: $"An error occurred while retrieving quotas: {ex.Message}",
                 statusCode: StatusCodes.Status500InternalServerError
             );
         }
@@ -388,10 +389,11 @@ public class AdminAIGovernanceController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting AI overview stats");
+            _logger.LogError(ex, "Error getting AI overview stats. Exception type: {ExceptionType}, Message: {Message}, StackTrace: {StackTrace}", 
+                ex.GetType().Name, ex.Message, ex.StackTrace);
             return Problem(
                 title: "Error retrieving overview stats",
-                detail: ex.Message,
+                detail: $"An error occurred while retrieving overview stats: {ex.Message}",
                 statusCode: StatusCodes.Status500InternalServerError
             );
         }

@@ -2,6 +2,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
   Dialog,
   DialogContent,
@@ -45,22 +47,6 @@ interface CreateReleaseDialogProps {
   onSuccess?: () => void;
 }
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required').max(200, 'Name cannot exceed 200 characters'),
-  version: z
-    .string()
-    .min(1, 'Version is required')
-    .regex(/^\d+\.\d+\.\d+$/, 'Must be semantic version (e.g., 2.1.0)'),
-  description: z.string().max(2000, 'Description cannot exceed 2000 characters').optional(),
-  type: z.enum(['Major', 'Minor', 'Patch', 'Hotfix'] as [ReleaseType, ...ReleaseType[]]),
-  plannedDate: z.string().min(1, 'Planned date is required'),
-  isPreRelease: z.boolean().default(false),
-  tagName: z.string().max(100, 'Tag name cannot exceed 100 characters').optional(),
-  sprintIds: z.array(z.number()).optional(),
-});
-
-type FormData = z.infer<typeof schema>;
-
 export function CreateReleaseDialog({
   projectId,
   open,
@@ -68,6 +54,30 @@ export function CreateReleaseDialog({
   onSuccess,
 }: CreateReleaseDialogProps) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('errors');
+
+  // Create schema inside component so it has access to t function
+  const schema = useMemo(() => z.object({
+    name: z.string()
+      .min(1, t('validation.nameRequired'))
+      .max(200, t('validation.nameMaxLength', { max: 200 })),
+    version: z
+      .string()
+      .min(1, t('validation.versionRequired'))
+      .regex(/^\d+\.\d+\.\d+$/, t('validation.semanticVersion')),
+    description: z.string()
+      .max(2000, t('validation.descriptionMaxLength', { max: 2000 }))
+      .optional(),
+    type: z.enum(['Major', 'Minor', 'Patch', 'Hotfix'] as [ReleaseType, ...ReleaseType[]]),
+    plannedDate: z.string().min(1, t('validation.plannedDateRequired')),
+    isPreRelease: z.boolean().default(false),
+    tagName: z.string()
+      .max(100, t('validation.tagNameMaxLength', { max: 100 }))
+      .optional(),
+    sprintIds: z.array(z.number()).optional(),
+  }), [t]);
+
+  type FormData = z.infer<typeof schema>;
   const [selectedSprintIds, setSelectedSprintIds] = useState<number[]>([]);
 
   const form = useForm<FormData>({

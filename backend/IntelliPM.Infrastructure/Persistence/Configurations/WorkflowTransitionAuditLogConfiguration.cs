@@ -68,6 +68,10 @@ public class WorkflowTransitionAuditLogConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(a => a.WasAllowed)
             .HasDatabaseName("IX_WorkflowTransitionAuditLogs_WasAllowed");
 
+        // Index on OrganizationId for tenant filtering
+        builder.HasIndex(a => a.OrganizationId)
+            .HasDatabaseName("IX_WorkflowTransitionAuditLogs_OrganizationId");
+
         // Relationships
         builder.HasOne(a => a.User)
             .WithMany()
@@ -78,6 +82,12 @@ public class WorkflowTransitionAuditLogConfiguration : IEntityTypeConfiguration<
             .WithMany()
             .HasForeignKey(a => a.ProjectId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(a => a.Organization)
+            .WithMany()
+            .HasForeignKey(a => a.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
     }
 }
 

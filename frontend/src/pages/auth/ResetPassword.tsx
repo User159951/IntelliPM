@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,30 +20,31 @@ import { showToast, showError } from "@/lib/sweetalert";
 import { authApi } from '@/api/auth';
 import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
 
-const resetPasswordSchema = z.object({
-  newPassword: z
-    .string()
-    .min(1, 'Le mot de passe est requis')
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
-    .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
-    .regex(/[a-z]/, 'Le mot de passe doit contenir au moins une minuscule')
-    .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre')
-    .regex(/[^a-zA-Z0-9]/, 'Le mot de passe doit contenir au moins un caractère spécial'),
-  confirmPassword: z
-    .string()
-    .min(1, 'La confirmation du mot de passe est requise'),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Les mots de passe ne correspondent pas',
-  path: ['confirmPassword'],
-});
-
-type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
-
 export default function ResetPassword() {
+  const { t } = useTranslation('auth');
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const resetPasswordSchema = z.object({
+    newPassword: z
+      .string()
+      .min(1, t('resetPassword.validation.required'))
+      .min(8, t('resetPassword.validation.minLength'))
+      .regex(/[A-Z]/, t('resetPassword.validation.uppercase'))
+      .regex(/[a-z]/, t('resetPassword.validation.lowercase'))
+      .regex(/[0-9]/, t('resetPassword.validation.number'))
+      .regex(/[^a-zA-Z0-9]/, t('resetPassword.validation.special')),
+    confirmPassword: z
+      .string()
+      .min(1, t('resetPassword.validation.confirmRequired')),
+  }).refine((data) => data.newPassword === data.confirmPassword, {
+    message: t('resetPassword.validation.mismatch'),
+    path: ['confirmPassword'],
+  });
+
+  type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -56,10 +58,10 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!token) {
-      showError("Lien invalide", "Le lien de réinitialisation est invalide");
+      showError(t('resetPassword.errors.invalidLink'), t('resetPassword.errors.invalidLinkMessage'));
       navigate('/forgot-password');
     }
-  }, [token, navigate]);
+  }, [token, navigate, t]);
 
   const onSubmit = async (values: ResetPasswordFormValues) => {
     if (!token) return;
@@ -74,17 +76,17 @@ export default function ResetPassword() {
 
       if (result.success) {
         setSuccess(true);
-        showToast('Mot de passe réinitialisé', "success");
+        showToast(t('resetPassword.success.toast'), "success");
 
         // Redirect to login after 3 seconds
         setTimeout(() => {
           navigate('/login');
         }, 3000);
       } else {
-        showError('Erreur');
+        showError(t('resetPassword.errors.error'));
       }
     } catch {
-      showError('Erreur');
+      showError(t('resetPassword.errors.error'));
     } finally {
       setIsLoading(false);
     }
@@ -98,19 +100,19 @@ export default function ResetPassword() {
             <div className="flex items-center justify-center mb-4">
               <CheckCircle2 className="h-16 w-16 text-green-600" />
             </div>
-            <CardTitle className="text-2xl text-center">Mot de passe réinitialisé</CardTitle>
+            <CardTitle className="text-2xl text-center">{t('resetPassword.success.title')}</CardTitle>
             <CardDescription className="text-center">
-              Votre mot de passe a été réinitialisé avec succès
+              {t('resetPassword.success.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-center text-sm text-muted-foreground">
-              Vous allez être redirigé vers la page de connexion dans quelques secondes...
+              {t('resetPassword.success.redirectMessage')}
             </p>
           </CardContent>
           <CardFooter>
             <Button asChild className="w-full">
-              <Link to="/login">Aller à la connexion</Link>
+              <Link to="/login">{t('resetPassword.success.goToLogin')}</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -122,9 +124,9 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
       <Card className="w-full max-w-md p-8">
         <CardHeader>
-          <CardTitle className="text-2xl">Réinitialiser le mot de passe</CardTitle>
+          <CardTitle className="text-2xl">{t('resetPassword.title')}</CardTitle>
           <CardDescription>
-            Créez un nouveau mot de passe sécurisé pour votre compte
+            {t('resetPassword.description')}
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -135,11 +137,11 @@ export default function ResetPassword() {
                 name="newPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nouveau mot de passe</FormLabel>
+                    <FormLabel>{t('resetPassword.newPasswordLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
-                        placeholder="Créez un mot de passe sécurisé"
+                        placeholder={t('resetPassword.newPasswordPlaceholder')}
                         {...field}
                         disabled={isLoading}
                         autoComplete="new-password"
@@ -156,11 +158,11 @@ export default function ResetPassword() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirmer le mot de passe</FormLabel>
+                    <FormLabel>{t('resetPassword.confirmPasswordLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
-                        placeholder="Confirmez votre mot de passe"
+                        placeholder={t('resetPassword.confirmPasswordPlaceholder')}
                         {...field}
                         disabled={isLoading}
                         autoComplete="new-password"
@@ -174,12 +176,12 @@ export default function ResetPassword() {
             <CardFooter className="flex flex-col space-y-4">
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Réinitialiser le mot de passe
+                {t('resetPassword.submitButton')}
               </Button>
               <Button asChild variant="ghost" className="w-full">
                 <Link to="/login">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Retour à la connexion
+                  {t('resetPassword.backToLogin')}
                 </Link>
               </Button>
             </CardFooter>

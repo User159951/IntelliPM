@@ -1,6 +1,7 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
+using IntelliPM.Application.AI.DTOs;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 

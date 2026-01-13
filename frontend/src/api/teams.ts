@@ -16,4 +16,10 @@ export const teamsApi = {
 
   getAvailability: (id: number): Promise<TeamCapacity> =>
     apiClient.get(`/api/Teams/${id}/availability`),
+
+  addMember: (teamId: number, userId: number): Promise<Team> =>
+    apiClient.post(`/api/Teams/${teamId}/members`, { userId }),
+
+  removeMember: (teamId: number, userId: number): Promise<Team> =>
+    apiClient.delete(`/api/Teams/${teamId}/members/${userId}`),
 };

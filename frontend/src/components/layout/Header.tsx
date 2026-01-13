@@ -14,6 +14,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import { LanguageToggle } from './LanguageToggle';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   onSearchClick?: () => void;
@@ -23,6 +25,7 @@ export function Header({ onSearchClick }: HeaderProps) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation('navigation');
 
   const initials = user
     ? `${user.firstName?.[0] || user.username[0]}${user.lastName?.[0] || ''}`
@@ -46,7 +49,7 @@ export function Header({ onSearchClick }: HeaderProps) {
             aria-label="Open global search"
           >
             <Search className="h-4 w-4 shrink-0" />
-            <span className="flex-1 text-left">Search projects, tasks...</span>
+            <span className="flex-1 text-left">{t('header.searchPlaceholder')}</span>
             <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
               {navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? (
                 <>
@@ -64,6 +67,8 @@ export function Header({ onSearchClick }: HeaderProps) {
 
       <div className="flex items-center gap-2">
         <NotificationBell />
+
+        <LanguageToggle />
 
         <Button variant="ghost" size="icon" onClick={toggleTheme}>
           {theme === 'dark' ? (
@@ -97,12 +102,12 @@ export function Header({ onSearchClick }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/profile')}>
               <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>{t('header.profile')}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>{t('header.logOut')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

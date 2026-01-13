@@ -39,7 +39,9 @@ public class AdminAIQuotaController : BaseApiController
 
     /// <summary>
     /// Get paginated list of organization members with their AI quota information.
+    /// For SuperAdmin: can filter by organizationId. For Admin: uses their own organization.
     /// </summary>
+    /// <param name="organizationId">Optional organization ID (SuperAdmin only). If not provided, uses current user's organization.</param>
     /// <param name="page">Page number (default: 1)</param>
     /// <param name="pageSize">Page size (default: 20, max: 100)</param>
     /// <param name="searchTerm">Search by email or name (optional)</param>
@@ -47,9 +49,11 @@ public class AdminAIQuotaController : BaseApiController
     /// <returns>Paginated list of members with quota information</returns>
     [HttpGet("members")]
     [ProducesResponseType(typeof(PagedResponse<AdminAiQuotaMemberDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetMembers(
+        [FromQuery] int? organizationId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? searchTerm = null,
@@ -57,8 +61,26 @@ public class AdminAIQuotaController : BaseApiController
     {
         try
         {
+            // CRITICAL: Enforce organization access control
+            // Admin can only access their own organization
+            // SuperAdmin can access any organization or all (if organizationId is null)
+            if (!_currentUserService.IsSuperAdmin())
+            {
+                // Admin must access only their own organization
+                var adminOrgId = _currentUserService.GetOrganizationId();
+                if (adminOrgId == 0)
+                {
+                    return Forbid("User not authenticated or organization not found");
+                }
+                
+                // Override any provided organizationId with Admin's organization
+                organizationId = adminOrgId;
+            }
+            // SuperAdmin: organizationId can be null (all orgs) or specific org
+
             var query = new GetAdminAiQuotaMembersQuery
             {
+                OrganizationId = organizationId,
                 Page = page,
                 PageSize = pageSize,
                 SearchTerm = searchTerm
@@ -74,10 +96,11 @@ public class AdminAIQuotaController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting AI quota members");
+            _logger.LogError(ex, "Error getting AI quota members. Page: {Page}, PageSize: {PageSize}, SearchTerm: {SearchTerm}. Exception type: {ExceptionType}, Message: {Message}", 
+                page, pageSize, searchTerm, ex.GetType().Name, ex.Message);
             return Problem(
                 title: "Error retrieving members",
-                detail: ex.Message,
+                detail: $"An error occurred while retrieving members: {ex.Message}",
                 statusCode: StatusCodes.Status500InternalServerError
             );
         }
@@ -133,10 +156,11 @@ public class AdminAIQuotaController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating quota for user {UserId}", userId);
+            _logger.LogError(ex, "Error updating quota for user {UserId}. Exception type: {ExceptionType}, Message: {Message}, StackTrace: {StackTrace}", 
+                userId, ex.GetType().Name, ex.Message, ex.StackTrace);
             return Problem(
                 title: "Error updating quota",
-                detail: ex.Message,
+                detail: $"An error occurred while updating quota: {ex.Message}",
                 statusCode: StatusCodes.Status500InternalServerError
             );
         }
@@ -343,10 +367,11 @@ public class AdminAIQuotaController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting AI quota usage history");
+            _logger.LogError(ex, "Error getting AI quota usage history. OrganizationId: {OrganizationId}, StartDate: {StartDate}, EndDate: {EndDate}, Page: {Page}, PageSize: {PageSize}. Exception type: {ExceptionType}, Message: {Message}", 
+                organizationId, startDate, endDate, page, pageSize, ex.GetType().Name, ex.Message);
             return Problem(
                 title: "Error retrieving usage history",
-                detail: ex.Message,
+                detail: $"An error occurred while retrieving usage history: {ex.Message}",
                 statusCode: StatusCodes.Status500InternalServerError
             );
         }
@@ -410,10 +435,11 @@ public class AdminAIQuotaController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting AI quota breakdown");
+            _logger.LogError(ex, "Error getting AI quota breakdown. OrganizationId: {OrganizationId}, Period: {Period}, StartDate: {StartDate}, EndDate: {EndDate}. Exception type: {ExceptionType}, Message: {Message}", 
+                organizationId, period, startDate, endDate, ex.GetType().Name, ex.Message);
             return Problem(
                 title: "Error retrieving breakdown",
-                detail: ex.Message,
+                detail: $"An error occurred while retrieving breakdown: {ex.Message}",
                 statusCode: StatusCodes.Status500InternalServerError
             );
         }

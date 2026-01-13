@@ -29,6 +29,7 @@ import { DeleteProjectDialog } from '@/components/projects/DeleteProjectDialog';
 import { ProjectMembersModal } from '@/components/projects/ProjectMembersModal';
 import { Pagination } from '@/components/ui/pagination';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import type { CreateProjectRequest, ProjectType, Project, ProjectStatus, ProjectMember } from '@/types';
 import { useProjectTypes } from '@/hooks/useLookups';
 
@@ -36,6 +37,7 @@ export default function Projects() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { t } = useTranslation('projects');
   const { projectTypes, isLoading: isLoadingProjectTypes } = useProjectTypes();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -185,11 +187,11 @@ export default function Projects() {
       setFormData({ name: '', description: '', type: 'Scrum', sprintDurationDays: 14, status: 'Active' });
       setSelectedMembers([]);
       setStartDate(new Date());
-      showToast('Your new project is ready.', 'success');
+      showToast(t('messages.created'), 'success');
     },
     onError: (error) => {
       showError(
-        'Failed to create project',
+        t('messages.createError'),
         error instanceof Error ? error.message : 'Please try again'
       );
     },
@@ -199,11 +201,11 @@ export default function Projects() {
     mutationFn: (id: number) => projectsApi.archive(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      showToast('Project archived', 'success');
+      showToast(t('messages.archived'), 'success');
     },
     onError: (error) => {
       showError(
-        'Failed to archive project',
+        t('messages.archiveError'),
         error instanceof Error ? error.message : 'Please try again'
       );
     },
@@ -214,7 +216,7 @@ export default function Projects() {
     
     // Validate start date
     if (startDate && startDate < new Date(new Date().setHours(0, 0, 0, 0))) {
-      showWarning('Invalid start date', 'Start date must be today or in the future');
+      showWarning(t('messages.invalidDate'), t('messages.invalidDateMessage'));
       return;
     }
 
@@ -245,15 +247,15 @@ export default function Projects() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <p className="text-muted-foreground">
-            {data?.items ? `Showing ${data.items.length} of ${data.totalCount} projects` : 'Manage your project portfolio'}
+            {data?.items ? t('showing', { count: data.items.length, total: data.totalCount }) : t('description')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex items-center gap-2">
             <Label className="text-sm text-muted-foreground whitespace-nowrap">
-              Sort by:
+              {t('sort.label')}
             </Label>
             <Select value={sortBy} onValueChange={handleSortChange}>
               <SelectTrigger id="sort-by" aria-label="Sort by" className="w-[180px]">
@@ -263,12 +265,12 @@ export default function Projects() {
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="most-recent">Most recent</SelectItem>
-                <SelectItem value="oldest">Oldest</SelectItem>
-                <SelectItem value="alphabetical-az">Alphabetical (A-Z)</SelectItem>
-                <SelectItem value="alphabetical-za">Alphabetical (Z-A)</SelectItem>
-                <SelectItem value="most-tasks">Most tasks</SelectItem>
-                <SelectItem value="progress">Progress (% complete)</SelectItem>
+                <SelectItem value="most-recent">{t('sort.mostRecent')}</SelectItem>
+                <SelectItem value="oldest">{t('sort.oldest')}</SelectItem>
+                <SelectItem value="alphabetical-az">{t('sort.alphabeticalAZ')}</SelectItem>
+                <SelectItem value="alphabetical-za">{t('sort.alphabeticalZA')}</SelectItem>
+                <SelectItem value="most-tasks">{t('sort.mostTasks')}</SelectItem>
+                <SelectItem value="progress">{t('sort.progress')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -281,33 +283,33 @@ export default function Projects() {
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Project
+                  {t('create.button')}
                 </Button>
               </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
-                  <DialogTitle>Create new project</DialogTitle>
+                  <DialogTitle>{t('create.title')}</DialogTitle>
                   <DialogDescription>
-                    Set up a new project to start tracking your work.
+                    {t('create.description')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Project name</Label>
+                    <Label htmlFor="name">{t('form.name')}</Label>
                     <Input
                       id="name"
-                      placeholder="Enter project name"
+                      placeholder={t('form.namePlaceholder')}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">{t('form.description')}</Label>
                     <Textarea
                       id="description"
-                      placeholder="Describe your project"
+                      placeholder={t('form.descriptionPlaceholder')}
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={3}
@@ -315,7 +317,7 @@ export default function Projects() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="type" id="type-label">Project type</Label>
+                      <Label htmlFor="type" id="type-label">{t('form.type')}</Label>
                       {isLoadingProjectTypes ? (
                         <Skeleton className="h-10 w-full" />
                       ) : (
@@ -324,7 +326,7 @@ export default function Projects() {
                           onValueChange={(value: ProjectType) => setFormData({ ...formData, type: value })}
                         >
                           <SelectTrigger id="type" aria-labelledby="type-label">
-                            <SelectValue placeholder="Select type" />
+                            <SelectValue placeholder={t('form.type')} />
                           </SelectTrigger>
                           <SelectContent>
                             {projectTypes.map((type) => (
@@ -337,7 +339,7 @@ export default function Projects() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="sprintDuration">Sprint duration (days)</Label>
+                      <Label htmlFor="sprintDuration">{t('form.sprintDuration')}</Label>
                       <Input
                         id="sprintDuration"
                         type="number"
@@ -349,14 +351,14 @@ export default function Projects() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="status" id="status-label">Status *</Label>
+                    <Label htmlFor="status" id="status-label">{t('form.status')}</Label>
                     <Select
                       value={formData.status || 'Active'}
                       onValueChange={(value: ProjectStatus) => setFormData({ ...formData, status: value })}
                       required
                     >
                       <SelectTrigger id="status" aria-labelledby="status-label">
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue placeholder={t('form.status')} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Active">Active</SelectItem>
@@ -366,7 +368,7 @@ export default function Projects() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="startDate" id="startDate-label">Start Date</Label>
+                    <Label htmlFor="startDate" id="startDate-label">{t('form.startDate')}</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -379,7 +381,7 @@ export default function Projects() {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {startDate ? format(startDate, "MMM dd, yyyy") : <span>Pick a date</span>}
+                          {startDate ? format(startDate, "MMM dd, yyyy") : <span>{t('form.pickDate')}</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -393,7 +395,7 @@ export default function Projects() {
                               if (date >= today) {
                                 setStartDate(date);
                               } else {
-                                showWarning('Invalid date', 'Start date must be today or in the future');
+                                showWarning(t('messages.invalidDate'), t('messages.invalidDateMessage'));
                               }
                             }
                           }}
@@ -404,7 +406,7 @@ export default function Projects() {
                     </Popover>
                   </div>
                   <div className="space-y-2">
-                    <Label>Team Members</Label>
+                    <Label>{t('form.teamMembers')}</Label>
                     <Popover open={memberSearchOpen} onOpenChange={setMemberSearchOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -415,10 +417,10 @@ export default function Projects() {
                           disabled={usersLoading}
                         >
                           {usersLoading ? (
-                            'Loading users...'
+                            t('form.loadingUsers')
                           ) : (
                             <>
-                              Select members...
+                              {t('form.selectMembers')}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </>
                           )}
@@ -430,10 +432,10 @@ export default function Projects() {
                             id="user-search"
                             name="user-search"
                             autoComplete="off"
-                            placeholder="Search users..." 
+                            placeholder={t('form.searchUsers')} 
                           />
                           <CommandList>
-                            <CommandEmpty>No users found.</CommandEmpty>
+                            <CommandEmpty>{t('form.noUsersFound')}</CommandEmpty>
                             <CommandGroup>
                               {availableUsers.map((user) => {
                                 const isSelected = selectedMembers.some(m => m.id === user.id);
@@ -478,7 +480,7 @@ export default function Projects() {
                               {user.firstName?.[0] || ''}{user.lastName?.[0] || ''}
                             </AvatarFallback>
                           </Avatar>
-                          {user.firstName} {user.lastName} (Owner)
+                          {user.firstName} {user.lastName} ({t('form.owner')})
                         </Badge>
                         {selectedMembers.map((member) => (
                           <Badge key={member.id} variant="outline" className="gap-1">
@@ -503,11 +505,11 @@ export default function Projects() {
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
+                    {t('actions.cancel')}
                   </Button>
                   <Button type="submit" disabled={createMutation.isPending}>
                     {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create project
+                    {t('create.submit')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -520,13 +522,13 @@ export default function Projects() {
       <Tabs value={statusFilter} onValueChange={(value) => handleStatusFilterChange(value as 'active' | 'archived' | 'all')} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="active">
-            Active ({tabCounts.active})
+            {t('tabs.active')} ({tabCounts.active})
           </TabsTrigger>
           <TabsTrigger value="archived">
-            Archived ({tabCounts.archived})
+            {t('tabs.archived')} ({tabCounts.archived})
           </TabsTrigger>
           <TabsTrigger value="all">
-            All ({tabCounts.all})
+            {t('tabs.all')} ({tabCounts.all})
           </TabsTrigger>
         </TabsList>
         <TabsContent value="active" className="mt-4">
@@ -547,11 +549,11 @@ export default function Projects() {
           ) : filteredAndSortedProjects.length === 0 ? (
             <Card className="flex flex-col items-center justify-center py-16">
               <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No active projects</h3>
-              <p className="text-muted-foreground mb-4">Create your first project to get started</p>
+              <h3 className="text-lg font-medium">{t('list.empty.active.title')}</h3>
+              <p className="text-muted-foreground mb-4">{t('list.empty.active.message')}</p>
               <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Create Project
+                {t('list.empty.active.button')}
               </Button>
             </Card>
           ) : (
@@ -575,7 +577,7 @@ export default function Projects() {
                     <div className="space-y-1">
                       <CardTitle className="text-lg">{project.name}</CardTitle>
                       <CardDescription className="line-clamp-2">
-                        {project.description || 'No description'}
+                        {project.description || t('list.card.noDescription')}
                       </CardDescription>
                     </div>
                     <DropdownMenu>
@@ -589,7 +591,7 @@ export default function Projects() {
                           e.stopPropagation();
                           navigate(`/projects/${project.id}`);
                         }}>
-                          View details
+                          {t('list.card.viewDetails')}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={(e) => {
@@ -598,7 +600,7 @@ export default function Projects() {
                           }}
                         >
                           <Pencil className="mr-2 h-4 w-4" />
-                          Edit project
+                          {t('list.card.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
@@ -608,7 +610,7 @@ export default function Projects() {
                             archiveMutation.mutate(project.id);
                           }}
                         >
-                          Archive
+                          {t('list.card.archive')}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="text-destructive"
@@ -618,7 +620,7 @@ export default function Projects() {
                           }}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Delete project
+                          {t('list.card.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -639,7 +641,7 @@ export default function Projects() {
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <span>{project.type}</span>
                         <span>•</span>
-                        <span>{project.sprintDurationDays}d sprints</span>
+                        <span>{t('list.card.sprintDuration', { days: project.sprintDurationDays })}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -681,13 +683,13 @@ export default function Projects() {
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>View all {project.members.length} members</p>
+                              <p>{t('list.card.viewAllMembers', { count: project.members.length })}</p>
                             </TooltipContent>
                           </Tooltip>
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">No members</span>
+                      <span className="text-xs text-muted-foreground">{t('list.card.noMembers')}</span>
                     )}
                   </CardFooter>
                 </Card>
@@ -713,8 +715,8 @@ export default function Projects() {
           ) : filteredAndSortedProjects.length === 0 ? (
             <Card className="flex flex-col items-center justify-center py-16">
               <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No archived projects</h3>
-              <p className="text-muted-foreground mb-4">Archived projects will appear here</p>
+              <h3 className="text-lg font-medium">{t('list.empty.archived.title')}</h3>
+              <p className="text-muted-foreground mb-4">{t('list.empty.archived.message')}</p>
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -737,7 +739,7 @@ export default function Projects() {
                     <div className="space-y-1">
                       <CardTitle className="text-lg">{project.name}</CardTitle>
                       <CardDescription className="line-clamp-2">
-                        {project.description || 'No description'}
+                        {project.description || t('list.card.noDescription')}
                       </CardDescription>
                     </div>
                     <DropdownMenu>
@@ -815,7 +817,7 @@ export default function Projects() {
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <span>{project.type}</span>
                         <span>•</span>
-                        <span>{project.sprintDurationDays}d sprints</span>
+                        <span>{t('list.card.sprintDuration', { days: project.sprintDurationDays })}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -857,13 +859,13 @@ export default function Projects() {
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>View all {project.members.length} members</p>
+                              <p>{t('list.card.viewAllMembers', { count: project.members.length })}</p>
                             </TooltipContent>
                           </Tooltip>
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">No members</span>
+                      <span className="text-xs text-muted-foreground">{t('list.card.noMembers')}</span>
                     )}
                   </CardFooter>
                 </Card>
@@ -889,11 +891,11 @@ export default function Projects() {
           ) : filteredAndSortedProjects.length === 0 ? (
             <Card className="flex flex-col items-center justify-center py-16">
               <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No projects yet</h3>
-              <p className="text-muted-foreground mb-4">Create your first project to get started</p>
+              <h3 className="text-lg font-medium">{t('list.empty.all.title')}</h3>
+              <p className="text-muted-foreground mb-4">{t('list.empty.all.message')}</p>
               <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Create Project
+                {t('list.empty.all.button')}
               </Button>
             </Card>
           ) : (
@@ -917,7 +919,7 @@ export default function Projects() {
                     <div className="space-y-1">
                       <CardTitle className="text-lg">{project.name}</CardTitle>
                       <CardDescription className="line-clamp-2">
-                        {project.description || 'No description'}
+                        {project.description || t('list.card.noDescription')}
                       </CardDescription>
                     </div>
                     <DropdownMenu>
@@ -995,7 +997,7 @@ export default function Projects() {
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <span>{project.type}</span>
                         <span>•</span>
-                        <span>{project.sprintDurationDays}d sprints</span>
+                        <span>{t('list.card.sprintDuration', { days: project.sprintDurationDays })}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -1037,13 +1039,13 @@ export default function Projects() {
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>View all {project.members.length} members</p>
+                              <p>{t('list.card.viewAllMembers', { count: project.members.length })}</p>
                             </TooltipContent>
                           </Tooltip>
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">No members</span>
+                      <span className="text-xs text-muted-foreground">{t('list.card.noMembers')}</span>
                     )}
                   </CardFooter>
                 </Card>
@@ -1057,7 +1059,7 @@ export default function Projects() {
       {data && data.totalPages > 1 && (
         <div className="flex items-center justify-between border-t pt-4">
           <p className="text-sm text-muted-foreground">
-            Showing {data.items.length} of {data.totalCount} projects - Page {currentPage} of {data.totalPages}
+            {t('pagination.showing', { items: data.items.length, total: data.totalCount, page: currentPage, pages: data.totalPages })}
           </p>
           
           <Pagination

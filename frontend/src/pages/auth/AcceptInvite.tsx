@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,31 +22,8 @@ import { showToast, showError } from '@/lib/sweetalert';
 import { authApi } from '@/api/auth';
 import { Zap, Loader2, Mail } from 'lucide-react';
 
-const acceptInviteSchema = z.object({
-  username: z
-    .string()
-    .min(1, 'Le nom d\'utilisateur est requis')
-    .min(3, 'Le nom d\'utilisateur doit contenir au moins 3 caractères')
-    .max(50, 'Le nom d\'utilisateur ne doit pas dépasser 50 caractères')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Le nom d\'utilisateur ne peut contenir que des lettres, chiffres et underscores'),
-  password: z
-    .string()
-    .min(1, 'Le mot de passe est requis')
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
-    .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
-    .regex(/[a-z]/, 'Le mot de passe doit contenir au moins une minuscule')
-    .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre'),
-  confirmPassword: z
-    .string()
-    .min(1, 'La confirmation du mot de passe est requise'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Les mots de passe ne correspondent pas',
-  path: ['confirmPassword'],
-});
-
-type AcceptInviteFormValues = z.infer<typeof acceptInviteSchema>;
-
 export default function AcceptInvite() {
+  const { t } = useTranslation('auth');
   const { token } = useParams<{ token: string }>();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -53,6 +31,30 @@ export default function AcceptInvite() {
   const [isValidating, setIsValidating] = useState(true);
   const [inviteData, setInviteData] = useState<{ email: string; organizationName: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const acceptInviteSchema = z.object({
+    username: z
+      .string()
+      .min(1, t('acceptInvite.validation.usernameRequired'))
+      .min(3, t('acceptInvite.validation.usernameMinLength'))
+      .max(50, t('acceptInvite.validation.usernameMaxLength'))
+      .regex(/^[a-zA-Z0-9_]+$/, t('acceptInvite.validation.usernameFormat')),
+    password: z
+      .string()
+      .min(1, t('acceptInvite.validation.passwordRequired'))
+      .min(8, t('acceptInvite.validation.passwordMinLength'))
+      .regex(/[A-Z]/, t('acceptInvite.validation.passwordUppercase'))
+      .regex(/[a-z]/, t('acceptInvite.validation.passwordLowercase'))
+      .regex(/[0-9]/, t('acceptInvite.validation.passwordNumber')),
+    confirmPassword: z
+      .string()
+      .min(1, t('acceptInvite.validation.confirmRequired')),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('acceptInvite.validation.mismatch'),
+    path: ['confirmPassword'],
+  });
+
+  type AcceptInviteFormValues = z.infer<typeof acceptInviteSchema>;
 
   const form = useForm<AcceptInviteFormValues>({
     resolver: zodResolver(acceptInviteSchema),
@@ -67,7 +69,7 @@ export default function AcceptInvite() {
 
   useEffect(() => {
     if (!token) {
-      setError('Lien d\'invitation invalide');
+      setError(t('acceptInvite.errors.invalidToken'));
       setIsValidating(false);
       return;
     }
@@ -78,7 +80,7 @@ export default function AcceptInvite() {
         setInviteData(data);
       } catch (err: unknown) {
         const apiError = err as { response?: { data?: { detail?: string } }; message?: string };
-        const errorMessage = apiError.response?.data?.detail || apiError.message || 'Invitation invalide ou expirée';
+        const errorMessage = apiError.response?.data?.detail || apiError.message || t('acceptInvite.errors.invalidOrExpired');
         setError(errorMessage);
       } finally {
         setIsValidating(false);
@@ -86,7 +88,7 @@ export default function AcceptInvite() {
     };
 
     validateToken();
-  }, [token]);
+  }, [token, t]);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -97,7 +99,7 @@ export default function AcceptInvite() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Validation de l'invitation...</p>
+          <p className="text-sm text-muted-foreground">{t('acceptInvite.validating')}</p>
         </div>
       </div>
     );
@@ -108,12 +110,12 @@ export default function AcceptInvite() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-xl text-destructive">Invitation invalide</CardTitle>
-            <CardDescription>{error || 'Ce lien d\'invitation est invalide ou a expiré.'}</CardDescription>
+            <CardTitle className="text-xl text-destructive">{t('acceptInvite.invalidTitle')}</CardTitle>
+            <CardDescription>{error || t('acceptInvite.invalidMessage')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => navigate('/login')} className="w-full">
-              Aller à la connexion
+              {t('acceptInvite.goToLogin')}
             </Button>
           </CardContent>
         </Card>
@@ -134,7 +136,7 @@ export default function AcceptInvite() {
         confirmPassword: values.confirmPassword,
       });
 
-      showToast('Votre compte a été créé. Redirection...', 'success');
+      showToast(t('acceptInvite.success.toast'), 'success');
 
       // Redirect to dashboard after a short delay to show success message
       setTimeout(() => {
@@ -142,8 +144,8 @@ export default function AcceptInvite() {
       }, 1000);
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { detail?: string; error?: string } }; message?: string };
-      const errorMessage = apiError.response?.data?.detail || apiError.response?.data?.error || apiError.message || 'Échec de l\'acceptation de l\'invitation';
-      showError('Échec de l\'acceptation de l\'invitation', errorMessage);
+      const errorMessage = apiError.response?.data?.detail || apiError.response?.data?.error || apiError.message || t('acceptInvite.success.errorTitle');
+      showError(t('acceptInvite.success.errorTitle'), errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -156,15 +158,15 @@ export default function AcceptInvite() {
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <Zap className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">IntelliPM</h1>
-          <p className="text-sm text-muted-foreground">Accepter l'invitation</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('acceptInvite.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('acceptInvite.subtitle')}</p>
         </div>
 
         <Card className="w-full max-w-md border-border">
           <CardHeader>
-            <CardTitle>✨ Créer votre compte</CardTitle>
+            <CardTitle>{t('acceptInvite.cardTitle')}</CardTitle>
             <CardDescription>
-              Vous avez été invité à rejoindre <strong>{inviteData.organizationName}</strong>
+              {t('acceptInvite.cardDescription', { organizationName: inviteData.organizationName })}
             </CardDescription>
             <div className="flex items-center gap-2 pt-2">
               <Mail className="h-4 w-4 text-muted-foreground" />
@@ -176,7 +178,7 @@ export default function AcceptInvite() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {/* Email (read-only, from invitation) */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('acceptInvite.emailLabel')}</Label>
                   <Input
                     id="email"
                     name="email"
@@ -194,12 +196,12 @@ export default function AcceptInvite() {
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nom d'utilisateur</FormLabel>
+                      <FormLabel>{t('acceptInvite.usernameLabel')}</FormLabel>
                       <FormControl>
                         <Input
                           type="text"
                           autoComplete="username"
-                          placeholder="Nom d'utilisateur"
+                          placeholder={t('acceptInvite.usernamePlaceholder')}
                           {...field}
                         />
                       </FormControl>
@@ -214,12 +216,12 @@ export default function AcceptInvite() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Mot de passe</FormLabel>
+                      <FormLabel>{t('acceptInvite.passwordLabel')}</FormLabel>
                       <FormControl>
                         <Input
                           type="password"
                           autoComplete="new-password"
-                          placeholder="Mot de passe"
+                          placeholder={t('acceptInvite.passwordPlaceholder')}
                           {...field}
                         />
                       </FormControl>
@@ -237,12 +239,12 @@ export default function AcceptInvite() {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirmer le mot de passe</FormLabel>
+                      <FormLabel>{t('acceptInvite.confirmPasswordLabel')}</FormLabel>
                       <FormControl>
                         <Input
                           type="password"
                           autoComplete="new-password"
-                          placeholder="Confirmer le mot de passe"
+                          placeholder={t('acceptInvite.confirmPasswordPlaceholder')}
                           {...field}
                         />
                       </FormControl>
@@ -253,7 +255,7 @@ export default function AcceptInvite() {
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isLoading ? 'Création...' : 'Créer mon compte'}
+                  {isLoading ? t('acceptInvite.submitButtonLoading') : t('acceptInvite.submitButton')}
                 </Button>
               </form>
             </Form>

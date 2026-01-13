@@ -89,6 +89,13 @@ IntelliPM is a comprehensive project management platform designed for modern sof
 - 🏥 **System Health**: Health monitoring and diagnostics
 - 🤖 **AI Governance**: AI quota management and decision logging
 
+### Internationalization
+- 🌍 **Multi-Language Support**: English (en) and Français (fr)
+- 🔄 **Dynamic Language Switching**: Change language at runtime
+- 📱 **Language Toggle**: Easy language selection in UI
+- 🔗 **Backend Sync**: Language preference synced with user settings
+- 📅 **Locale-Aware Formatting**: Date and number formatting per locale
+
 ---
 
 ## 🛠 Technology Stack
@@ -281,6 +288,42 @@ Before you begin, ensure you have the following installed:
 5. **Access the application**
    - Frontend: http://localhost:5173 (or port shown in terminal)
    - Backend API: http://localhost:5001
+
+---
+
+## 🌍 Supported Languages
+
+IntelliPM supports multiple languages with dynamic language switching:
+
+### Available Languages
+
+- **English (en)** - Default language
+- **Français (fr)** - French
+
+### Changing Language
+
+1. **Using Language Toggle**: Click the language icon (🌍) in the header/navigation bar
+2. **Select Language**: Choose from the dropdown menu
+3. **Automatic Sync**: Language preference is saved and synced with your user account
+
+### Language Features
+
+- ✅ **Dynamic Switching**: Change language without page reload
+- ✅ **Backend Sync**: Language preference saved to user settings
+- ✅ **Browser Detection**: Automatically detects browser language
+- ✅ **Locale Formatting**: Dates and numbers formatted according to locale
+- ✅ **18 Namespaces**: Translations organized by feature (common, projects, tasks, etc.)
+
+### Translation Files
+
+Translation files are located in:
+```
+frontend/public/locales/{language}/{namespace}.json
+```
+
+For more information, see:
+- [i18n Documentation](docs/i18n.md)
+- [Translation Guide](docs/TRANSLATION_GUIDE.md)
 
 ---
 

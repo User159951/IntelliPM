@@ -1,0 +1,80 @@
+{
+  "title": "Projets",
+  "description": "Gérez tous vos projets en un seul endroit",
+  "showing": "Affichage de {{count}} sur {{total}} projets",
+  "sort": {
+    "label": "Trier par",
+    "mostRecent": "Plus récent",
+    "oldest": "Plus ancien",
+    "alphabeticalAZ": "Alphabétique A-Z",
+    "alphabeticalZA": "Alphabétique Z-A",
+    "mostTasks": "Plus de tâches",
+    "progress": "Progression"
+  },
+  "create": {
+    "button": "Nouveau projet",
+    "title": "Créer un nouveau projet",
+    "description": "Remplissez les informations ci-dessous pour créer un nouveau projet",
+    "submit": "Créer"
+  },
+  "form": {
+    "name": "Nom du projet",
+    "namePlaceholder": "Entrez le nom du projet",
+    "description": "Description",
+    "descriptionPlaceholder": "Décrivez votre projet...",
+    "type": "Type",
+    "sprintDuration": "Durée du sprint (jours)",
+    "status": "Statut",
+    "startDate": "Date de début",
+    "pickDate": "Choisir une date",
+    "teamMembers": "Membres de l'équipe",
+    "selectMembers": "Sélectionner des membres",
+    "searchUsers": "Rechercher des utilisateurs...",
+    "noUsersFound": "Aucun utilisateur trouvé",
+    "loadingUsers": "Chargement des utilisateurs...",
+    "owner": "Propriétaire"
+  },
+  "actions": {
+    "cancel": "Annuler"
+  },
+  "tabs": {
+    "active": "Actifs",
+    "archived": "Archivés",
+    "all": "Tous"
+  },
+  "list": {
+    "empty": {
+      "active": {
+        "title": "Aucun projet actif",
+        "message": "Commencez par créer votre premier projet pour organiser votre travail.",
+        "button": "Créer un projet"
+      },
+      "archived": {
+        "title": "Aucun projet archivé",
+        "message": "Les projets archivés apparaîtront ici.",
+        "button": "Créer un projet"
+      },
+      "all": {
+        "title": "Aucun projet",
+        "message": "Commencez par créer votre premier projet pour organiser votre travail.",
+        "button": "Créer un projet"
+      }
+    },
+    "card": {
+      "noDescription": "Aucune description",
+      "viewDetails": "Voir les détails",
+      "edit": "Modifier",
+      "archive": "Archiver",
+      "delete": "Supprimer",
+      "sprintDuration": "{{days}} jours"
+    }
+  },
+  "messages": {
+    "created": "Projet créé avec succès",
+    "createError": "Erreur lors de la création du projet",
+    "archived": "Projet archivé avec succès",
+    "archiveError": "Erreur lors de l'archivage du projet",
+    "invalidDate": "Date invalide",
+    "invalidDateMessage": "La date de début ne peut pas être dans le passé"
+  }
+}

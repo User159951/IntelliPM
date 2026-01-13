@@ -1,0 +1,19 @@
+{
+  "title": "Versions",
+  "description": "Gérez les versions et déploiements du produit",
+  "create": {
+    "button": "Créer une version",
+    "title": "Créer une version"
+  },
+  "status": {
+    "planned": "Planifiée",
+    "inProgress": "En cours",
+    "completed": "Terminée",
+    "cancelled": "Annulée"
+  },
+  "empty": {
+    "title": "Aucune version pour le moment",
+    "message": "Créez votre première version pour suivre les versions du produit"
+  }
+}
+

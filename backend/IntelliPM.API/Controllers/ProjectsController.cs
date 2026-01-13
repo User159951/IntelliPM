@@ -8,6 +8,7 @@ using IntelliPM.Application.Tasks.Queries;
 using IntelliPM.Application.Tasks.DTOs;
 using IntelliPM.Application.Common.Models;
 using IntelliPM.Application.Common.Exceptions;
+using IntelliPM.Application.Common.Authorization;
 using IntelliPM.Domain.Enums;
 using System.Security.Claims;
 using IntelliPM.API.Authorization;
@@ -949,6 +950,135 @@ public class ProjectsController : BaseApiController
             );
         }
     }
+
+    /// <summary>
+    /// Get current user's permissions for a specific project
+    /// </summary>
+    /// <param name="projectId">Project ID</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>User's permissions and project role for the specified project</returns>
+    /// <response code="200">Permissions retrieved successfully</response>
+    /// <response code="404">Project not found or user is not a member</response>
+    /// <response code="401">User is not authenticated</response>
+    [HttpGet("{projectId}/permissions")]
+    [RequirePermission("projects.view")]
+    [ProducesResponseType(typeof(ProjectPermissionsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetProjectPermissions(
+        int projectId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0)
+            {
+                return Unauthorized(new { error = "User ID not found in claims" });
+            }
+
+            _logger.LogInformation("User {UserId} retrieving permissions for project {ProjectId}", userId, projectId);
+
+            // Get user's role in the project
+            var roleQuery = new GetUserRoleInProjectQuery(projectId, userId);
+            var projectRole = await _mediator.Send(roleQuery, ct);
+
+            if (!projectRole.HasValue)
+            {
+                _logger.LogWarning("User {UserId} is not a member of project {ProjectId}", userId, projectId);
+                return NotFound(new { error = "Project not found or user is not a member" });
+            }
+
+            // Build permissions list based on project role
+            var permissions = new List<string>();
+
+            // Always include projects.view if user is a member
+            permissions.Add("projects.view");
+
+            // Add permissions based on role
+            if (ProjectPermissions.CanEditProject(projectRole.Value))
+                permissions.Add("projects.edit");
+            
+            if (ProjectPermissions.CanDeleteProject(projectRole.Value))
+                permissions.Add("projects.delete");
+            
+            if (ProjectPermissions.CanInviteMembers(projectRole.Value))
+                permissions.Add("projects.members.invite");
+            
+            if (ProjectPermissions.CanRemoveMembers(projectRole.Value))
+                permissions.Add("projects.members.remove");
+            
+            if (ProjectPermissions.CanChangeRoles(projectRole.Value))
+                permissions.Add("projects.members.changeRole");
+            
+            if (ProjectPermissions.CanCreateTasks(projectRole.Value))
+                permissions.Add("tasks.create");
+            
+            if (ProjectPermissions.CanEditTasks(projectRole.Value))
+                permissions.Add("tasks.edit");
+            
+            if (ProjectPermissions.CanDeleteTasks(projectRole.Value))
+                permissions.Add("tasks.delete");
+            
+            if (ProjectPermissions.CanCommentOnTasks(projectRole.Value))
+                permissions.Add("tasks.comment");
+            
+            if (ProjectPermissions.CanManageSprints(projectRole.Value))
+            {
+                permissions.Add("sprints.manage");
+                permissions.Add("sprints.create");
+                permissions.Add("sprints.edit");
+            }
+            
+            if (ProjectPermissions.CanStartSprint(projectRole.Value))
+                permissions.Add("sprints.start");
+            
+            if (ProjectPermissions.CanCloseSprint(projectRole.Value))
+                permissions.Add("sprints.complete");
+            
+            if (ProjectPermissions.CanApproveRelease(projectRole.Value))
+                permissions.Add("releases.approve");
+            
+            if (ProjectPermissions.CanValidateQualityGate(projectRole.Value))
+                permissions.Add("releases.validateQualityGate");
+            
+            if (ProjectPermissions.CanValidateMilestone(projectRole.Value))
+            {
+                permissions.Add("milestones.complete");
+                permissions.Add("milestones.edit");
+            }
+
+            // Milestone permissions
+            if (ProjectPermissions.CanEditProject(projectRole.Value))
+            {
+                permissions.Add("milestones.create");
+                permissions.Add("milestones.view");
+            }
+
+            var response = new ProjectPermissionsResponse
+            {
+                Permissions = permissions.ToArray(),
+                ProjectRole = projectRole.Value.ToString(),
+                ProjectId = projectId
+            };
+
+            return Ok(response);
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Project {ProjectId} not found", projectId);
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving permissions for project {ProjectId}", projectId);
+            return Problem(
+                title: "Error retrieving project permissions",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
 }
 
 public record CreateProjectRequest(
@@ -983,4 +1113,11 @@ public record AssignTeamToProjectRequest(
     ProjectRole? DefaultRole,
     Dictionary<int, ProjectRole>? MemberRoleOverrides
 );
+
+public class ProjectPermissionsResponse
+{
+    public string[] Permissions { get; set; } = Array.Empty<string>();
+    public string? ProjectRole { get; set; }
+    public int ProjectId { get; set; }
+}
 

@@ -19,14 +19,16 @@ public class GetProjectByIdQueryHandler : IRequestHandler<GetProjectByIdQuery, G
     {
         var projectRepo = _unitOfWork.Repository<Project>();
         var project = await projectRepo.Query()
+            .Where(p => p.Id == request.ProjectId)
+            // Tenant filter automatically applied via global filter
             .Include(p => p.Members)
                 .ThenInclude(m => m.User)
             .Include(p => p.Members)
                 .ThenInclude(m => m.InvitedBy)
-            .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (project == null)
-            throw new NotFoundException($"Project {request.ProjectId} not found");
+            throw new NotFoundException($"Project not found");
 
         var members = project.Members.Select(m => new ProjectMemberDto(
             m.Id,

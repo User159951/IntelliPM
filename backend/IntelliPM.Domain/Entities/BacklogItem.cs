@@ -2,9 +2,10 @@ using IntelliPM.Domain.Interfaces;
 
 namespace IntelliPM.Domain.Entities;
 
-public abstract class BacklogItem : IAggregateRoot
+public abstract class BacklogItem : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
+    public int OrganizationId { get; set; }
     public int ProjectId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -14,6 +15,7 @@ public abstract class BacklogItem : IAggregateRoot
     public DateTimeOffset UpdatedAt { get; set; }
 
     public Project Project { get; set; } = null!;
+    public Organization Organization { get; set; } = null!;
 }
 
 public class Epic : BacklogItem

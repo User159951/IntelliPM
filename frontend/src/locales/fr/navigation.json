@@ -1,0 +1,77 @@
+{
+  "menuItems": {
+    "dashboard": "Tableau de bord",
+    "projects": "Projets",
+    "tasks": "Tâches",
+    "sprints": "Sprints",
+    "teams": "Équipes",
+    "backlog": "Backlog",
+    "defects": "Défauts",
+    "milestones": "Jalons",
+    "releases": "Versions",
+    "metrics": "Métriques",
+    "insights": "Aperçus",
+    "aiAgents": "Agents IA",
+    "users": "Utilisateurs",
+    "settings": "Paramètres",
+    "profile": "Profil",
+    "aiQuota": "Quota IA"
+  },
+  "adminMenuItems": {
+    "adminDashboard": "Tableau de bord Admin",
+    "users": "Utilisateurs",
+    "permissions": "Permissions",
+    "settings": "Paramètres",
+    "auditLogs": "Journaux d'audit",
+    "systemHealth": "Santé du système",
+    "aiGovernance": "Gouvernance IA",
+    "organizations": "Organisations",
+    "myOrganization": "Mon organisation",
+    "members": "Membres",
+    "memberAIQuotas": "Quotas IA des membres",
+    "memberPermissions": "Permissions des membres",
+    "aiQuota": "Quota IA"
+  },
+  "sections": {
+    "main": "Principal",
+    "project": "Projet",
+    "teamInsights": "Équipe et Aperçus",
+    "settings": "Paramètres",
+    "admin": "Admin",
+    "superAdmin": "SuperAdmin",
+    "organization": "Organisation"
+  },
+  "header": {
+    "searchPlaceholder": "Rechercher des projets, tâches...",
+    "notifications": "Notifications",
+    "profile": "Profil",
+    "logOut": "Déconnexion"
+  },
+  "admin": {
+    "adminArea": "Zone Admin",
+    "adminDescription": "Gérer les paramètres globaux et les permissions",
+    "backToApp": "Retour à l'application",
+    "roleBadge": "Admin"
+  },
+  "breadcrumbs": {
+    "projects": "Projets",
+    "tasks": "Tâches",
+    "sprints": "Sprints",
+    "backlog": "Backlog",
+    "defects": "Défauts",
+    "milestones": "Jalons",
+    "releases": "Versions",
+    "dashboard": "Tableau de bord",
+    "teams": "Équipes",
+    "metrics": "Métriques",
+    "insights": "Aperçus",
+    "aiAgents": "Agents IA",
+    "users": "Utilisateurs",
+    "settings": "Paramètres",
+    "profile": "Profil"
+  },
+  "footer": {
+    "copyright": "© 2025 IntelliPM",
+    "tagline": "Gestion de projet intelligente"
+  }
+}

@@ -14,11 +14,13 @@ public class InviteMemberCommandHandler : IRequestHandler<InviteMemberCommand, i
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthService _authService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public InviteMemberCommandHandler(IUnitOfWork unitOfWork, IAuthService authService)
+    public InviteMemberCommandHandler(IUnitOfWork unitOfWork, IAuthService authService, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
         _authService = authService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<int> Handle(InviteMemberCommand request, CancellationToken cancellationToken)
@@ -41,13 +43,17 @@ public class InviteMemberCommandHandler : IRequestHandler<InviteMemberCommand, i
         if (!ProjectPermissions.CanInviteMembers(currentUserMember.Role))
             throw new UnauthorizedAccessException($"User {request.CurrentUserId} does not have permission to invite members to this project");
 
-        // Check if user with email exists
+        // Check if user with email exists and belongs to the same organization
+        var organizationId = _currentUserService.GetOrganizationId();
         var userRepo = _unitOfWork.Repository<User>();
         var invitedUser = await userRepo.Query()
             .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
 
         if (invitedUser == null)
             throw new NotFoundException($"User with email {request.Email} not found");
+        
+        if (invitedUser.OrganizationId != organizationId)
+            throw new ValidationException($"User with email {request.Email} does not belong to your organization");
 
         // Check if user is already a member
         var isAlreadyMember = project.Members.Any(m => m.UserId == invitedUser.Id);

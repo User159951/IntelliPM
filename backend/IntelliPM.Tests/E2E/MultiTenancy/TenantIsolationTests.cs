@@ -447,6 +447,350 @@ public class TenantIsolationTests : IClassFixture<CustomWebApplicationFactory>, 
         org1Projects.Should().Be(1); // Exists in DB but UserB shouldn't see it
     }
 
+    [Fact]
+    public async Task User_Cannot_Access_Other_Organization_Activities()
+    {
+        // Arrange - Create activities for each organization
+        var activityX = new Activity
+        {
+            Id = 1,
+            UserId = 1,
+            OrganizationId = 1,
+            ActivityType = "task_created",
+            EntityType = "task",
+            EntityId = 1,
+            ProjectId = 1,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var activityY = new Activity
+        {
+            Id = 2,
+            UserId = 2,
+            OrganizationId = 2,
+            ActivityType = "task_created",
+            EntityType = "task",
+            EntityId = 2,
+            ProjectId = 2,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _context.Activities.AddRange(activityX, activityY);
+        _context.SaveChanges();
+
+        // Act - UserA (Org1) tries to access activities
+        var activities = await _context.Activities
+            .Where(a => a.OrganizationId == 1)
+            .ToListAsync();
+
+        // Assert - Only Org1 activities returned
+        activities.Should().HaveCount(1);
+        activities.Should().OnlyContain(a => a.OrganizationId == 1);
+        activities.Should().NotContain(a => a.Id == 2);
+    }
+
+    [Fact]
+    public async Task User_Cannot_Access_Other_Organization_Alerts()
+    {
+        // Arrange - Create alerts for each organization
+        var alertX = new Alert
+        {
+            Id = 1,
+            ProjectId = 1,
+            OrganizationId = 1,
+            Type = "VelocityDrop",
+            Severity = "Warning",
+            Title = "Org1 Alert",
+            Message = "Org1 Alert Message",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var alertY = new Alert
+        {
+            Id = 2,
+            ProjectId = 2,
+            OrganizationId = 2,
+            Type = "VelocityDrop",
+            Severity = "Warning",
+            Title = "Org2 Alert",
+            Message = "Org2 Alert Message",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _context.Alerts.AddRange(alertX, alertY);
+        _context.SaveChanges();
+
+        // Act - UserA (Org1) tries to access alerts
+        var alerts = await _context.Alerts
+            .Where(a => a.OrganizationId == 1)
+            .ToListAsync();
+
+        // Assert - Only Org1 alerts returned
+        alerts.Should().HaveCount(1);
+        alerts.Should().OnlyContain(a => a.OrganizationId == 1);
+        alerts.Should().NotContain(a => a.Id == 2);
+    }
+
+    [Fact]
+    public async Task User_Cannot_Access_Other_Organization_AuditLogs()
+    {
+        // Arrange - Create audit logs for each organization
+        var auditLogX = new AuditLog
+        {
+            Id = 1,
+            UserId = 1,
+            OrganizationId = 1,
+            Action = "create",
+            EntityType = "Project",
+            EntityId = 1,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var auditLogY = new AuditLog
+        {
+            Id = 2,
+            UserId = 2,
+            OrganizationId = 2,
+            Action = "create",
+            EntityType = "Project",
+            EntityId = 2,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _context.AuditLogs.AddRange(auditLogX, auditLogY);
+        _context.SaveChanges();
+
+        // Act - UserA (Org1) tries to access audit logs
+        var auditLogs = await _context.AuditLogs
+            .Where(al => al.OrganizationId == 1)
+            .ToListAsync();
+
+        // Assert - Only Org1 audit logs returned
+        auditLogs.Should().HaveCount(1);
+        auditLogs.Should().OnlyContain(al => al.OrganizationId == 1);
+        auditLogs.Should().NotContain(al => al.Id == 2);
+    }
+
+    [Fact]
+    public async Task User_Cannot_Access_Other_Organization_DocumentStores()
+    {
+        // Arrange - Create document stores for each organization
+        var docX = new DocumentStore
+        {
+            Id = 1,
+            ProjectId = 1,
+            OrganizationId = 1,
+            Type = "Note",
+            Content = "Org1 Document",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var docY = new DocumentStore
+        {
+            Id = 2,
+            ProjectId = 2,
+            OrganizationId = 2,
+            Type = "Note",
+            Content = "Org2 Document",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _context.DocumentStores.AddRange(docX, docY);
+        _context.SaveChanges();
+
+        // Act - UserA (Org1) tries to access document stores
+        var documents = await _context.DocumentStores
+            .Where(ds => ds.OrganizationId == 1)
+            .ToListAsync();
+
+        // Assert - Only Org1 documents returned
+        documents.Should().HaveCount(1);
+        documents.Should().OnlyContain(ds => ds.OrganizationId == 1);
+        documents.Should().NotContain(ds => ds.Id == 2);
+    }
+
+    [Fact]
+    public async Task User_Cannot_Access_Other_Organization_Insights()
+    {
+        // Arrange - Create insights for each organization
+        var insightX = new Insight
+        {
+            Id = 1,
+            ProjectId = 1,
+            OrganizationId = 1,
+            AgentType = "Product",
+            Category = "Risk",
+            Title = "Org1 Insight",
+            Description = "Org1 Insight Description",
+            Confidence = 0.8m,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        var insightY = new Insight
+        {
+            Id = 2,
+            ProjectId = 2,
+            OrganizationId = 2,
+            AgentType = "Product",
+            Category = "Risk",
+            Title = "Org2 Insight",
+            Description = "Org2 Insight Description",
+            Confidence = 0.8m,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _context.Insights.AddRange(insightX, insightY);
+        _context.SaveChanges();
+
+        // Act - UserA (Org1) tries to access insights
+        var insights = await _context.Insights
+            .Where(i => i.OrganizationId == 1)
+            .ToListAsync();
+
+        // Assert - Only Org1 insights returned
+        insights.Should().HaveCount(1);
+        insights.Should().OnlyContain(i => i.OrganizationId == 1);
+        insights.Should().NotContain(i => i.Id == 2);
+    }
+
+    [Fact]
+    public async Task User_Cannot_Access_Other_Organization_Risks()
+    {
+        // Arrange - Create risks for each organization
+        var riskX = new Risk
+        {
+            Id = 1,
+            ProjectId = 1,
+            OrganizationId = 1,
+            Title = "Org1 Risk",
+            Description = "Org1 Risk Description",
+            Probability = 3,
+            Impact = 4,
+            MitigationPlan = "Plan",
+            Status = "Open",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        var riskY = new Risk
+        {
+            Id = 2,
+            ProjectId = 2,
+            OrganizationId = 2,
+            Title = "Org2 Risk",
+            Description = "Org2 Risk Description",
+            Probability = 3,
+            Impact = 4,
+            MitigationPlan = "Plan",
+            Status = "Open",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _context.Risks.AddRange(riskX, riskY);
+        _context.SaveChanges();
+
+        // Act - UserA (Org1) tries to access risks
+        var risks = await _context.Risks
+            .Where(r => r.OrganizationId == 1)
+            .ToListAsync();
+
+        // Assert - Only Org1 risks returned
+        risks.Should().HaveCount(1);
+        risks.Should().OnlyContain(r => r.OrganizationId == 1);
+        risks.Should().NotContain(r => r.Id == 2);
+    }
+
+    [Fact]
+    public async Task User_Cannot_Access_Other_Organization_BacklogItems()
+    {
+        // Arrange - Create backlog items for each organization
+        var epicX = new Epic
+        {
+            Id = 1,
+            ProjectId = 1,
+            OrganizationId = 1,
+            Title = "Org1 Epic",
+            Description = "Org1 Epic Description",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        var epicY = new Epic
+        {
+            Id = 2,
+            ProjectId = 2,
+            OrganizationId = 2,
+            Title = "Org2 Epic",
+            Description = "Org2 Epic Description",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _context.Epics.AddRange(epicX, epicY);
+        _context.SaveChanges();
+
+        // Act - UserA (Org1) tries to access backlog items
+        var backlogItems = await _context.Epics
+            .Where(bi => bi.OrganizationId == 1)
+            .ToListAsync();
+
+        // Assert - Only Org1 backlog items returned
+        backlogItems.Should().HaveCount(1);
+        backlogItems.Should().OnlyContain(bi => bi.OrganizationId == 1);
+        backlogItems.Should().NotContain(bi => bi.Id == 2);
+    }
+
+    [Fact]
+    public async Task User_Cannot_Access_Other_Organization_WorkflowTransitionAuditLogs()
+    {
+        // Arrange - Create workflow transition audit logs for each organization
+        var logX = new WorkflowTransitionAuditLog
+        {
+            Id = 1,
+            UserId = 1,
+            OrganizationId = 1,
+            EntityType = "Task",
+            EntityId = 1,
+            FromStatus = "Todo",
+            ToStatus = "InProgress",
+            WasAllowed = true,
+            UserRole = "Developer",
+            ProjectId = 1,
+            AttemptedAt = DateTimeOffset.UtcNow
+        };
+
+        var logY = new WorkflowTransitionAuditLog
+        {
+            Id = 2,
+            UserId = 2,
+            OrganizationId = 2,
+            EntityType = "Task",
+            EntityId = 2,
+            FromStatus = "Todo",
+            ToStatus = "InProgress",
+            WasAllowed = true,
+            UserRole = "Developer",
+            ProjectId = 2,
+            AttemptedAt = DateTimeOffset.UtcNow
+        };
+
+        _context.WorkflowTransitionAuditLogs.AddRange(logX, logY);
+        _context.SaveChanges();
+
+        // Act - UserA (Org1) tries to access workflow transition audit logs
+        var logs = await _context.WorkflowTransitionAuditLogs
+            .Where(wt => wt.OrganizationId == 1)
+            .ToListAsync();
+
+        // Assert - Only Org1 logs returned
+        logs.Should().HaveCount(1);
+        logs.Should().OnlyContain(wt => wt.OrganizationId == 1);
+        logs.Should().NotContain(wt => wt.Id == 2);
+    }
+
     public void Dispose()
     {
         _context?.Dispose();

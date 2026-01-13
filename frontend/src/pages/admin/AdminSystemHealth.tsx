@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { adminApi } from '@/api/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,16 +18,16 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 };
 
-const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string, t: (key: string) => string) => {
   switch (status.toLowerCase()) {
     case 'healthy':
-      return <Badge variant="default" className="bg-green-500">Healthy</Badge>;
+      return <Badge variant="default" className="bg-green-500">{t('systemHealth.status.healthy')}</Badge>;
     case 'degraded':
-      return <Badge variant="default" className="bg-yellow-500">Degraded</Badge>;
+      return <Badge variant="default" className="bg-yellow-500">{t('systemHealth.status.degraded')}</Badge>;
     case 'unhealthy':
-      return <Badge variant="destructive">Unhealthy</Badge>;
+      return <Badge variant="destructive">{t('systemHealth.status.unhealthy')}</Badge>;
     default:
-      return <Badge variant="secondary">Unknown</Badge>;
+      return <Badge variant="secondary">{t('systemHealth.status.unknown')}</Badge>;
   }
 };
 
@@ -39,6 +40,7 @@ const getServiceStatusIcon = (isHealthy: boolean) => {
 };
 
 export default function AdminSystemHealth() {
+  const { t } = useTranslation('admin');
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -68,7 +70,7 @@ export default function AdminSystemHealth() {
     return (
       <div className="container mx-auto p-6">
         <div className="bg-destructive/10 text-destructive p-4 rounded-lg">
-          <p>Error loading system health. Please try again later.</p>
+          <p>{t('systemHealth.errors.loadError')}</p>
         </div>
       </div>
     );
@@ -77,7 +79,7 @@ export default function AdminSystemHealth() {
   if (!data) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-muted-foreground">No system health data available.</p>
+        <p className="text-muted-foreground">{t('systemHealth.errors.noData')}</p>
       </div>
     );
   }
@@ -86,14 +88,14 @@ export default function AdminSystemHealth() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">System Health</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('systemHealth.title')}</h1>
           <p className="text-muted-foreground">
-            Monitor system resources and service status in real-time.
+            {t('systemHealth.description')}
           </p>
         </div>
         <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('systemHealth.refresh')}
         </Button>
       </div>
 
@@ -101,21 +103,21 @@ export default function AdminSystemHealth() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('systemHealth.resources.cpuUsage')}</CardTitle>
             <Cpu className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.cpuUsage.toFixed(1)}%</div>
             <Progress value={data.cpuUsage} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              {data.cpuUsage > 80 ? 'High usage' : data.cpuUsage > 50 ? 'Moderate usage' : 'Normal usage'}
+              {data.cpuUsage > 80 ? t('systemHealth.resources.cpuStatus.high') : data.cpuUsage > 50 ? t('systemHealth.resources.cpuStatus.moderate') : t('systemHealth.resources.cpuStatus.normal')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('systemHealth.resources.memoryUsage')}</CardTitle>
             <HardDrive className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -125,22 +127,22 @@ export default function AdminSystemHealth() {
               {formatBytes(data.usedMemoryBytes)} / {formatBytes(data.totalMemoryBytes)}
             </p>
             <p className="text-xs text-muted-foreground">
-              Available: {formatBytes(data.availableMemoryBytes)}
+              {t('systemHealth.systemInfo.availableMemory')} {formatBytes(data.availableMemoryBytes)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Database</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('systemHealth.resources.database')}</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 mb-2">
-              <div className="text-2xl font-bold">{getStatusBadge(data.databaseStatus)}</div>
+              <div className="text-2xl font-bold">{getStatusBadge(data.databaseStatus, t)}</div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Response time: {data.databaseResponseTimeMs}ms
+              {t('systemHealth.resources.responseTime')} {data.databaseResponseTimeMs}ms
             </p>
           </CardContent>
         </Card>
@@ -149,8 +151,8 @@ export default function AdminSystemHealth() {
       {/* External Services */}
       <Card>
         <CardHeader>
-          <CardTitle>External Services</CardTitle>
-          <CardDescription>Status of external services and dependencies</CardDescription>
+          <CardTitle>{t('systemHealth.externalServices.title')}</CardTitle>
+          <CardDescription>{t('systemHealth.externalServices.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -164,7 +166,7 @@ export default function AdminSystemHealth() {
                   <div>
                     <p className="font-medium">{service.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {service.statusMessage || (service.isHealthy ? 'Operational' : 'Unavailable')}
+                      {service.statusMessage || (service.isHealthy ? t('systemHealth.externalServices.operational') : t('systemHealth.externalServices.unavailable'))}
                     </p>
                   </div>
                 </div>
@@ -175,7 +177,7 @@ export default function AdminSystemHealth() {
                     </span>
                   )}
                   <Badge variant={service.isHealthy ? 'default' : 'destructive'}>
-                    {service.isHealthy ? 'Healthy' : 'Unhealthy'}
+                    {service.isHealthy ? t('systemHealth.status.healthy') : t('systemHealth.status.unhealthy')}
                   </Badge>
                 </div>
               </div>
@@ -187,27 +189,27 @@ export default function AdminSystemHealth() {
       {/* System Information */}
       <Card>
         <CardHeader>
-          <CardTitle>System Information</CardTitle>
-          <CardDescription>Last updated system metrics</CardDescription>
+          <CardTitle>{t('systemHealth.systemInfo.title')}</CardTitle>
+          <CardDescription>{t('systemHealth.systemInfo.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">Last Updated:</span>
+              <span className="text-muted-foreground">{t('systemHealth.systemInfo.lastUpdated')}</span>
               <p className="font-medium">
                 {format(new Date(data.timestamp), 'MMM d, yyyy HH:mm:ss')}
               </p>
             </div>
             <div>
-              <span className="text-muted-foreground">Total Memory:</span>
+              <span className="text-muted-foreground">{t('systemHealth.systemInfo.totalMemory')}</span>
               <p className="font-medium">{formatBytes(data.totalMemoryBytes)}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Used Memory:</span>
+              <span className="text-muted-foreground">{t('systemHealth.systemInfo.usedMemory')}</span>
               <p className="font-medium">{formatBytes(data.usedMemoryBytes)}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">Available Memory:</span>
+              <span className="text-muted-foreground">{t('systemHealth.systemInfo.availableMemory')}</span>
               <p className="font-medium">{formatBytes(data.availableMemoryBytes)}</p>
             </div>
           </div>

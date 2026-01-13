@@ -1,11 +1,12 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace IntelliPM.Application.Sprints.Queries;
 
-public class GetSprintByIdQueryHandler : IRequestHandler<GetSprintByIdQuery, SprintDetailDto?>
+public class GetSprintByIdQueryHandler : IRequestHandler<GetSprintByIdQuery, SprintDetailDto>
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -14,15 +15,16 @@ public class GetSprintByIdQueryHandler : IRequestHandler<GetSprintByIdQuery, Spr
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<SprintDetailDto?> Handle(GetSprintByIdQuery request, CancellationToken cancellationToken)
+    public async Task<SprintDetailDto> Handle(GetSprintByIdQuery request, CancellationToken cancellationToken)
     {
         var sprintRepo = _unitOfWork.Repository<Sprint>();
         
         var sprint = await sprintRepo.Query()
+            .Where(s => s.Id == request.SprintId)
+            // Tenant filter automatically applied via global filter
             .Include(s => s.Project)
             .Include(s => s.Items)
                 .ThenInclude(i => i.UserStory)
-            .Where(s => s.Id == request.SprintId)
             .Select(s => new SprintDetailDto(
                 s.Id,
                 s.ProjectId,
@@ -43,6 +45,9 @@ public class GetSprintByIdQueryHandler : IRequestHandler<GetSprintByIdQuery, Spr
                 s.CreatedAt // No UpdatedAt in Sprint entity
             ))
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (sprint == null)
+            throw new NotFoundException($"Sprint not found");
 
         return sprint;
     }

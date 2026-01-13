@@ -8,7 +8,7 @@ namespace IntelliPM.Domain.Entities;
 /// Simplified Task entity for direct project task management
 /// (separate from Epic/Feature/UserStory hierarchy)
 /// </summary>
-public class ProjectTask : IAggregateRoot
+public class ProjectTask : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
     public int ProjectId { get; set; }

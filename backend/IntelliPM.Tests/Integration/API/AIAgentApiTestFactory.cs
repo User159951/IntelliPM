@@ -9,6 +9,7 @@ using Moq;
 using IntelliPM.Infrastructure.Persistence;
 using IntelliPM.Infrastructure.VectorStore;
 using IntelliPM.Domain.Entities;
+using IntelliPM.Tests.Infrastructure.TestAuthentication;
 using System.Text;
 
 namespace IntelliPM.Tests.Integration.API;
@@ -125,6 +126,9 @@ public class AIAgentApiTestFactory : WebApplicationFactory<Program>
                 kernelBuilder.Services.AddSingleton(mockService);
                 return kernelBuilder.Build();
             });
+
+            // Add test authentication handler
+            services.AddTestAuthentication();
 
             // Ensure database is created
             var serviceProvider = services.BuildServiceProvider();

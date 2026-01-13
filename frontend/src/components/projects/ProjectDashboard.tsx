@@ -17,6 +17,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber, formatPercentage, formatDecimal } from '@/utils/numberFormat';
 
 interface ProjectDashboardProps {
   projectId: number;
@@ -92,6 +94,7 @@ function ProjectHeader({ overview, onRefresh }: {
   overview: ProjectOverviewDto;
   onRefresh: () => void;
 }) {
+  const { language } = useLanguage();
   const healthColor = {
     Excellent: 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20',
     Good: 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20',
@@ -111,7 +114,7 @@ function ProjectHeader({ overview, onRefresh }: {
           <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${healthColor}`}>
             <HeartPulse className="h-4 w-4" />
             <span className="font-medium">{overview.healthStatus}</span>
-            <span className="text-sm">({overview.projectHealth.toFixed(0)}%)</span>
+            <span className="text-sm">({formatPercentage(overview.projectHealth / 100, language, { minimumFractionDigits: 0, maximumFractionDigits: 0 })})</span>
           </div>
         </div>
       </div>
@@ -125,48 +128,50 @@ function ProjectHeader({ overview, onRefresh }: {
 }
 
 function MetricsGrid({ overview }: { overview: ProjectOverviewDto }) {
+  const { language } = useLanguage();
+  
   const metrics = [
     {
       label: 'Overall Progress',
-      value: `${overview.overallProgress.toFixed(1)}%`,
+      value: formatPercentage(overview.overallProgress / 100, language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
       icon: TrendingUp,
       color: 'text-blue-600',
-      subtext: `${overview.completedTasks} / ${overview.totalTasks} tasks`,
+      subtext: `${formatNumber(overview.completedTasks, language)} / ${formatNumber(overview.totalTasks, language)} tasks`,
     },
     {
       label: 'Story Points',
-      value: overview.totalStoryPoints,
+      value: formatNumber(overview.totalStoryPoints, language),
       icon: Target,
       color: 'text-purple-600',
-      subtext: `${overview.completedStoryPoints} completed`,
+      subtext: `${formatNumber(overview.completedStoryPoints, language)} completed`,
     },
     {
       label: 'Team Members',
-      value: overview.totalMembers,
+      value: formatNumber(overview.totalMembers, language),
       icon: Users,
       color: 'text-green-600',
-      subtext: `${overview.activeMembers} active`,
+      subtext: `${formatNumber(overview.activeMembers, language)} active`,
     },
     {
       label: 'Average Velocity',
-      value: overview.averageVelocity.toFixed(1),
+      value: formatDecimal(overview.averageVelocity, language, 1),
       icon: Zap,
       color: 'text-orange-600',
       subtext: 'points per sprint',
     },
     {
       label: 'Sprints',
-      value: overview.totalSprints,
+      value: formatNumber(overview.totalSprints, language),
       icon: Calendar,
       color: 'text-indigo-600',
-      subtext: `${overview.activeSprintsCount} active`,
+      subtext: `${formatNumber(overview.activeSprintsCount, language)} active`,
     },
     {
       label: 'Open Defects',
-      value: overview.openDefects,
+      value: formatNumber(overview.openDefects, language),
       icon: AlertTriangle,
       color: overview.criticalDefects > 0 ? 'text-red-600' : 'text-yellow-600',
-      subtext: `${overview.criticalDefects} critical`,
+      subtext: `${formatNumber(overview.criticalDefects, language)} critical`,
     },
   ];
 

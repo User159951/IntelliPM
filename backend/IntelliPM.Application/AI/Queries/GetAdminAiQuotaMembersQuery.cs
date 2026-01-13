@@ -5,9 +5,12 @@ namespace IntelliPM.Application.AI.Queries;
 
 /// <summary>
 /// Query to get paginated list of organization members with their AI quota information (Admin only).
+/// For SuperAdmin: OrganizationId can be null (all orgs) or specific org.
+/// For Admin: OrganizationId is ignored, uses their own organization.
 /// </summary>
 public record GetAdminAiQuotaMembersQuery : IRequest<PagedResponse<AdminAiQuotaMemberDto>>
 {
+    public int? OrganizationId { get; init; } // Optional: SuperAdmin can filter by org, Admin uses their own
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
     public string? SearchTerm { get; init; } // Search by email or name

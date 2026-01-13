@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Authorization;
@@ -11,11 +12,13 @@ public class CreateDefectCommandHandler : IRequestHandler<CreateDefectCommand, C
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateDefectCommandHandler(IUnitOfWork unitOfWork, IMediator mediator)
+    public CreateDefectCommandHandler(IUnitOfWork unitOfWork, IMediator mediator, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CreateDefectResponse> Handle(CreateDefectCommand request, CancellationToken cancellationToken)
@@ -26,13 +29,19 @@ public class CreateDefectCommandHandler : IRequestHandler<CreateDefectCommand, C
             throw new UnauthorizedException("You are not a member of this project");
         // All members can create defects (no specific permission check needed)
 
-        // Verify assignee exists if provided
+        // Verify assignee exists and belongs to the same organization if provided
         if (request.AssignedToId.HasValue)
         {
+            var organizationId = _currentUserService.GetOrganizationId();
             var userRepo = _unitOfWork.Repository<User>();
-            var assignee = await userRepo.GetByIdAsync(request.AssignedToId.Value, cancellationToken);
+            var assignee = await userRepo.Query()
+                .FirstOrDefaultAsync(u => u.Id == request.AssignedToId.Value, cancellationToken);
+            
             if (assignee == null)
-                throw new InvalidOperationException($"User with ID {request.AssignedToId.Value} not found");
+                throw new ValidationException($"User with ID {request.AssignedToId.Value} not found");
+            
+            if (assignee.OrganizationId != organizationId)
+                throw new ValidationException($"User with ID {request.AssignedToId.Value} does not belong to your organization");
         }
 
         var defect = new Defect

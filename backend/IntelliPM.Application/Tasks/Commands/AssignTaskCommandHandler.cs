@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Authorization;
@@ -11,11 +12,13 @@ public class AssignTaskCommandHandler : IRequestHandler<AssignTaskCommand, Assig
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AssignTaskCommandHandler(IUnitOfWork unitOfWork, IMediator mediator)
+    public AssignTaskCommandHandler(IUnitOfWork unitOfWork, IMediator mediator, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AssignTaskResponse> Handle(AssignTaskCommand request, CancellationToken cancellationToken)
@@ -33,13 +36,19 @@ public class AssignTaskCommandHandler : IRequestHandler<AssignTaskCommand, Assig
         if (!ProjectPermissions.CanEditTasks(userRole.Value))
             throw new UnauthorizedException("You don't have permission to assign tasks in this project");
 
-        // Verify assignee exists if provided
+        // Verify assignee exists and belongs to the same organization if provided
         if (request.AssigneeId.HasValue)
         {
+            var organizationId = _currentUserService.GetOrganizationId();
             var userRepo = _unitOfWork.Repository<User>();
-            var assignee = await userRepo.GetByIdAsync(request.AssigneeId.Value, cancellationToken);
+            var assignee = await userRepo.Query()
+                .FirstOrDefaultAsync(u => u.Id == request.AssigneeId.Value, cancellationToken);
+            
             if (assignee == null)
-                throw new InvalidOperationException($"User with ID {request.AssigneeId.Value} not found");
+                throw new ValidationException($"User with ID {request.AssigneeId.Value} not found");
+            
+            if (assignee.OrganizationId != organizationId)
+                throw new ValidationException($"User with ID {request.AssigneeId.Value} does not belong to your organization");
         }
 
         task.AssigneeId = request.AssigneeId;

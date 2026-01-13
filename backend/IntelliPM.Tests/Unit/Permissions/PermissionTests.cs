@@ -351,7 +351,11 @@ public class PermissionTests
         mockUnitOfWork.Setup(u => u.Repository<OutboxMessage>()).Returns(mockOutboxRepo.Object);
         mockUnitOfWork.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCache.Object);
+        // Setup current user service
+        var mockCurrentUserService = new Mock<ICurrentUserService>();
+        mockCurrentUserService.Setup(s => s.GetOrganizationId()).Returns(organizationId);
+
+        var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCache.Object, mockCurrentUserService.Object);
 
         var command = new CreateProjectCommand(
             Name: "Test Project",

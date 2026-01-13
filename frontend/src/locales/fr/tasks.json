@@ -1,0 +1,19 @@
+{
+  "search": {
+    "placeholder": "Rechercher des tâches..."
+  },
+  "sort": {
+    "label": "Trier par",
+    "priority": "Priorité",
+    "updated": "Dernière mise à jour",
+    "dueDate": "Date d'échéance",
+    "points": "Points de story",
+    "alpha": "Alphabétique"
+  },
+  "columns": {
+    "todo": "À faire",
+    "inProgress": "En cours",
+    "blocked": "Bloqué",
+    "done": "Terminé"
+  }
+}

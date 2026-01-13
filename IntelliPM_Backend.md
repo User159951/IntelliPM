@@ -1,7 +1,7 @@
 # IntelliPM Backend Documentation
 
-**Version:** 2.18.0  
-**Last Updated:** January 8, 2025 (Comprehensive Codebase Scan)  
+**Version:** 2.23.0  
+**Last Updated:** January 9, 2026 (Comprehensive Codebase Scan - Updated with latest changes)  
 **Technology Stack:** .NET 8.0, ASP.NET Core, Entity Framework Core, SQL Server, PostgreSQL, Semantic Kernel
 
 ---
@@ -60,6 +60,7 @@ IntelliPM is an intelligent project management system that combines traditional 
 - **Read Models**: CQRS read models for optimized queries (TaskBoard, SprintSummary, ProjectOverview)
 - **Organization Permission Policies**: Per-organization permission restrictions managed by SuperAdmin
 - **Member Permission Management**: Admin-level member role and permission management with policy enforcement
+- **Lookup/Reference Data**: Static reference data endpoints (project types, task statuses, priorities) with metadata
 
 ### 1.3 Technology Stack
 
@@ -151,7 +152,7 @@ IntelliPM.sln
 
 ```
 IntelliPM.Domain/
-├── Entities/                      # Domain entities (50 entities) ✅ Verified
+├── Entities/                      # Domain entities (51 entities) ✅ Verified
 │   ├── Project.cs
 │   ├── User.cs
 │   ├── ProjectTask.cs
@@ -184,7 +185,13 @@ IntelliPM.Domain/
 │   ├── NotificationPreference.cs # User notification preferences
 │   ├── Attachment.cs             # File attachment entity
 │   ├── AIDecisionLog.cs          # AI decision logging entity
-│   ├── AIQuota.cs                # AI quota and usage tracking entity
+│   ├── AIQuota.cs                # AI quota and usage tracking entity (legacy, replaced by OrganizationAIQuota)
+│   ├── AIQuotaTemplate.cs        # AI quota template entity
+│   ├── UserAIQuota.cs            # User AI quota entity
+│   ├── OrganizationAIQuota.cs   # Organization AI quota entity
+│   ├── UserAIQuotaOverride.cs    # User AI quota override entity
+│   ├── UserAIUsageCounter.cs     # User AI usage counter entity
+│   ├── AIDecisionApprovalPolicy.cs # AI decision approval policy entity
 │   ├── TaskBoardReadModel.cs     # Read model for task board
 │   ├── SprintSummaryReadModel.cs # Read model for sprint summary
 │   ├── ProjectOverviewReadModel.cs # Read model for project overview
@@ -192,7 +199,12 @@ IntelliPM.Domain/
 │   ├── Release.cs                # Release entity
 │   ├── QualityGate.cs            # Quality gate entity
 │   ├── TaskDependency.cs         # Task dependency entity
-│   └── OrganizationPermissionPolicy.cs # Organization permission policy entity
+│   ├── OrganizationPermissionPolicy.cs # Organization permission policy entity
+│   ├── OrganizationSetting.cs     # Organization setting entity
+│   ├── RBACPolicyVersion.cs     # RBAC policy version entity
+│   ├── SeedHistory.cs            # Seed history entity
+│   ├── WorkflowTransitionAuditLog.cs # Workflow transition audit log entity
+│   └── WorkflowTransitionRule.cs # Workflow transition rule entity
 ├── Events/                        # Domain events (23 events including IDomainEvent interface)
 │   ├── IDomainEvent.cs           # Domain event interface
 │   ├── CommentAddedEvent.cs      # Event when comment is added
@@ -243,11 +255,11 @@ IntelliPM.Domain/
 ```
 IntelliPM.Application/
 ├── [Feature]/                     # Feature-based organization
-│   ├── Commands/                  # Write operations (96 Commands) ✅ Verified
+│   ├── Commands/                  # Write operations (101 Commands) ✅ Verified
 │   │   ├── [Feature]Command.cs
 │   │   ├── [Feature]CommandHandler.cs
 │   │   └── [Feature]CommandValidator.cs
-│   └── Queries/                   # Read operations (77 Queries) ✅ Verified
+│   └── Queries/                   # Read operations (85 Queries) ✅ Verified
 │       ├── [Feature]Query.cs
 │       └── [Feature]QueryHandler.cs
 ├── Admin/                         # Admin commands
@@ -350,7 +362,7 @@ IntelliPM.Infrastructure/
 
 ```
 IntelliPM.API/
-├── Controllers/                   # API controllers (45 controllers total: 28 standard + 15 admin + 2 superadmin) ✅ Verified
+├── Controllers/                   # API controllers (46 controllers total: 29 standard + 15 admin + 2 superadmin) ✅ Verified
 │   ├── BaseApiController.cs      # Base controller (base class, not counted)
 │   ├── ProjectsController.cs
 │   ├── TasksController.cs
@@ -380,6 +392,7 @@ IntelliPM.API/
 │   ├── AttachmentsController.cs
 │   ├── ReadModelsController.cs
 │   ├── AIGovernanceController.cs
+│   ├── LookupsController.cs      # Lookup/reference data (project types, task statuses, priorities)
 │   ├── ~~AdminHashGeneratorController.cs~~ (REMOVED - Security vulnerability)
 │   ├── Admin/                     # Admin controllers (15 controllers)
 │   │   ├── UsersController.cs
@@ -1231,8 +1244,8 @@ public class OrganizationInvitation
 
 The application layer uses CQRS (Command Query Responsibility Segregation) pattern:
 
-- **Commands**: Write operations (Create, Update, Delete) - **Total: 96 Commands** ✅ Verified
-- **Queries**: Read operations (Get, List, Search) - **Total: 77 Queries** ✅ Verified
+- **Commands**: Write operations (Create, Update, Delete) - **Total: 101 Commands** ✅ Verified
+- **Queries**: Read operations (Get, List, Search) - **Total: 85 Queries** ✅ Verified
 
 ### 5.2 Command Pattern
 
@@ -2308,7 +2321,7 @@ public abstract class BaseApiController : ControllerBase
 
 | Controller | Purpose | Endpoints |
 |------------|---------|-----------|
-| `ProjectsController` | Project management | CRUD operations, members, invites, assign team |
+| `ProjectsController` | Project management | CRUD operations, members, invites, assign team, dependency graph, permissions (15 endpoints) |
 | `TasksController` | Task management | CRUD operations, assignments, status |
 | `SprintsController` | Sprint management | CRUD operations, start/complete |
 | `TeamsController` | Team management | CRUD operations, capacity |
@@ -2324,7 +2337,7 @@ public abstract class BaseApiController : ControllerBase
 | `AgentController` | AI agent operations | Improve task, analyze project, detect risks, plan sprint, generate retrospective, metrics, audit logs (7 endpoints) |
 | `SearchController` | Search | Global search |
 | `SettingsController` | Settings | Get/update global settings, send test email |
-| `PermissionsController` | Permissions | Get matrix, update permissions |
+| `PermissionsController` | Permissions | Get my permissions, get matrix, update role permissions (3 endpoints) |
 | `BacklogController` | Backlog | Create backlog items |
 | `AlertsController` | Alerts | Get alerts |
 | `InsightsController` | Insights | Get project insights |
@@ -2340,9 +2353,10 @@ public abstract class BaseApiController : ControllerBase
 | `Admin/ReadModelsController` | Read Models (Admin) | Rebuild read models, get read model data |
 | `Admin/AIGovernanceController` | AI Governance (Admin) | Manage AI quotas, disable/enable AI, view all decisions |
 | `Admin/AdminMemberPermissionsController` | Member Permissions (Admin) | View and update member roles/permissions within own organization |
-| `Admin/AdminAIQuotaController` | AI Quota Management (Admin) | Manage AI quotas for organization members |
-| `Admin/OrganizationsController` | Organizations (Admin) | Manage organizations (SuperAdmin access) |
-| `Admin/OrganizationController` | Organization (Admin) | Manage own organization details |
+| `Admin/AdminAIQuotaController` | AI Quota Management (Admin) | Manage AI quotas for organization members (supports organizationId filter for SuperAdmin) |
+| `Admin/OrganizationsController` | Organizations (SuperAdmin) | Manage organizations (CRUD operations, validation for orgId > 0) |
+| `Admin/OrganizationController` | Organization (Admin) | Manage own organization details (me, members, permission-policy, update member role) |
+| `LookupsController` | Reference Data | Get project types, task statuses, and priorities with metadata |
 | `SuperAdmin/SuperAdminAIQuotaController` | SuperAdmin AI Quota | Manage organization AI quotas (SuperAdmin only, uses versioned routes) |
 | `SuperAdmin/SuperAdminPermissionPolicyController` | Permission Policies (SuperAdmin) | Manage organization permission policies (uses versioned routes) |
 | `AIGovernanceController` | AI Governance (User) | View AI decisions, quota status, usage statistics |
@@ -3332,6 +3346,69 @@ Get the current user's role in a project.
 ```
 or `null` if user is not a member of the project.
 
+#### GET /api/v1/Projects/{projectId}/permissions
+
+Get current user's permissions for a specific project.
+
+**Authorization:** `[Authorize]` with `[RequirePermission("projects.view")]`
+
+**Response:**
+- `200 OK`: Returns user's permissions and project role
+- `401 Unauthorized`: User not authenticated
+- `404 Not Found`: Project not found or user is not a member
+- `500 Internal Server Error`: Error retrieving permissions
+
+**Response Body:**
+```json
+{
+  "permissions": [
+    "projects.view",
+    "projects.edit",
+    "tasks.create",
+    "tasks.edit",
+    "sprints.manage"
+  ],
+  "projectRole": "ProductOwner",
+  "projectId": 1
+}
+```
+
+**Notes:**
+- Permissions are determined based on the user's `ProjectRole` using the `ProjectPermissions` static class
+- Always includes `projects.view` if user is a member
+- Returns 404 if user is not a member of the project
+- Used by frontend `useProjectPermissions` hook for permission checking
+
+#### GET /api/v1/Projects/{projectId}/dependency-graph
+
+Get the complete dependency graph for a project.
+
+**Authorization:** `[Authorize]` with `[RequirePermission("tasks.view")]`
+
+**Response:**
+- `200 OK`: Returns dependency graph with nodes (tasks) and edges (dependencies)
+- `500 Internal Server Error`: Error retrieving dependency graph
+
+**Response Body:**
+```json
+{
+  "nodes": [
+    {
+      "id": 1,
+      "label": "Task 1",
+      "type": "Task"
+    }
+  ],
+  "edges": [
+    {
+      "from": 1,
+      "to": 2,
+      "type": "dependsOn"
+    }
+  ]
+}
+```
+
 #### POST /api/v1/Projects/{projectId}/assign-team
 
 Assign a team to a project, adding all team members as project members.
@@ -3801,7 +3878,160 @@ Get admin dashboard statistics (Admin only).
 }
 ```
 
-### 14.7 Settings Endpoints
+### 14.7 Lookups Endpoints
+
+#### GET /api/v1/Lookups/project-types
+
+Get all project types with metadata.
+
+**Authorization:** `[Authorize]`
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "value": "Scrum",
+      "label": "Scrum",
+      "displayOrder": 1,
+      "metadata": {
+        "color": "blue",
+        "icon": "calendar"
+      }
+    },
+    {
+      "value": "Kanban",
+      "label": "Kanban",
+      "displayOrder": 2,
+      "metadata": {
+        "color": "green",
+        "icon": "columns"
+      }
+    },
+    {
+      "value": "Waterfall",
+      "label": "Waterfall",
+      "displayOrder": 3,
+      "metadata": {
+        "color": "purple",
+        "icon": "water"
+      }
+    }
+  ]
+}
+```
+
+#### GET /api/v1/Lookups/task-statuses
+
+Get all task statuses with metadata.
+
+**Authorization:** `[Authorize]`
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "value": "Todo",
+      "label": "Todo",
+      "displayOrder": 1,
+      "metadata": {
+        "color": "gray",
+        "bgColor": "bg-muted",
+        "textColor": "text-muted-foreground"
+      }
+    },
+    {
+      "value": "InProgress",
+      "label": "In Progress",
+      "displayOrder": 2,
+      "metadata": {
+        "color": "blue",
+        "bgColor": "bg-blue-500/10",
+        "textColor": "text-blue-500"
+      }
+    },
+    {
+      "value": "Blocked",
+      "label": "Blocked",
+      "displayOrder": 3,
+      "metadata": {
+        "color": "red",
+        "bgColor": "bg-red-500/10",
+        "textColor": "text-red-500"
+      }
+    },
+    {
+      "value": "Done",
+      "label": "Done",
+      "displayOrder": 4,
+      "metadata": {
+        "color": "green",
+        "bgColor": "bg-green-500/10",
+        "textColor": "text-green-500"
+      }
+    }
+  ]
+}
+```
+
+#### GET /api/v1/Lookups/task-priorities
+
+Get all task priorities with metadata.
+
+**Authorization:** `[Authorize]`
+
+**Response:**
+```json
+{
+  "items": [
+    {
+      "value": "Low",
+      "label": "Low",
+      "displayOrder": 1,
+      "metadata": {
+        "color": "slate",
+        "bgColor": "bg-slate-500/10",
+        "textColor": "text-slate-500"
+      }
+    },
+    {
+      "value": "Medium",
+      "label": "Medium",
+      "displayOrder": 2,
+      "metadata": {
+        "color": "blue",
+        "bgColor": "bg-blue-500/10",
+        "textColor": "text-blue-500"
+      }
+    },
+    {
+      "value": "High",
+      "label": "High",
+      "displayOrder": 3,
+      "metadata": {
+        "color": "orange",
+        "bgColor": "bg-orange-500/10",
+        "textColor": "text-orange-500"
+      }
+    },
+    {
+      "value": "Critical",
+      "label": "Critical",
+      "displayOrder": 4,
+      "metadata": {
+        "color": "red",
+        "bgColor": "bg-red-500/10",
+        "textColor": "text-red-500"
+      }
+    }
+  ]
+}
+```
+
+**Note:** These endpoints return static reference data with styling metadata for consistent UI display across the frontend.
+
+### 14.8 Settings Endpoints
 
 #### 14.7.1 Global Settings
 
@@ -3862,7 +4092,7 @@ Send a test email to verify SMTP configuration (Admin only).
 - `403 Forbidden`: User is not an admin
 - `500 Internal Server Error`: SMTP configuration error
 
-### 14.8 User Management Endpoints
+### 14.9 User Management Endpoints
 
 #### 14.8.1 Get User Projects
 
@@ -3925,7 +4155,7 @@ Get recent activity for a specific user (Admin only).
 }
 ```
 
-### 14.9 Comments Endpoints
+### 14.10 Comments Endpoints
 
 #### POST /api/v1/Comments
 
@@ -4001,7 +4231,7 @@ Delete a comment (soft delete).
 
 **Authorization:** `[Authorize]` (only comment author or admin)
 
-### 14.10 Attachments Endpoints
+### 14.11 Attachments Endpoints
 
 #### POST /api/v1/Attachments/upload
 
@@ -4060,7 +4290,7 @@ Delete an attachment (soft delete).
 
 **Authorization:** `[Authorize]` (only uploader or admin)
 
-### 14.11 AI Governance Endpoints
+### 14.12 AI Governance Endpoints
 
 #### GET /api/v1/ai/decisions
 
@@ -4163,7 +4393,7 @@ Get AI usage statistics for the current organization.
 }
 ```
 
-### 14.12 Admin AI Governance Endpoints (Admin Only)
+### 14.13 Admin AI Governance Endpoints (Admin Only)
 
 #### GET /api/admin/ai/decisions
 
@@ -4243,7 +4473,7 @@ Export AI decisions to CSV (Admin only).
 
 **Response:** CSV file download
 
-### 14.12.1 Admin Member Permissions Endpoints
+### 14.13.1 Admin Member Permissions Endpoints
 
 #### GET /api/admin/permissions/members
 
@@ -4327,7 +4557,7 @@ Update a member's role and/or permissions (Admin only - own organization).
 - `403 Forbidden`: User doesn't have permission or trying to change own permissions
 - `404 Not Found`: User not found or not in same organization
 
-### 14.12.2 SuperAdmin Permission Policy Endpoints
+### 14.13.2 SuperAdmin Permission Policy Endpoints
 
 #### GET /api/v1/superadmin/organizations/{orgId}/permission-policy
 
@@ -4393,7 +4623,7 @@ Upsert (create or update) organization permission policy (SuperAdmin only).
 - `403 Forbidden`: User is not SuperAdmin
 - `404 Not Found`: Organization not found
 
-### 14.12.3 SuperAdmin AI Quota Endpoints
+### 14.13.3 SuperAdmin AI Quota Endpoints
 
 #### GET /api/v1/superadmin/organizations/{orgId}/ai-quota
 
@@ -4474,7 +4704,7 @@ Get a paginated list of all organization AI quotas (SuperAdmin only).
 
 **Note:** SuperAdmin routes use API versioning: `/api/v1/superadmin/organizations/...`
 
-### 14.13 Agent Endpoints
+### 14.14 Agent Endpoints
 
 #### POST /api/v1/Agent/improve-task
 
@@ -4539,7 +4769,7 @@ Generate sprint retrospective using AI agent.
 
 **Note:** Uses SprintRetrospectivePlugin with Semantic Kernel to gather sprint metrics, completed/incomplete tasks, defects, and team activity.
 
-### 14.14 Read Models Endpoints
+### 14.15 Read Models Endpoints
 
 #### GET /api/v1/read-models/task-board/{projectId}
 
@@ -4608,7 +4838,7 @@ Rebuild all read models (Admin only).
 }
 ```
 
-### 14.15 Releases Endpoints
+### 14.16 Releases Endpoints
 
 #### GET /api/v1/projects/{projectId}/releases
 
@@ -4903,7 +5133,7 @@ Approve a quality gate.
 
 **Response:** `200 OK`
 
-### 14.15 Organization User Invitation Endpoints (Admin Only)
+### 14.17 Organization User Invitation Endpoints (Admin Only)
 
 #### POST /api/admin/users/invite
 
@@ -5477,11 +5707,15 @@ This section documents the actual API endpoints available in the backend compare
 
 #### 21.1.1 Controllers Summary
 
-**Total Controllers:** 45 controllers (27 standard + 12 admin + 2 superadmin + 1 DEBUG-only TestController + 1 BaseApiController + 2 duplicate FeatureFlags/ReadModels) ✅ Verified
+**Total Controllers:** 47 controllers (28 standard + 15 admin + 2 superadmin + 1 LookupsController + 1 DEBUG-only TestController, excluding BaseApiController) ✅ Verified
+  - Standard controllers: 28 (includes TestController which is DEBUG-only)
+  - Admin controllers: 15
+  - SuperAdmin controllers: 2
+  - BaseApiController: Base class (not counted in totals)
 
 | Controller | Route Pattern | Endpoints | Status | Notes |
 |------------|---------------|-----------|--------|
-| `ProjectsController` | `/api/v1/Projects` | 13 | ✅ Documented | All endpoints have `[RequirePermission]` |
+| `ProjectsController` | `/api/v1/Projects` | 15 | ✅ Documented | All endpoints have `[RequirePermission]` (includes dependency-graph and permissions endpoints) |
 | `TasksController` | `/api/v1/Tasks` | 11 | ✅ Documented | All endpoints have `[RequirePermission]` |
 | `SprintsController` | `/api/v1/Sprints` | 8 | ✅ Documented | All endpoints have `[RequirePermission]` |
 | `TeamsController` | `/api/v1/Teams` | 5 | ✅ Documented |
@@ -5496,7 +5730,7 @@ This section documents the actual API endpoints available in the backend compare
 | `AgentController` | `/api/v1/Agent` | 9 | ✅ Documented | Includes improve-task, analyze-project, detect-risks, plan-sprint, analyze-dependencies, metrics, audit-logs, generate-retrospective |
 | `SearchController` | `/api/v1/Search` | 1 | ✅ Documented |
 | `SettingsController` | `/api/v1/Settings` | 3 | ✅ Documented |
-| `PermissionsController` | `/api/v1/Permissions` | 2 | ✅ Documented |
+| `PermissionsController` | `/api/v1/Permissions` | 3 | ✅ Documented | Includes me, matrix, updateRolePermissions |
 | `BacklogController` | `/api/v1/Backlog` | 4 | ✅ Documented |
 | `AlertsController` | `/api/v1/Alerts` | 2 | ✅ Documented |
 | `InsightsController` | `/api/v1/Insights` | 1 | ✅ Documented |
@@ -5519,16 +5753,17 @@ This section documents the actual API endpoints available in the backend compare
 | `SuperAdmin/SuperAdminPermissionPolicyController` | `/api/v1/superadmin/organizations` | 2 | ✅ Documented |
 | `MilestonesController` | `/api/v1/Milestones` | 9 | ✅ Documented | Includes CRUD, complete, statistics, overdue |
 | `ReleasesController` | `/api/v1/Releases` | 17 | ✅ Documented |
+| `LookupsController` | `/api/v1/Lookups` | 3 | ✅ Documented | Reference data (project types, task statuses, priorities) with metadata |
 | `TestController` | `/api/v1/Test` | 1 | ⚠️ DEBUG-only (#if DEBUG) |
 
 #### 21.1.2 Endpoint Coverage
 
-**Total Endpoints:** ~176 endpoints (includes health check endpoints)
+**Total Endpoints:** ~184 endpoints (includes health check endpoints, lookup endpoints, project permissions endpoint, and recent additions)
 
 | Category | Documented | Implemented | Coverage |
 |----------|------------|-------------|----------|
 | **Authentication** | 5 | 5 | 100% |
-| **Projects** | 11 | 11 | 100% |
+| **Projects** | 15 | 15 | 100% |
 | **Tasks** | 8 | 8 | 100% |
 | **Sprints** | 7 | 7 | 100% |
 | **Teams** | 5 | 5 | 100% |
@@ -5541,7 +5776,7 @@ This section documents the actual API endpoints available in the backend compare
 | **AI Agents** | 10 | 10 | 100% |
 | **Admin** | 20 | 20 | 100% |
 | **Settings** | 3 | 3 | 100% |
-| **Permissions** | 2 | 2 | 100% |
+| **Permissions** | 3 | 3 | 100% |
 | **Backlog** | 4 | 4 | 100% |
 | **Alerts** | 2 | 2 | 100% |
 | **Insights** | 1 | 1 | 100% |
@@ -5553,6 +5788,7 @@ This section documents the actual API endpoints available in the backend compare
 | **Search** | 1 | 1 | 100% |
 | **Milestones** | 8 | 8 | 100% |
 | **Releases** | 17 | 17 | 100% |
+| **Lookups** | 3 | 3 | 100% |
 
 **Overall Coverage:** 100% (all endpoints implemented and documented)
 
@@ -5622,6 +5858,42 @@ This section documents the actual API endpoints available in the backend compare
 ---
 
 ## Changelog
+
+### Version 2.21.0 (January 9, 2026) - Bug Fixes & API Enhancements
+- ✅ **Bug Fixes**: Fixed critical API endpoint errors
+  - Fixed `GET /api/admin/organizations/{id}` 400 Bad Request error (added validation for orgId > 0 and ValidationException handling)
+  - Fixed `GET /api/admin/ai-quota/members` 404 Not Found error (added organizationId query parameter support)
+  - Enhanced `GetAdminAiQuotaMembersQuery` to support organizationId filtering for SuperAdmin
+  - Updated `GetAdminAiQuotaMembersQueryHandler` to properly use request.OrganizationId
+- ✅ **API Enhancements**: Improved AdminAIQuotaController
+  - Added `organizationId` query parameter to `GetMembers` endpoint
+  - SuperAdmin can now filter members by organizationId
+  - Admin automatically uses their own organization (organizationId ignored)
+  - Added proper organization access control enforcement
+- ✅ **Semantic Kernel**: Fixed duplicate plugin registration issue
+  - Added `AddPluginIfMissing` helper to prevent duplicate plugin registration
+  - Fixed timeout issues in `ImproveTaskDescriptionAsync` by disabling `AutoInvokeKernelFunctions`
+  - Added comprehensive instrumentation with Stopwatch for performance monitoring
+  - Improved error handling with specific error codes (AI_TIMEOUT, AI_UNAVAILABLE)
+- ✅ **Documentation**: Updated controller and endpoint counts
+  - Verified 47 controllers total (28 standard + 15 admin + 2 superadmin + 1 LookupsController + 1 DEBUG-only)
+  - Updated endpoint count to ~178 endpoints (includes new admin endpoints)
+  - Updated command/query counts to reflect latest additions
+
+### Version 2.19.0 (January 8, 2025) - Comprehensive Codebase Scan
+- ✅ **Documentation Update**: Comprehensive codebase scan and verification
+  - Verified all controller counts: 45 controllers total ✅
+    - 28 standard controllers (root Controllers/ folder, includes TestController which is DEBUG-only)
+    - 15 admin controllers (Admin/ folder)
+    - 2 superadmin controllers (SuperAdmin/ folder)
+    - 1 BaseApiController (base class, not counted in endpoint totals)
+  - Verified all command counts: 101 Commands (CQRS) ✅
+  - Verified all query counts: 85 Queries (CQRS) ✅
+  - Verified all entity counts: 51 Domain Entities (Domain/Entities folder) ✅
+  - Verified all domain events: 23 events (22 event records + IDomainEvent interface) ✅
+  - All counts verified against actual codebase using PowerShell file system scanning
+  - Updated version to 2.19.0
+  - Updated "Last Updated" date to reflect comprehensive scan
 
 ### Version 2.18.0 (January 8, 2025) - Comprehensive Codebase Scan
 - ✅ **Documentation Update**: Comprehensive codebase scan and verification
@@ -6166,6 +6438,32 @@ Teams (1:N)
   - Updated API endpoint reference (Agent endpoints section needs update)
   - Added SprintRetrospectivePlugin documentation
   - Updated changelog with all new features
+
+### Version 2.22.0 (January 9, 2026)
+- ✅ **Bug Fixes**: Fixed duplicate plugin registration in SemanticKernelAgentService (AddPluginIfMissing helper)
+- ✅ **Bug Fixes**: Fixed timeout issues in improve-task endpoint (disabled AutoInvokeKernelFunctions, reduced MaxTokens to 1024)
+- ✅ **Bug Fixes**: Fixed GET /api/admin/organizations/{id} 400 error (added orgId > 0 validation and ValidationException handling)
+- ✅ **Bug Fixes**: Fixed GET /api/admin/ai-quota/members/{id} 404 error (added organizationId query parameter, updated GetAdminAiQuotaMembersQuery)
+- ✅ **API Enhancement**: AdminAIQuotaController.GetMembers now supports organizationId query parameter (SuperAdmin can filter by org, Admin uses own org)
+- ✅ **API Enhancement**: GetAdminAiQuotaMembersQuery now includes OrganizationId? property for filtering
+- ✅ **API Enhancement**: GetAdminAiQuotaMembersQueryHandler updated to use request.OrganizationId for organization filtering
+- ✅ **API Enhancement**: OrganizationsController.GetOrganizationById now validates orgId > 0 and returns 400 BadRequest for invalid IDs
+- ✅ **Documentation**: Updated API endpoints audit with LookupsController (3 endpoints: project-types, task-statuses, task-priorities)
+- ✅ **Documentation**: Updated controller count from 46 to 47 (added LookupsController)
+- ✅ **Documentation**: Updated endpoint count from ~178 to ~181 (added 3 lookup endpoints)
+
+### Version 2.23.0 (January 9, 2026)
+- ✅ **New Endpoint**: Added `GET /api/v1/Projects/{projectId}/permissions` endpoint in ProjectsController
+  - Returns current user's permissions and project role for a specific project
+  - Uses `GetUserRoleInProjectQuery` to retrieve user's role
+  - Uses `ProjectPermissions` static class to determine permissions based on role
+  - Returns `ProjectPermissionsResponse` with permissions array, project role, and project ID
+  - Handles cases where user is not a member (returns 404)
+- ✅ **Bug Fixes**: Fixed `format is not defined` error in TaskTimelineView.tsx (added format import from date-fns)
+- ✅ **Bug Fixes**: Fixed `useNavigate() may be used only in the context of a <Router>` error in ErrorFallback.tsx (replaced with window.location.href)
+- ✅ **Translations**: Added missing translation keys in tasks.json (FR and EN) for search.placeholder, sort.*, and columns.*
+- ✅ **Documentation**: Updated ProjectsController endpoint count from 13 to 15 (added dependency-graph and permissions endpoints)
+- ✅ **Documentation**: Updated total endpoint count from ~181 to ~184 (added project permissions endpoint, corrected PermissionsController count from 2 to 3)
 
 ### Version 2.8 (December 19, 2024)
 - ✅ **API Audit**: Comprehensive audit of all endpoints vs documentation

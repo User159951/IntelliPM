@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
-import { format, startOfWeek, endOfWeek, addDays, differenceInDays, isWithinInterval, isPast } from 'date-fns';
+import { startOfWeek, endOfWeek, addDays, differenceInDays, isWithinInterval, isPast, format } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate, DateFormats } from '@/utils/dateFormat';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +44,7 @@ export function TaskTimelineView({
   sprints = [],
   onTaskClick,
 }: TaskTimelineViewProps) {
+  const { language } = useLanguage();
   const [groupBy, setGroupBy] = useState<GroupBy>('sprint');
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>('month');
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => {
@@ -237,8 +240,8 @@ export function TaskTimelineView({
                       className="flex-1 text-xs text-muted-foreground text-center border-l first:border-l-0"
                       style={{ minWidth: '100px' }}
                     >
-                      <div>{format(date, 'MMM d')}</div>
-                      <div className="text-[10px]">{format(date, 'EEE')}</div>
+                      <div>{formatDate(date, DateFormats.MONTH_DAY(language), language)}</div>
+                      <div className="text-[10px]">{formatDate(date, DateFormats.DAY_OF_WEEK(language), language)}</div>
                     </div>
                   ))}
                 </div>

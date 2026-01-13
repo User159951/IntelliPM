@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Net.Http;
 using IntelliPM.Application.DTOs.Agent;
 using IntelliPM.Application.Interfaces.Services;
 using IntelliPM.Application.Common.Interfaces;
@@ -32,6 +33,27 @@ public class SemanticKernelAgentService : IAgentService
     private readonly ICorrelationIdService _correlationIdService;
     private readonly int _timeoutSeconds;
     
+    /// <summary>
+    /// Helper to prevent duplicate plugin registration.
+    /// Checks if a plugin with the same name already exists before adding.
+    /// </summary>
+    /// <param name="kernel">The kernel to add the plugin to</param>
+    /// <param name="plugin">The plugin to add</param>
+    /// <param name="logger">Optional logger for diagnostics</param>
+    /// <returns>True if plugin was added, false if it already existed</returns>
+    private static bool AddPluginIfMissing(Kernel kernel, KernelPlugin plugin, ILogger? logger = null)
+    {
+        if (kernel.Plugins.Any(p => string.Equals(p.Name, plugin.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            logger?.LogDebug("⏭️ Skipping duplicate plugin registration: {PluginName} (already registered)", plugin.Name);
+            return false;
+        }
+        
+        kernel.Plugins.Add(plugin);
+        logger?.LogDebug("✅ Plugin registered: {PluginName}", plugin.Name);
+        return true;
+    }
+    
     public SemanticKernelAgentService(
         Kernel kernel, 
         ILogger<SemanticKernelAgentService> logger,
@@ -52,20 +74,36 @@ public class SemanticKernelAgentService : IAgentService
         // Get timeout from configuration (default: 30 seconds)
         _timeoutSeconds = _configuration.GetValue<int>("Agent:TimeoutSeconds", 30);
         
-        // Register plugins (tools available to agent)
-        _kernel.Plugins.AddFromType<TaskQualityPlugin>();
+        // Register plugins (tools available to agent) - using safe registration to prevent duplicates
+        // This is safe to call multiple times (Kernel is singleton, service is scoped)
+        var taskQualityPlugin = KernelPluginFactory.CreateFromType<TaskQualityPlugin>("TaskQualityPlugin");
+        var wasAdded = AddPluginIfMissing(_kernel, taskQualityPlugin, _logger);
         
-        _logger.LogInformation("🤖 SemanticKernelAgentService initialized with TaskQualityPlugin (Timeout: {Timeout}s)", _timeoutSeconds);
+        // Log all registered plugins for diagnostics
+        var pluginNames = string.Join(", ", _kernel.Plugins.Select(p => p.Name));
+        _logger.LogInformation(
+            "🤖 SemanticKernelAgentService initialized (Timeout: {Timeout}s). Plugins: [{Plugins}]. TaskQualityPlugin was {Action}",
+            _timeoutSeconds,
+            pluginNames,
+            wasAdded ? "added" : "already present");
     }
     
     public async System.Threading.Tasks.Task<AgentResponse> ImproveTaskDescriptionAsync(
         string taskDescription, 
         CancellationToken cancellationToken = default)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var totalStopwatch = Stopwatch.StartNew();
+        var stepStopwatch = new Stopwatch();
+        var timings = new Dictionary<string, long>();
+        
         var userId = _currentUserService.GetUserId();
         var organizationId = _currentUserService.GetOrganizationId();
         var correlationId = _correlationIdService.GetCorrelationId();
+        
+        _logger.LogInformation(
+            "🚀 [TIMING] ImproveTask START | CorrelationId={CorrelationId} | UserId={UserId} | OrgId={OrgId} | InputLength={Length}",
+            correlationId, userId, organizationId, taskDescription?.Length ?? 0);
+        
         var executionLog = new AgentExecutionLog
         {
             Id = Guid.NewGuid(),
@@ -80,47 +118,71 @@ public class SemanticKernelAgentService : IAgentService
         
         try
         {
-            _logger.LogInformation("🤖 Agent: Starting task improvement for input length {Length}", 
-                taskDescription.Length);
+            // STEP A: Build prompt (fast)
+            stepStopwatch.Restart();
             
-            // System prompt optimized for llama3.2:3b
-            var systemPrompt = @"You are an expert project management assistant powered by llama3.2:3b running locally.
-Your job is to help improve task descriptions and make them clear, actionable, and complete.
+            // Simplified prompt WITHOUT function calling for faster response
+            // Function calling with local LLMs can cause multiple slow round-trips
+            var systemPrompt = @"You are an expert project management assistant. Improve the given task description by providing:
 
-Available tools:
-- AnalyzeTaskQuality: Checks what's missing from a task description
-- FormatTask: Structures a task into standard format with smart acceptance criteria
+1. **Improved Title**: A clear, action-oriented title
+2. **Description**: Detailed description of what needs to be done
+3. **Acceptance Criteria**: 3-5 specific, testable criteria
+4. **Story Points**: Estimate (1, 2, 3, 5, 8, or 13)
+5. **Priority**: Low, Medium, High, or Critical
 
-Process:
-1. First, call AnalyzeTaskQuality to see what's missing
-2. Based on the analysis, suggest improvements
-3. Provide a well-structured task description with:
-   - Clear title
-   - Detailed description
-   - Acceptance criteria
-   - Definition of Done
-   - Estimated story points
-   - Priority level
-
-Be concise, friendly, and helpful. Focus on clarity and completeness.
-Format your response in markdown with clear sections.";
+Be concise and practical. Format your response in markdown.";
 
             var chatHistory = new ChatHistory(systemPrompt);
             chatHistory.AddUserMessage($"Improve this task description: {taskDescription}");
             
-            var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
+            var promptLength = systemPrompt.Length + taskDescription.Length;
+            stepStopwatch.Stop();
+            timings["A_PromptBuild"] = stepStopwatch.ElapsedMilliseconds;
             
-            // Enable automatic function calling (agent calls tools automatically)
+            _logger.LogInformation(
+                "📝 [TIMING] Step A: Prompt built | Duration={Ms}ms | PromptChars={Chars}",
+                stepStopwatch.ElapsedMilliseconds, promptLength);
+            
+            // STEP B: Get chat completion service
+            stepStopwatch.Restart();
+            var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
+            stepStopwatch.Stop();
+            timings["B_GetService"] = stepStopwatch.ElapsedMilliseconds;
+            
+            _logger.LogInformation(
+                "🔧 [TIMING] Step B: Got ChatCompletionService | Duration={Ms}ms",
+                stepStopwatch.ElapsedMilliseconds);
+            
+            // STEP C: Configure execution settings
+            // IMPORTANT: Disabled AutoInvokeKernelFunctions to avoid multiple slow LLM round-trips
+            // With local LLMs, each round-trip can take 10-30 seconds
+            stepStopwatch.Restart();
             var executionSettings = new OpenAIPromptExecutionSettings
             {
-                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-                MaxTokens = 2048,
+                // Disabled function calling for speed - local LLMs are too slow for multi-turn
+                ToolCallBehavior = null, // Was: ToolCallBehavior.AutoInvokeKernelFunctions
+                MaxTokens = 1024, // Reduced from 2048 for faster response
                 Temperature = 0.7
             };
+            stepStopwatch.Stop();
+            timings["C_ConfigSettings"] = stepStopwatch.ElapsedMilliseconds;
             
-            // Create timeout-enabled cancellation token
+            // STEP D: Create timeout token
+            stepStopwatch.Restart();
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(_timeoutSeconds));
+            stepStopwatch.Stop();
+            timings["D_CreateTimeout"] = stepStopwatch.ElapsedMilliseconds;
+            
+            _logger.LogInformation(
+                "⏱️ [TIMING] Step D: Timeout configured | TimeoutSeconds={Timeout}",
+                _timeoutSeconds);
+            
+            // STEP E: Call LLM (this is the slow part!)
+            stepStopwatch.Restart();
+            _logger.LogInformation(
+                "🤖 [TIMING] Step E: Starting LLM call to Ollama...");
             
             ChatMessageContent response;
             try
@@ -131,39 +193,93 @@ Format your response in markdown with clear sections.";
                     _kernel,
                     timeoutCts.Token
                 );
+                stepStopwatch.Stop();
+                timings["E_LLMCall"] = stepStopwatch.ElapsedMilliseconds;
+                
+                _logger.LogInformation(
+                    "✅ [TIMING] Step E: LLM call completed | Duration={Ms}ms | ResponseLength={Len}",
+                    stepStopwatch.ElapsedMilliseconds, response.Content?.Length ?? 0);
             }
             catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
-                // Timeout occurred
-                stopwatch.Stop();
-                _logger.LogWarning("⏱️ Agent: Request timed out after {Timeout}s", _timeoutSeconds);
+                stepStopwatch.Stop();
+                timings["E_LLMCall_TIMEOUT"] = stepStopwatch.ElapsedMilliseconds;
+                totalStopwatch.Stop();
+                
+                _logger.LogWarning(
+                    "⏱️ [TIMING] Step E: LLM TIMEOUT after {Ms}ms (limit: {Limit}s) | Timings: {@Timings}",
+                    stepStopwatch.ElapsedMilliseconds, _timeoutSeconds, timings);
                 
                 executionLog.Status = "Error";
-                executionLog.ErrorMessage = $"Request timed out after {_timeoutSeconds} seconds";
-                executionLog.ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds;
+                executionLog.ErrorMessage = $"LLM timeout after {_timeoutSeconds}s. Step timings: {string.Join(", ", timings.Select(kv => $"{kv.Key}={kv.Value}ms"))}";
+                executionLog.ExecutionTimeMs = (int)totalStopwatch.ElapsedMilliseconds;
                 executionLog.AgentResponse = string.Empty;
                 
-                await _dbContext.AgentExecutionLogs.AddAsync(executionLog, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                // STEP F: Save error log (don't let this fail silently)
+                stepStopwatch.Restart();
+                try
+                {
+                    await _dbContext.AgentExecutionLogs.AddAsync(executionLog, cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+                catch (Exception dbEx)
+                {
+                    _logger.LogError(dbEx, "Failed to save execution log after timeout");
+                }
+                stepStopwatch.Stop();
+                timings["F_SaveErrorLog"] = stepStopwatch.ElapsedMilliseconds;
                 
                 return new AgentResponse
                 {
                     Content = string.Empty,
                     Status = "Error",
-                    ErrorMessage = $"Request timed out after {_timeoutSeconds} seconds. Please try again with a shorter description.",
+                    ErrorMessage = $"AI_TIMEOUT: Request timed out after {_timeoutSeconds} seconds. The AI model is taking too long to respond.",
                     RequiresApproval = false,
-                    ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                    ExecutionTimeMs = (int)totalStopwatch.ElapsedMilliseconds,
                     ToolsCalled = new List<string>(),
-                    Timestamp = DateTimeOffset.UtcNow
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Metadata = new Dictionary<string, object>
+                    {
+                        ["Timings"] = timings,
+                        ["ErrorCode"] = "AI_TIMEOUT"
+                    }
+                };
+            }
+            catch (HttpRequestException httpEx)
+            {
+                stepStopwatch.Stop();
+                timings["E_LLMCall_HTTP_ERROR"] = stepStopwatch.ElapsedMilliseconds;
+                totalStopwatch.Stop();
+                
+                _logger.LogError(httpEx,
+                    "🔴 [TIMING] Step E: HTTP error calling Ollama | Duration={Ms}ms | Error={Error}",
+                    stepStopwatch.ElapsedMilliseconds, httpEx.Message);
+                
+                return new AgentResponse
+                {
+                    Content = string.Empty,
+                    Status = "Error",
+                    ErrorMessage = $"AI_UNAVAILABLE: Cannot connect to AI service. {httpEx.Message}",
+                    RequiresApproval = false,
+                    ExecutionTimeMs = (int)totalStopwatch.ElapsedMilliseconds,
+                    ToolsCalled = new List<string>(),
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Metadata = new Dictionary<string, object>
+                    {
+                        ["Timings"] = timings,
+                        ["ErrorCode"] = "AI_UNAVAILABLE"
+                    }
                 };
             }
             
-            stopwatch.Stop();
-            
-            // Extract token usage from Semantic Kernel response
+            // STEP F: Extract token usage
+            stepStopwatch.Restart();
             var (promptTokens, completionTokens, totalTokens) = TokenUsageHelper.ExtractTokenUsage(response);
+            stepStopwatch.Stop();
+            timings["F_ExtractTokens"] = stepStopwatch.ElapsedMilliseconds;
             
-            // Track which tools were called
+            // STEP G: Track tools called (should be empty now)
+            stepStopwatch.Restart();
             var toolsCalled = new List<string>();
             foreach (var item in chatHistory)
             {
@@ -176,29 +292,35 @@ Format your response in markdown with clear sections.";
                         toolsCalled.Add(functionName);
                 }
             }
+            stepStopwatch.Stop();
+            timings["G_TrackTools"] = stepStopwatch.ElapsedMilliseconds;
             
+            // STEP H: Save success log to DB
+            stepStopwatch.Restart();
             executionLog.Status = "Success";
             executionLog.AgentResponse = response.Content ?? "No response generated";
-            executionLog.ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds;
+            executionLog.ExecutionTimeMs = (int)totalStopwatch.ElapsedMilliseconds;
             executionLog.ToolsCalled = string.Join(",", toolsCalled);
             
             await _dbContext.AgentExecutionLogs.AddAsync(executionLog, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
+            stepStopwatch.Stop();
+            timings["H_SaveSuccessLog"] = stepStopwatch.ElapsedMilliseconds;
+            
+            totalStopwatch.Stop();
+            timings["TOTAL"] = totalStopwatch.ElapsedMilliseconds;
             
             _logger.LogInformation(
-                "✅ Agent: Task improvement completed in {Ms}ms. Tools called: {Tools}, Tokens: {Tokens}",
-                stopwatch.ElapsedMilliseconds,
-                executionLog.ToolsCalled ?? "none",
-                totalTokens
-            );
+                "✅ [TIMING] ImproveTask COMPLETE | Total={TotalMs}ms | Tokens={Tokens} | Timings: {@Timings}",
+                totalStopwatch.ElapsedMilliseconds, totalTokens, timings);
             
             return new AgentResponse
             {
                 Content = response.Content ?? "No response generated",
                 Status = "Success",
                 RequiresApproval = true,
-                ExecutionCostUsd = 0m, // llama3.2:3b local = $0
-                ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                ExecutionCostUsd = 0m,
+                ExecutionTimeMs = (int)totalStopwatch.ElapsedMilliseconds,
                 ToolsCalled = toolsCalled,
                 Timestamp = DateTimeOffset.UtcNow,
                 PromptTokens = promptTokens,
@@ -208,22 +330,30 @@ Format your response in markdown with clear sections.";
                 {
                     ["AgentType"] = "TaskImprover",
                     ["ModelUsed"] = "llama3.2:3b",
-                    ["PluginsUsed"] = "TaskQualityPlugin"
+                    ["Timings"] = timings
                 }
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Agent: Error during task improvement");
-            stopwatch.Stop();
+            totalStopwatch.Stop();
+            _logger.LogError(ex, "❌ [TIMING] Agent: Error during task improvement | TotalMs={Ms} | Error={Error}",
+                totalStopwatch.ElapsedMilliseconds, ex.Message);
             
             executionLog.Status = "Error";
             executionLog.ErrorMessage = ex.Message;
-            executionLog.ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds;
+            executionLog.ExecutionTimeMs = (int)totalStopwatch.ElapsedMilliseconds;
             executionLog.AgentResponse = string.Empty;
             
-            await _dbContext.AgentExecutionLogs.AddAsync(executionLog, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.AgentExecutionLogs.AddAsync(executionLog, cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception dbEx)
+            {
+                _logger.LogError(dbEx, "Failed to save error execution log");
+            }
             
             return new AgentResponse
             {
@@ -231,8 +361,13 @@ Format your response in markdown with clear sections.";
                 Status = "Error",
                 ErrorMessage = $"Error: {ex.Message}",
                 RequiresApproval = false,
-                ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
-                Timestamp = DateTimeOffset.UtcNow
+                ExecutionTimeMs = (int)totalStopwatch.ElapsedMilliseconds,
+                Timestamp = DateTimeOffset.UtcNow,
+                Metadata = new Dictionary<string, object>
+                {
+                    ["Timings"] = timings,
+                    ["ErrorCode"] = "INTERNAL_ERROR"
+                }
             };
         }
     }
@@ -446,9 +581,10 @@ End with:
             
             _logger.LogInformation("🤖 Agent: Starting sprint plan suggestion for Sprint {SprintId} (Project {ProjectId})", sprintId, projectId);
             
-            // 3. Enregistrer le plugin SprintPlanningPlugin
-            var plugin = new SprintPlanningPlugin(_dbContext);
-            _kernel.Plugins.AddFromObject(plugin, "SprintPlanningPlugin");
+            // 3. Enregistrer le plugin SprintPlanningPlugin (safe registration to prevent duplicates)
+            var sprintPlanningPluginInstance = new SprintPlanningPlugin(_dbContext);
+            var sprintPlanningPlugin = KernelPluginFactory.CreateFromObject(sprintPlanningPluginInstance, "SprintPlanningPlugin");
+            AddPluginIfMissing(_kernel, sprintPlanningPlugin, _logger);
             
             // 4. Construire le prompt avec contexte
             var systemPrompt = @"You are an experienced Scrum master helping plan a sprint.
@@ -639,9 +775,10 @@ Use the tools to analyze backlog, team capacity, and sprint capacity, then sugge
             
             _logger.LogInformation("🤖 Agent: Starting task dependency analysis for Project {ProjectId}", projectId);
             
-            // 3. Enregistrer le plugin TaskDependencyPlugin
-            var plugin = new TaskDependencyPlugin(_dbContext);
-            _kernel.Plugins.AddFromObject(plugin, "TaskDependencyPlugin");
+            // 3. Enregistrer le plugin TaskDependencyPlugin (safe registration to prevent duplicates)
+            var taskDependencyPluginInstance = new TaskDependencyPlugin(_dbContext);
+            var taskDependencyPlugin = KernelPluginFactory.CreateFromObject(taskDependencyPluginInstance, "TaskDependencyPlugin");
+            AddPluginIfMissing(_kernel, taskDependencyPlugin, _logger);
             
             // 4. Construire le prompt avec contexte
             var systemPrompt = @"You are an expert project manager analyzing task dependencies.
@@ -843,9 +980,10 @@ Provide a comprehensive dependency analysis with recommendations.";
             _logger.LogInformation("🤖 Agent: Starting sprint retrospective generation for Sprint {SprintId} (Project {ProjectId})", 
                 sprintId, sprint.ProjectId);
             
-            // 5. Enregistrer le plugin SprintRetrospectivePlugin
-            var plugin = new SprintRetrospectivePlugin(_dbContext);
-            _kernel.Plugins.AddFromObject(plugin, "SprintRetrospectivePlugin");
+            // 5. Enregistrer le plugin SprintRetrospectivePlugin (safe registration to prevent duplicates)
+            var sprintRetrospectivePluginInstance = new SprintRetrospectivePlugin(_dbContext);
+            var sprintRetrospectivePlugin = KernelPluginFactory.CreateFromObject(sprintRetrospectivePluginInstance, "SprintRetrospectivePlugin");
+            AddPluginIfMissing(_kernel, sprintRetrospectivePlugin, _logger);
             
             // 6. Construire le prompt avec contexte
             var startDate = sprint.StartDate?.ToString("yyyy-MM-dd") ?? "N/A";

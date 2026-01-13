@@ -1,0 +1,19 @@
+{
+  "title": "Jalons",
+  "description": "Suivez les jalons du projet et les livrables clés",
+  "create": {
+    "button": "Créer un jalon",
+    "title": "Créer un jalon"
+  },
+  "status": {
+    "planned": "Planifié",
+    "inProgress": "En cours",
+    "completed": "Terminé",
+    "missed": "Manqué"
+  },
+  "empty": {
+    "title": "Aucun jalon pour le moment",
+    "message": "Créez votre premier jalon pour suivre la progression du projet"
+  }
+}
+

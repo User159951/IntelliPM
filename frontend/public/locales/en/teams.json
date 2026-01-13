@@ -1,0 +1,54 @@
+{
+  "title": "Teams",
+  "description": "Manage your teams and capacity",
+  "create": {
+    "button": "Create Team",
+    "title": "Create new team",
+    "description": "Set up a new team to manage capacity.",
+    "submit": "Create team"
+  },
+  "form": {
+    "name": "Team name",
+    "namePlaceholder": "Engineering Team",
+    "capacity": "Total capacity (hours/sprint)",
+    "members": "Team members"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "save": "Save changes"
+  },
+  "edit": {
+    "title": "Edit Team",
+    "description": "Update team settings",
+    "nameReadOnly": "Team name cannot be changed",
+    "membersReadOnly": "Team members cannot be changed from here",
+    "addMember": "Add member",
+    "removeMember": "Remove member",
+    "cannotRemoveLastMember": "Cannot remove the last member"
+  },
+  "messages": {
+    "created": "Team created",
+    "createError": "Failed to create team",
+    "loginError": "You must be logged in to create a team",
+    "capacityUpdated": "Team capacity updated successfully",
+    "updateError": "Failed to update team capacity",
+    "invalidCapacity": "Capacity must be greater than 0",
+    "memberAdded": "Member added successfully",
+    "memberRemoved": "Member removed successfully",
+    "addMemberError": "Failed to add member",
+    "removeMemberError": "Failed to remove member"
+  },
+  "empty": {
+    "title": "No teams yet",
+    "message": "Create your first team to manage capacity",
+    "button": "Create Team"
+  },
+  "list": {
+    "members": "members",
+    "capacityUtilization": "Capacity utilization",
+    "total": "Total",
+    "available": "Available",
+    "teamMembers": "Team members",
+    "noMembers": "No members yet"
+  }
+}

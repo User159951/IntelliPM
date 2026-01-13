@@ -1,5 +1,6 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,14 +20,16 @@ public class GetDefectByIdQueryHandler : IRequestHandler<GetDefectByIdQuery, Def
         var defectRepo = _unitOfWork.Repository<Defect>();
         
         var defect = await defectRepo.Query()
+            .Where(d => d.Id == request.DefectId)
+            // Tenant filter automatically applied via global filter
             .Include(d => d.UserStory)
             .Include(d => d.Sprint)
             .Include(d => d.ReportedBy)
             .Include(d => d.AssignedTo)
-            .FirstOrDefaultAsync(d => d.Id == request.DefectId, cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (defect == null)
-            throw new InvalidOperationException($"Defect with ID {request.DefectId} not found");
+            throw new NotFoundException($"Defect not found");
 
         return new DefectDetailDto(
             defect.Id,

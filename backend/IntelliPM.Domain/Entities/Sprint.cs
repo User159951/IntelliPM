@@ -3,7 +3,7 @@ using IntelliPM.Domain.Constants;
 
 namespace IntelliPM.Domain.Entities;
 
-public class Sprint : IAggregateRoot
+public class Sprint : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
     public int ProjectId { get; set; }

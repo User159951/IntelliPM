@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
   Dialog,
   DialogContent,
@@ -28,15 +29,6 @@ interface EditMilestoneDialogProps {
   onSuccess?: () => void;
 }
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required').max(200, 'Name cannot exceed 200 characters'),
-  description: z.string().max(1000, 'Description cannot exceed 1000 characters').optional(),
-  dueDate: z.string().min(1, 'Due date is required'),
-  progress: z.number().min(0).max(100),
-});
-
-type FormData = z.infer<typeof schema>;
-
 /**
  * Dialog for editing an existing milestone.
  * Pre-filled with milestone data.
@@ -48,6 +40,21 @@ export function EditMilestoneDialog({
   onSuccess,
 }: EditMilestoneDialogProps) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('errors');
+
+  // Create schema inside component so it has access to t function
+  const schema = useMemo(() => z.object({
+    name: z.string()
+      .min(1, t('validation.nameRequired'))
+      .max(200, t('validation.nameMaxLength', { max: 200 })),
+    description: z.string()
+      .max(1000, t('validation.descriptionMaxLength', { max: 1000 }))
+      .optional(),
+    dueDate: z.string().min(1, t('validation.dueDateRequired')),
+    progress: z.number().min(0).max(100),
+  }), [t]);
+
+  type FormData = z.infer<typeof schema>;
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),

@@ -179,4 +179,3 @@ export type AIDecisionStatus =
 
 // Re-export the components type for direct access if needed
 export type { components } from './api';
-

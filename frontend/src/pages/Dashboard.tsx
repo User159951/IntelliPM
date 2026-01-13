@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { useTranslation } from 'react-i18next';
 import type { Project } from '@/types';
 
 const velocityData = [
@@ -38,6 +39,7 @@ const taskDistribution = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useTranslation('dashboard');
   
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['metrics'],
@@ -51,42 +53,42 @@ export default function Dashboard() {
 
   const stats = [
     {
-      title: 'Total Projects',
+      title: t('stats.totalProjects'),
       value: metrics?.totalProjects ?? projectsData?.items?.length ?? 0,
       icon: FolderKanban,
       trend: '+12%',
       trendUp: true,
     },
     {
-      title: 'Active Sprints',
+      title: t('stats.activeSprints'),
       value: metrics?.activeSprints ?? 0,
       icon: Zap,
       trend: '+3',
       trendUp: true,
     },
     {
-      title: 'Open Tasks',
+      title: t('stats.openTasks'),
       value: metrics?.openTasks ?? 0,
       icon: ListTodo,
       trend: '-8%',
       trendUp: false,
     },
     {
-      title: 'Blocked Tasks',
+      title: t('stats.blockedTasks'),
       value: metrics?.blockedTasks ?? 0,
       icon: AlertTriangle,
       trend: '-2',
       trendUp: false,
     },
     {
-      title: 'Defects',
+      title: t('stats.defects'),
       value: metrics?.defectsCount ?? 0,
       icon: Bug,
       trend: '+5%',
       trendUp: true,
     },
     {
-      title: 'Velocity',
+      title: t('stats.velocity'),
       value: metrics?.velocity ?? 38,
       icon: TrendingUp,
       trend: '+15%',
@@ -99,8 +101,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your project metrics and performance</p>
+        <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('description')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -140,8 +142,8 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Sprint Velocity</CardTitle>
-            <CardDescription>Story points completed per sprint</CardDescription>
+            <CardTitle>{t('charts.sprintVelocity.title')}</CardTitle>
+            <CardDescription>{t('charts.sprintVelocity.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -179,8 +181,8 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Task Distribution</CardTitle>
-            <CardDescription>Tasks by status across all projects</CardDescription>
+            <CardTitle>{t('charts.taskDistribution.title')}</CardTitle>
+            <CardDescription>{t('charts.taskDistribution.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -207,8 +209,8 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Projects</CardTitle>
-            <CardDescription>Your most recently updated projects</CardDescription>
+            <CardTitle>{t('recentProjects.title')}</CardTitle>
+            <CardDescription>{t('recentProjects.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {projectsLoading ? (
@@ -256,7 +258,7 @@ export default function Dashboard() {
                         className="w-full"
                         onClick={() => navigate('/projects')}
                       >
-                        View all projects
+                        {t('recentProjects.viewAll')}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
@@ -264,10 +266,10 @@ export default function Dashboard() {
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground mb-4">
-                      No projects yet. Create your first project to get started!
+                      {t('recentProjects.empty.message')}
                     </p>
                     <Button onClick={() => navigate('/projects')}>
-                      Go to Projects
+                      {t('recentProjects.empty.button')}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>

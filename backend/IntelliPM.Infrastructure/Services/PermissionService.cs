@@ -31,7 +31,7 @@ public class PermissionService : IPermissionService
         _logger = logger;
     }
 
-    public async Task<List<string>> GetUserPermissionsAsync(int userId, CancellationToken ct = default)
+    public async System.Threading.Tasks.Task<List<string>> GetUserPermissionsAsync(int userId, CancellationToken ct = default)
     {
         // Check cache first
         var cacheKey = $"{CacheKeyPrefix}{userId}";
@@ -64,7 +64,7 @@ public class PermissionService : IPermissionService
         return rolePermissions;
     }
 
-    public async Task<bool> HasPermissionAsync(int userId, string permission, CancellationToken ct = default)
+    public async System.Threading.Tasks.Task<bool> HasPermissionAsync(int userId, string permission, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(permission))
         {
@@ -87,7 +87,7 @@ public class PermissionService : IPermissionService
     /// <summary>
     /// Logs a permission check to audit log for security tracking.
     /// </summary>
-    private async Task LogPermissionCheckAsync(
+    private async System.Threading.Tasks.Task LogPermissionCheckAsync(
         int userId, 
         string permission, 
         bool allowed, 

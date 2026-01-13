@@ -154,6 +154,10 @@ export const usersApi = {
     return apiClient.delete<{ success: boolean }>(`/api/v1/Users/${id}`);
   },
 
+  activate: async (id: number): Promise<{ userId: number; isActive: boolean; username: string; email: string }> => {
+    return apiClient.post<{ userId: number; isActive: boolean; username: string; email: string }>(`/api/admin/users/${id}/activate`);
+  },
+
   deactivate: async (id: number): Promise<{ userId: number; isActive: boolean; username: string; email: string }> => {
     return apiClient.post<{ userId: number; isActive: boolean; username: string; email: string }>(`/api/admin/users/${id}/deactivate`);
   },

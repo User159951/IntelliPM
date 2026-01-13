@@ -1,11 +1,12 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace IntelliPM.Application.Tasks.Queries;
 
-public class GetTaskByIdQueryHandler : IRequestHandler<GetTaskByIdQuery, TaskDto?>
+public class GetTaskByIdQueryHandler : IRequestHandler<GetTaskByIdQuery, TaskDto>
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -14,17 +15,18 @@ public class GetTaskByIdQueryHandler : IRequestHandler<GetTaskByIdQuery, TaskDto
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<TaskDto?> Handle(GetTaskByIdQuery request, CancellationToken cancellationToken)
+    public async Task<TaskDto> Handle(GetTaskByIdQuery request, CancellationToken cancellationToken)
     {
         var taskRepo = _unitOfWork.Repository<ProjectTask>();
         
         var task = await taskRepo.Query()
+            .Where(t => t.Id == request.TaskId)
+            // Tenant filter automatically applied via global filter
             .Include(t => t.Project)
             .Include(t => t.Assignee)
             .Include(t => t.Sprint)
             .Include(t => t.CreatedBy)
             .Include(t => t.UpdatedBy)
-            .Where(t => t.Id == request.TaskId)
             .Select(t => new TaskDto(
                 t.Id,
                 t.ProjectId,
@@ -46,6 +48,9 @@ public class GetTaskByIdQueryHandler : IRequestHandler<GetTaskByIdQuery, TaskDto
                 t.UpdatedAt
             ))
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (task == null)
+            throw new NotFoundException($"Task not found");
 
         return task;
     }

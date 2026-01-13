@@ -1,0 +1,44 @@
+{
+  "title": "Agents IA",
+  "description": "Exécutez des agents intelligents pour analyser votre projet",
+  "selectProject": "Sélectionner un projet",
+  "empty": {
+    "title": "Sélectionnez un projet pour exécuter des agents IA",
+    "message": "Sélectionnez un projet pour exécuter des agents IA"
+  },
+  "agents": {
+    "product": {
+      "name": "Agent Produit",
+      "description": "Analyse les exigences produit et suggère des améliorations pour les histoires utilisateur et les fonctionnalités."
+    },
+    "delivery": {
+      "name": "Agent Livraison",
+      "description": "Surveille les métriques de livraison et fournit des recommandations pour améliorer les résultats des sprints."
+    },
+    "manager": {
+      "name": "Agent Manager",
+      "description": "Fournit des insights de gestion et aide à l'allocation des ressources et à la planification."
+    },
+    "qa": {
+      "name": "Agent QA",
+      "description": "Analyse les métriques de qualité et suggère des stratégies de test et des améliorations."
+    },
+    "business": {
+      "name": "Agent Business",
+      "description": "Évalue l'impact commercial et fournit une analyse du ROI pour les fonctionnalités et initiatives."
+    }
+  },
+  "actions": {
+    "run": "Exécuter l'agent",
+    "running": "Exécution en cours...",
+    "viewResults": "Voir les résultats",
+    "runAgain": "Réexécuter",
+    "lastRun": "Dernière exécution : {{time}}"
+  },
+  "messages": {
+    "completed": "terminé avec succès",
+    "failed": "échoué",
+    "inProgress": "Requête déjà en cours"
+  }
+}
+

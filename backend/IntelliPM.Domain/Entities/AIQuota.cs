@@ -212,6 +212,21 @@ public class AIQuota : IAggregateRoot
 
     public QuotaStatus GetQuotaStatus()
     {
+        // Safely calculate days remaining, handling null or invalid PeriodEndDate
+        int daysRemaining = 0;
+        try
+        {
+            if (PeriodEndDate != default(DateTimeOffset))
+            {
+                daysRemaining = Math.Max(0, (PeriodEndDate.Date - DateTimeOffset.UtcNow.Date).Days);
+            }
+        }
+        catch
+        {
+            // If PeriodEndDate is invalid, default to 0
+            daysRemaining = 0;
+        }
+
         return new QuotaStatus
         {
             TokensUsed = TokensUsed,
@@ -224,7 +239,7 @@ public class AIQuota : IAggregateRoot
             CostLimit = MaxCostPerPeriod,
             CostPercentage = MaxCostPerPeriod > 0 ? CostAccumulated / MaxCostPerPeriod * 100 : 0,
             IsExceeded = IsQuotaExceeded,
-            DaysRemaining = (PeriodEndDate.Date - DateTimeOffset.UtcNow.Date).Days
+            DaysRemaining = daysRemaining
         };
     }
 }

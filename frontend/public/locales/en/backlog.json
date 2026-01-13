@@ -1,0 +1,60 @@
+{
+  "title": "Product Backlog",
+  "description": "Manage epics, features, and user stories",
+  "selectProject": "Select project",
+  "types": {
+    "epic": "Epic",
+    "feature": "Feature",
+    "story": "User Story"
+  },
+  "create": {
+    "button": "Create Item",
+    "title": "Create {{type}}",
+    "epic": {
+      "title": "Create Epic",
+      "namePlaceholder": "Enter epic name",
+      "descriptionPlaceholder": "Describe the epic"
+    },
+    "feature": {
+      "title": "Create Feature",
+      "namePlaceholder": "Enter feature name",
+      "descriptionPlaceholder": "Describe the feature",
+      "selectEpic": "Select epic"
+    },
+    "story": {
+      "title": "Create User Story",
+      "namePlaceholder": "Enter story title",
+      "descriptionPlaceholder": "Describe the user story",
+      "storyPoints": "Story Points",
+      "acceptanceCriteria": "Acceptance Criteria",
+      "domainTag": "Domain Tag",
+      "selectFeature": "Select feature"
+    },
+    "submit": "Create"
+  },
+  "form": {
+    "title": "Title",
+    "description": "Description",
+    "cancel": "Cancel"
+  },
+  "empty": {
+    "noProject": "Select a project to view the backlog",
+    "noItems": "No items in backlog yet. Create your first epic, feature, or story."
+  },
+  "sprints": {
+    "title": "Active Sprints",
+    "dragToAdd": "Drag items here to add to sprint"
+  },
+  "messages": {
+    "created": "Item created successfully",
+    "createError": "Failed to create item",
+    "addToSprint": "Task added to sprint",
+    "removeFromSprint": "Task removed from sprint",
+    "addToSprintError": "Failed to add task to sprint",
+    "removeFromSprintError": "Failed to remove task from sprint",
+    "overCapacity": "Sprint over capacity",
+    "confirmMultiple": "Add multiple tasks?",
+    "confirmMultipleMessage": "Are you sure you want to add {{count}} tasks to this sprint?"
+  }
+}
+

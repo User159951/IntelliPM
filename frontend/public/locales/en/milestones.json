@@ -1,0 +1,19 @@
+{
+  "title": "Milestones",
+  "description": "Track project milestones and key deliverables",
+  "create": {
+    "button": "Create Milestone",
+    "title": "Create Milestone"
+  },
+  "status": {
+    "planned": "Planned",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "missed": "Missed"
+  },
+  "empty": {
+    "title": "No milestones yet",
+    "message": "Create your first milestone to track project progress"
+  }
+}
+

@@ -77,7 +77,11 @@ public class CreateProjectCommandHandlerTests
         mockCacheService.Setup(c => c.RemoveByPrefixAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.CompletedTask);
 
-        var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCacheService.Object);
+        // Setup current user service
+        var mockCurrentUserService = new Mock<ICurrentUserService>();
+        mockCurrentUserService.Setup(s => s.GetOrganizationId()).Returns(1);
+
+        var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCacheService.Object, mockCurrentUserService.Object);
 
         var command = new CreateProjectCommand(
             "Test Project",
@@ -141,7 +145,11 @@ public class CreateProjectCommandHandlerTests
         mockUnitOfWork.Setup(u => u.Repository<User>())
             .Returns(mockUserRepo.Object);
 
-        var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCacheService.Object);
+        // Setup current user service
+        var mockCurrentUserService = new Mock<ICurrentUserService>();
+        mockCurrentUserService.Setup(s => s.GetOrganizationId()).Returns(1);
+
+        var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCacheService.Object, mockCurrentUserService.Object);
 
         var command = new CreateProjectCommand(
             "Test Project",
@@ -222,7 +230,11 @@ public class CreateProjectCommandHandlerTests
         mockCacheService.Setup(c => c.RemoveByPrefixAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(System.Threading.Tasks.Task.CompletedTask);
 
-        var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCacheService.Object);
+        // Setup current user service
+        var mockCurrentUserService = new Mock<ICurrentUserService>();
+        mockCurrentUserService.Setup(s => s.GetOrganizationId()).Returns(1);
+
+        var handler = new CreateProjectCommandHandler(mockUnitOfWork.Object, mockCacheService.Object, mockCurrentUserService.Object);
 
         var command = new CreateProjectCommand(
             "Test Project",

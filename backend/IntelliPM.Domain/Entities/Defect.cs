@@ -2,7 +2,7 @@ using IntelliPM.Domain.Interfaces;
 
 namespace IntelliPM.Domain.Entities;
 
-public class Defect : IAggregateRoot
+public class Defect : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
     public int ProjectId { get; set; }

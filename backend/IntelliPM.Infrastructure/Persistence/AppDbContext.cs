@@ -3,6 +3,8 @@ using IntelliPM.Domain.Entities;
 using IntelliPM.Application.Common.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using IntelliPM.Infrastructure.Persistence.Configurations;
+using IntelliPM.Domain.Interfaces;
+using System.Linq.Expressions;
 
 namespace IntelliPM.Infrastructure.Persistence;
 
@@ -19,6 +21,18 @@ public class AppDbContext : DbContext
     {
         _serviceProvider = serviceProvider;
     }
+
+    /// <summary>
+    /// Current organization ID for tenant filtering.
+    /// Set by TenantMiddleware before each request.
+    /// </summary>
+    public int? CurrentOrganizationId { get; set; }
+
+    /// <summary>
+    /// Bypass tenant filter flag (e.g., for SuperAdmin or system operations).
+    /// Set by TenantMiddleware when user is SuperAdmin.
+    /// </summary>
+    public bool BypassTenantFilter { get; set; } = false;
 
     public DbSet<Organization> Organizations { get; set; }
     public DbSet<User> Users { get; set; }
@@ -235,10 +249,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AuditLog>()
             .HasIndex(al => al.CreatedAt);
         modelBuilder.Entity<AuditLog>()
+            .HasIndex(al => al.OrganizationId);
+        modelBuilder.Entity<AuditLog>()
             .HasOne(al => al.User)
             .WithMany()
             .HasForeignKey(al => al.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<AuditLog>()
+            .HasOne(al => al.Organization)
+            .WithMany()
+            .HasForeignKey(al => al.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
 
         // User
         modelBuilder.Entity<User>()
@@ -283,6 +305,14 @@ public class AppDbContext : DbContext
             .HasValue<Epic>("Epic")
             .HasValue<Feature>("Feature")
             .HasValue<UserStory>("Story");
+        modelBuilder.Entity<BacklogItem>()
+            .HasIndex(bi => bi.OrganizationId);
+        modelBuilder.Entity<BacklogItem>()
+            .HasOne(bi => bi.Organization)
+            .WithMany()
+            .HasForeignKey(bi => bi.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
 
         // Sprint
         modelBuilder.Entity<Sprint>()
@@ -331,6 +361,14 @@ public class AppDbContext : DbContext
         // DocumentStore
         modelBuilder.Entity<DocumentStore>()
             .HasIndex(ds => ds.ProjectId);
+        modelBuilder.Entity<DocumentStore>()
+            .HasIndex(ds => ds.OrganizationId);
+        modelBuilder.Entity<DocumentStore>()
+            .HasOne(ds => ds.Organization)
+            .WithMany()
+            .HasForeignKey(ds => ds.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
 
         // Defect
         modelBuilder.Entity<Defect>()
@@ -350,8 +388,16 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Insight>()
             .HasIndex(i => i.AgentType);
         modelBuilder.Entity<Insight>()
+            .HasIndex(i => i.OrganizationId);
+        modelBuilder.Entity<Insight>()
             .Property(i => i.Confidence)
             .HasColumnType("decimal(5,2)"); // Fix: Specify precision and scale
+        modelBuilder.Entity<Insight>()
+            .HasOne(i => i.Organization)
+            .WithMany()
+            .HasForeignKey(i => i.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
 
         // KPISnapshot
         modelBuilder.Entity<KPISnapshot>()
@@ -364,6 +410,14 @@ public class AppDbContext : DbContext
         // Alert
         modelBuilder.Entity<Alert>()
             .HasIndex(a => new { a.ProjectId, a.IsResolved });
+        modelBuilder.Entity<Alert>()
+            .HasIndex(a => a.OrganizationId);
+        modelBuilder.Entity<Alert>()
+            .HasOne(a => a.Organization)
+            .WithMany()
+            .HasForeignKey(a => a.OrganizationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired();
 
         // AIAgentRun
         modelBuilder.Entity<AIAgentRun>()
@@ -519,9 +573,63 @@ public class AppDbContext : DbContext
         // Note: All FK cascade behaviors are set to Restrict globally above
         // to prevent SQL Server cascade path cycles
 
-        // Note: Global query filters for multi-tenancy are not applied here
-        // Query filtering should be handled at the application layer in handlers
-        // This avoids compilation issues with service injection in query filters
+        // Apply global query filters for multi-tenancy (automatic tenant isolation)
+        // This ensures all queries on ITenantEntity types are automatically filtered by OrganizationId
+        // Note: Only apply filters to root entity types (not derived types in inheritance hierarchies)
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes()
+            .Where(e => typeof(ITenantEntity).IsAssignableFrom(e.ClrType) && e.BaseType == null))
+        {
+            var method = typeof(AppDbContext)
+                .GetMethod(nameof(BuildTenantFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.MakeGenericMethod(entityType.ClrType);
+
+            if (method != null)
+            {
+                var filter = method.Invoke(this, null) as LambdaExpression;
+                if (filter != null)
+                {
+                    modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds a tenant filter expression: e => BypassTenantFilter || e.OrganizationId == CurrentOrganizationId
+    /// EF Core evaluates instance property accesses in query filters at query execution time.
+    /// The filter expression captures 'this' and accesses properties which EF Core evaluates per-query.
+    /// </summary>
+    private Expression<Func<TEntity, bool>> BuildTenantFilter<TEntity>() where TEntity : class, ITenantEntity
+    {
+        // Parameter: e (the entity)
+        var parameter = Expression.Parameter(typeof(TEntity), "e");
+
+        // Access OrganizationId property from entity: e.OrganizationId
+        var organizationIdProperty = Expression.Property(parameter, nameof(ITenantEntity.OrganizationId));
+
+        // Access CurrentOrganizationId property from this DbContext instance
+        // EF Core will evaluate this property access at query execution time (not at filter definition time)
+        var currentOrgIdProperty = Expression.Property(
+            Expression.Constant(this, typeof(AppDbContext)),
+            nameof(CurrentOrganizationId));
+
+        // Access BypassTenantFilter property from this DbContext instance
+        // EF Core will evaluate this property access at query execution time
+        var bypassProperty = Expression.Property(
+            Expression.Constant(this, typeof(AppDbContext)),
+            nameof(BypassTenantFilter));
+
+        // Convert entity OrganizationId to int? for comparison
+        var entityOrgIdValue = Expression.Convert(organizationIdProperty, typeof(int?));
+
+        // Expression: e.OrganizationId == CurrentOrganizationId
+        var equality = Expression.Equal(entityOrgIdValue, currentOrgIdProperty);
+
+        // Expression: BypassTenantFilter || e.OrganizationId == CurrentOrganizationId
+        var filterExpression = Expression.OrElse(bypassProperty, equality);
+
+        // Build lambda: e => BypassTenantFilter || e.OrganizationId == CurrentOrganizationId
+        return Expression.Lambda<Func<TEntity, bool>>(filterExpression, parameter);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

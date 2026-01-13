@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatRelativeTime } from '@/utils/dateFormat';
 import {
   Card,
   CardContent,
@@ -26,6 +27,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { Project, ProjectType, ProjectStatus } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Extended project interface for ProjectCard component.
@@ -106,6 +108,8 @@ export default function ProjectCard({
   className,
 }: ProjectCardProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
+  const { language } = useLanguage();
 
   // Normalize project data
   const normalizedProject: ProjectCardProject = {
@@ -191,7 +195,7 @@ export default function ProjectCard({
             }
           }}
           className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg transition-all hover:shadow-md"
-          aria-label={`View project ${normalizedProject.name}`}
+          aria-label={t('projectCard.viewProject', { name: normalizedProject.name })}
         >
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-2">
@@ -247,7 +251,7 @@ export default function ProjectCard({
           }
         }}
         className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg transition-all hover:shadow-md"
-        aria-label={`View project ${normalizedProject.name}`}
+          aria-label={t('projectCard.viewProject', { name: normalizedProject.name })}
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
@@ -286,7 +290,9 @@ export default function ProjectCard({
             {normalizedProject.memberCount !== undefined && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
-                <span>{normalizedProject.memberCount} member{normalizedProject.memberCount !== 1 ? 's' : ''}</span>
+                <span>
+                  {normalizedProject.memberCount} {normalizedProject.memberCount === 1 ? t('labels.member') : t('labels.members_plural')}
+                </span>
               </div>
             )}
 
@@ -294,7 +300,7 @@ export default function ProjectCard({
             {normalizedProject.taskCount !== undefined && normalizedProject.taskCount > 0 && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Tasks</span>
+                  <span className="text-muted-foreground">{t('labels.tasks')}</span>
                   <span className="font-medium">
                     {normalizedProject.completedTaskCount || 0}/{normalizedProject.taskCount} ({progressPercentage}%)
                   </span>
@@ -321,7 +327,7 @@ export default function ProjectCard({
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground truncate">
-                {normalizedProject.ownerName || 'Project Owner'}
+                {normalizedProject.ownerName || t('projectCard.projectOwner')}
               </p>
             </div>
           </div>
@@ -331,7 +337,7 @@ export default function ProjectCard({
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>
-                Updated {formatDistanceToNow(new Date(normalizedProject.updatedAt), { addSuffix: true })}
+                {t('time.updated')} {formatRelativeTime(normalizedProject.updatedAt, language)}
               </span>
             </div>
           )}
@@ -348,7 +354,7 @@ export default function ProjectCard({
             className="flex-1"
           >
             <Eye className="h-4 w-4 mr-2" />
-            View
+            {t('buttons.view')}
           </Button>
           {onEdit && (
             <Button
@@ -358,7 +364,7 @@ export default function ProjectCard({
               className="flex-1"
             >
               <Pencil className="h-4 w-4 mr-2" />
-              Edit
+              {t('buttons.edit')}
             </Button>
           )}
           {onDelete && (
@@ -369,7 +375,7 @@ export default function ProjectCard({
               className="flex-1 text-destructive hover:text-destructive"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              {t('buttons.delete')}
             </Button>
           )}
         </CardFooter>

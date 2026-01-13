@@ -12,33 +12,25 @@ namespace IntelliPM.Application.Features.Releases.Queries;
 /// Handler for GetReleaseByIdQuery.
 /// Retrieves a release by its ID with all related data.
 /// </summary>
-public class GetReleaseByIdQueryHandler : IRequestHandler<GetReleaseByIdQuery, ReleaseDto?>
+public class GetReleaseByIdQueryHandler : IRequestHandler<GetReleaseByIdQuery, ReleaseDto>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<GetReleaseByIdQueryHandler> _logger;
 
     public GetReleaseByIdQueryHandler(
         IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
         ILogger<GetReleaseByIdQueryHandler> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<ReleaseDto?> Handle(GetReleaseByIdQuery request, CancellationToken cancellationToken)
+    public async Task<ReleaseDto> Handle(GetReleaseByIdQuery request, CancellationToken cancellationToken)
     {
-        var organizationId = _currentUserService.GetOrganizationId();
-
-        if (organizationId == 0)
-        {
-            return null;
-        }
-
         var release = await _unitOfWork.Repository<Release>()
             .Query()
+            .Where(r => r.Id == request.Id)
+            // Tenant filter automatically applied via global filter
             .Include(r => r.CreatedBy)
             .Include(r => r.ReleasedBy)
             .Include(r => r.Sprints)
@@ -48,11 +40,11 @@ public class GetReleaseByIdQueryHandler : IRequestHandler<GetReleaseByIdQuery, R
             .Include(r => r.QualityGates)
                 .ThenInclude(qg => qg.CheckedByUser)
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == request.Id && r.OrganizationId == organizationId, cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (release == null)
         {
-            return null;
+            throw new NotFoundException($"Release not found");
         }
 
         // Calculate task counts from sprints

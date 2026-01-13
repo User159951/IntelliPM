@@ -9,6 +9,7 @@ using Moq;
 using IntelliPM.Infrastructure.Persistence;
 using IntelliPM.Infrastructure.VectorStore;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Tests.Infrastructure.TestAuthentication;
 
 namespace IntelliPM.Tests.Integration.Handlers;
 
@@ -121,6 +122,9 @@ public class AIAgentHandlerTestFactory : WebApplicationFactory<Program>
                 kernelBuilder.Services.AddSingleton(serviceProvider.GetRequiredService<IChatCompletionService>());
                 return kernelBuilder.Build();
             });
+
+            // Add test authentication handler
+            services.AddTestAuthentication();
 
             // Ensure database is created
             var serviceProvider = services.BuildServiceProvider();

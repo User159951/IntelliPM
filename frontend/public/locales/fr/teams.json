@@ -1,0 +1,54 @@
+{
+  "title": "Équipes",
+  "description": "Gérez vos équipes et leur capacité",
+  "create": {
+    "button": "Créer une équipe",
+    "title": "Créer une nouvelle équipe",
+    "description": "Configurez une nouvelle équipe pour gérer la capacité.",
+    "submit": "Créer l'équipe"
+  },
+  "form": {
+    "name": "Nom de l'équipe",
+    "namePlaceholder": "Équipe d'ingénierie",
+    "capacity": "Capacité totale (heures/sprint)",
+    "members": "Membres de l'équipe"
+  },
+  "actions": {
+    "cancel": "Annuler",
+    "save": "Enregistrer les modifications"
+  },
+  "edit": {
+    "title": "Modifier l'équipe",
+    "description": "Mettre à jour les paramètres de l'équipe",
+    "nameReadOnly": "Le nom de l'équipe ne peut pas être modifié",
+    "membersReadOnly": "Les membres de l'équipe ne peuvent pas être modifiés depuis ici",
+    "addMember": "Ajouter un membre",
+    "removeMember": "Retirer le membre",
+    "cannotRemoveLastMember": "Impossible de retirer le dernier membre"
+  },
+  "messages": {
+    "created": "Équipe créée",
+    "createError": "Échec de la création de l'équipe",
+    "loginError": "Vous devez être connecté pour créer une équipe",
+    "capacityUpdated": "Capacité de l'équipe mise à jour avec succès",
+    "updateError": "Échec de la mise à jour de la capacité de l'équipe",
+    "invalidCapacity": "La capacité doit être supérieure à 0",
+    "memberAdded": "Membre ajouté avec succès",
+    "memberRemoved": "Membre retiré avec succès",
+    "addMemberError": "Échec de l'ajout du membre",
+    "removeMemberError": "Échec du retrait du membre"
+  },
+  "empty": {
+    "title": "Aucune équipe pour le moment",
+    "message": "Créez votre première équipe pour gérer la capacité",
+    "button": "Créer une équipe"
+  },
+  "list": {
+    "members": "membres",
+    "capacityUtilization": "Utilisation de la capacité",
+    "total": "Total",
+    "available": "Disponible",
+    "teamMembers": "Membres de l'équipe",
+    "noMembers": "Aucun membre pour le moment"
+  }
+}

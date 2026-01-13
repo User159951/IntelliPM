@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate, DateFormats } from '@/utils/dateFormat';
+import { useTranslation } from 'react-i18next';
 import { usersApi, type UserListDto, type BulkUpdateUsersStatusRequest } from '@/api/users';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,6 +37,8 @@ import {
   ArrowUp,
   ArrowDown,
   Eye,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EditUserDialog } from '@/components/admin/EditUserDialog';
@@ -47,6 +51,8 @@ type SortField = 'name' | 'email' | 'role' | 'createdAt' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export default function AdminUsers() {
+  const { language } = useLanguage();
+  const { t } = useTranslation('admin');
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +65,7 @@ export default function AdminUsers() {
   const [deletingUser, setDeletingUser] = useState<UserListDto | null>(null);
   const [detailUser, setDetailUser] = useState<UserListDto | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [togglingUser, setTogglingUser] = useState<UserListDto | null>(null);
   const pageSize = 20;
 
   const isActiveFilter = useMemo(() => {
@@ -128,15 +135,15 @@ export default function AdminUsers() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setSelectedUsers(new Set());
       showToast(
-        `${result.successCount} user(s) updated successfully.${result.failureCount > 0 ? ` ${result.failureCount} failed.` : ''}`,
+        `${result.successCount} ${t('users.bulkUpdate.success')}${result.failureCount > 0 ? ` ${result.failureCount}${t('users.bulkUpdate.failed')}` : ''}`,
         result.failureCount > 0 ? 'warning' : 'success'
       );
       if (result.errors.length > 0) {
-        showError('Some errors occurred', result.errors.join(', '));
+        showError(t('users.bulkUpdate.errors'), result.errors.join(', '));
       }
     },
     onError: () => {
-      showError('Failed to update users');
+      showError(t('users.bulkUpdate.error'));
     },
   });
 
@@ -156,9 +163,35 @@ export default function AdminUsers() {
     });
   };
 
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: (id: number) => {
+      const user = filteredUsers.find((u: UserListDto) => u.id === id);
+      if (!user) throw new Error('User not found');
+      return user.isActive ? usersApi.deactivate(id) : usersApi.activate(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setTogglingUser(null);
+      showToast(t('users.status.toggleSuccess'), 'success');
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.detail || 
+                          error?.response?.data?.error || 
+                          error?.message || 
+                          t('users.status.toggleError');
+      showError(t('users.status.toggleError'), errorMessage);
+      setTogglingUser(null);
+    },
+  });
+
+  const handleToggleUserStatus = (user: UserListDto) => {
+    setTogglingUser(user);
+    toggleUserStatusMutation.mutate(user.id);
+  };
+
   const handleExportCSV = () => {
     if (!data?.items || data.items.length === 0) {
-      showError("No data to export", "There are no users to export.");
+      showError(t('users.export.noData'), t('users.export.noDataMessage'));
       return;
     }
 
@@ -191,7 +224,7 @@ export default function AdminUsers() {
       user.organizationId.toString(),
       user.organizationName,
       user.projectCount.toString(),
-      format(new Date(user.createdAt), 'yyyy-MM-dd HH:mm:ss'),
+      formatDate(user.createdAt, 'yyyy-MM-dd HH:mm:ss', language),
       user.isActive ? 'Yes' : 'No',
     ]);
 
@@ -206,13 +239,13 @@ export default function AdminUsers() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `users_export_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.csv`);
+    link.setAttribute('download', `users_export_${formatDate(new Date(), 'yyyy-MM-dd_HHmmss', language)}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    showToast(`Exported ${data.items.length} user(s) to CSV.`, 'success');
+    showToast(t('users.export.success', { count: data.items.length }), 'success');
   };
 
 
@@ -230,9 +263,9 @@ export default function AdminUsers() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">User Management</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('users.title')}</h1>
         <p className="text-muted-foreground">
-          Manage users in your organization. View, edit roles, and delete users.
+          {t('users.description')}
         </p>
       </div>
 
@@ -244,7 +277,7 @@ export default function AdminUsers() {
             <Input
               id="search-users"
               name="search"
-              placeholder="Search by name or email..."
+              placeholder={t('users.table.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -253,10 +286,10 @@ export default function AdminUsers() {
 
           <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-[150px]" id="role-filter" name="role">
-              <SelectValue placeholder="All Roles" />
+              <SelectValue placeholder={t('users.filters.allRoles')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="all">{t('users.filters.allRoles')}</SelectItem>
               <SelectItem value="Admin">Admin</SelectItem>
               <SelectItem value="User">User</SelectItem>
             </SelectContent>
@@ -264,23 +297,23 @@ export default function AdminUsers() {
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[150px]" id="status-filter" name="status">
-              <SelectValue placeholder="All Status" />
+              <SelectValue placeholder={t('users.filters.allStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="all">{t('users.filters.allStatus')}</SelectItem>
+              <SelectItem value="active">{t('users.filters.active')}</SelectItem>
+              <SelectItem value="inactive">{t('users.filters.inactive')}</SelectItem>
             </SelectContent>
           </Select>
 
           <Button onClick={() => setInviteDialogOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
-            Inviter un utilisateur
+            {t('users.actions.invite')}
           </Button>
 
           <Button variant="outline" onClick={handleExportCSV}>
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            {t('users.actions.exportCSV')}
           </Button>
         </div>
 
@@ -288,7 +321,7 @@ export default function AdminUsers() {
         {selectedUsers.size > 0 && (
           <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
             <span className="text-sm font-medium">
-              {selectedUsers.size} user(s) selected
+              {selectedUsers.size} {t('users.actions.selected')}
             </span>
             <TooltipProvider>
               <Tooltip>
@@ -301,13 +334,13 @@ export default function AdminUsers() {
                       disabled={selectedUsers.size === 0 || bulkStatusMutation.isPending}
                     >
                       {bulkStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {bulkStatusMutation.isPending ? 'Processing...' : 'Activate'}
+                      {bulkStatusMutation.isPending ? t('users.actions.processing') : t('users.actions.activate')}
                     </Button>
                   </span>
                 </TooltipTrigger>
                 {selectedUsers.size === 0 && (
                   <TooltipContent>
-                    <p>Select at least one user to activate</p>
+                    <p>{t('users.actions.selectAll')}</p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -323,13 +356,13 @@ export default function AdminUsers() {
                       disabled={selectedUsers.size === 0 || bulkStatusMutation.isPending}
                     >
                       {bulkStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {bulkStatusMutation.isPending ? 'Processing...' : 'Deactivate'}
+                      {bulkStatusMutation.isPending ? t('users.actions.processing') : t('users.actions.deactivate')}
                     </Button>
                   </span>
                 </TooltipTrigger>
                 {selectedUsers.size === 0 && (
                   <TooltipContent>
-                    <p>Select at least one user to deactivate</p>
+                    <p>{t('users.actions.selectToDeactivate')}</p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -339,7 +372,7 @@ export default function AdminUsers() {
               variant="ghost"
               onClick={() => setSelectedUsers(new Set())}
             >
-              Clear
+              {t('users.actions.clear')}
             </Button>
           </div>
         )}
@@ -356,7 +389,7 @@ export default function AdminUsers() {
         ) : filteredUsers.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-muted-foreground">
-              {searchQuery ? 'No users found matching your search.' : 'No users found.'}
+              {searchQuery ? t('users.table.noUsersMatching') : t('users.table.noUsers')}
             </p>
           </div>
         ) : (
@@ -381,7 +414,7 @@ export default function AdminUsers() {
                       onClick={() => handleSort('name')}
                       className="flex items-center hover:text-foreground"
                     >
-                      Name
+                      {t('users.table.headers.name')}
                       <SortIcon field="name" />
                     </button>
                   </TableHead>
@@ -390,7 +423,7 @@ export default function AdminUsers() {
                       onClick={() => handleSort('email')}
                       className="flex items-center hover:text-foreground"
                     >
-                      Email
+                      {t('users.table.headers.email')}
                       <SortIcon field="email" />
                     </button>
                   </TableHead>
@@ -399,31 +432,31 @@ export default function AdminUsers() {
                       onClick={() => handleSort('role')}
                       className="flex items-center hover:text-foreground"
                     >
-                      Role
+                      {t('users.table.headers.role')}
                       <SortIcon field="role" />
                     </button>
                   </TableHead>
-                  <TableHead>Projects</TableHead>
+                  <TableHead>{t('users.table.headers.projects')}</TableHead>
                   <TableHead>
                     <button
                       onClick={() => handleSort('createdAt')}
                       className="flex items-center hover:text-foreground"
                     >
-                      Created
+                      {t('users.table.headers.created')}
                       <SortIcon field="createdAt" />
                     </button>
                   </TableHead>
-                  <TableHead>Last Login</TableHead>
+                  <TableHead>{t('users.table.headers.lastLogin')}</TableHead>
                   <TableHead>
                     <button
                       onClick={() => handleSort('status')}
                       className="flex items-center hover:text-foreground"
                     >
-                      Status
+                      {t('users.table.headers.status')}
                       <SortIcon field="status" />
                     </button>
                   </TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right">{t('users.table.headers.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -463,16 +496,16 @@ export default function AdminUsers() {
                       <Badge variant="outline">{user.projectCount}</Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(user.createdAt), 'MMM d, yyyy')}
+                      {formatDate(user.createdAt, DateFormats.LONG(language), language)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {user.lastLoginAt
-                        ? format(new Date(user.lastLoginAt), 'MMM d, yyyy HH:mm')
-                        : 'Never'}
+                        ? formatDate(user.lastLoginAt, DateFormats.DATETIME(language), language)
+                        : t('users.status.never')}
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.isActive ? 'default' : 'destructive'}>
-                        {user.isActive ? 'Active' : 'Inactive'}
+                        {user.isActive ? t('users.status.active') : t('users.status.inactive')}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -481,7 +514,7 @@ export default function AdminUsers() {
                           variant="ghost"
                           size="icon"
                           onClick={() => setDetailUser(user)}
-                          title="View details"
+                          title={t('users.tooltips.viewDetails')}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -500,7 +533,7 @@ export default function AdminUsers() {
                           </TooltipTrigger>
                           {!user.isActive && (
                             <TooltipContent>
-                              <p>Cannot edit inactive user. Activate user first.</p>
+                              <p>{t('users.tooltips.cannotEditInactive')}</p>
                             </TooltipContent>
                           )}
                         </Tooltip>
@@ -510,18 +543,39 @@ export default function AdminUsers() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                onClick={() => handleToggleUserStatus(user)}
+                                disabled={toggleUserStatusMutation.isPending && togglingUser?.id === user.id}
+                                title={user.isActive ? t('users.actions.deactivate') : t('users.actions.activate')}
+                              >
+                                {toggleUserStatusMutation.isPending && togglingUser?.id === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : user.isActive ? (
+                                  <UserX className="h-4 w-4 text-orange-600" />
+                                ) : (
+                                  <UserCheck className="h-4 w-4 text-green-600" />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{user.isActive ? t('users.tooltips.deactivate') : t('users.tooltips.activate')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setDeletingUser(user)}
-                                disabled={!user.isActive}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </span>
                           </TooltipTrigger>
-                          {!user.isActive && (
-                            <TooltipContent>
-                              <p>Cannot delete inactive user</p>
-                            </TooltipContent>
-                          )}
+                          <TooltipContent>
+                            <p>{t('users.tooltips.delete')}</p>
+                          </TooltipContent>
                         </Tooltip>
                       </div>
                     </TableCell>

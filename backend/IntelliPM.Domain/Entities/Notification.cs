@@ -2,7 +2,7 @@ using IntelliPM.Domain.Interfaces;
 
 namespace IntelliPM.Domain.Entities;
 
-public class Notification : IAggregateRoot
+public class Notification : IAggregateRoot, ITenantEntity
 {
     public int Id { get; set; }
     public int UserId { get; set; } // User who receives the notification

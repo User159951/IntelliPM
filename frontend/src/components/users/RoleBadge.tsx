@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Shield, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Props for the RoleBadge component.
@@ -14,7 +15,7 @@ export interface RoleBadgeProps {
   className?: string;
 }
 
-const roleConfig: Record<
+const getRoleConfig = (t: (key: string) => string): Record<
   'Admin' | 'User',
   {
     label: string;
@@ -22,20 +23,20 @@ const roleConfig: Record<
     variant: 'default' | 'secondary' | 'outline' | 'destructive';
     customClassName: string;
   }
-> = {
+> => ({
   Admin: {
-    label: 'Admin',
+    label: t('common:roles.admin'),
     icon: Shield,
     variant: 'default',
     customClassName: 'bg-red-600 text-white border-transparent hover:bg-red-600/80 dark:bg-red-500 dark:hover:bg-red-500/80',
   },
   User: {
-    label: 'User',
+    label: t('common:roles.user'),
     icon: User,
     variant: 'secondary',
     customClassName: 'bg-blue-600 text-white border-transparent hover:bg-blue-600/80 dark:bg-blue-500 dark:hover:bg-blue-500/80',
   },
-};
+});
 
 const sizeClasses = {
   sm: 'text-xs px-1.5 py-0.5',
@@ -59,6 +60,8 @@ const iconSizeClasses = {
  * ```
  */
 export function RoleBadge({ role, size = 'md', className }: RoleBadgeProps) {
+  const { t } = useTranslation('common');
+  const roleConfig = getRoleConfig(t);
   const config = roleConfig[role];
   const Icon = config.icon;
 

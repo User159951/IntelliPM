@@ -1,5 +1,6 @@
 using MediatR;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,14 +15,15 @@ public class GetTeamByIdQueryHandler : IRequestHandler<GetTeamByIdQuery, TeamDto
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<TeamDto?> Handle(GetTeamByIdQuery request, CancellationToken cancellationToken)
+    public async Task<TeamDto> Handle(GetTeamByIdQuery request, CancellationToken cancellationToken)
     {
         var teamRepo = _unitOfWork.Repository<Team>();
         
         var team = await teamRepo.Query()
+            .Where(t => t.Id == request.TeamId)
+            // Tenant filter automatically applied via global filter
             .Include(t => t.Members)
                 .ThenInclude(m => m.User)
-            .Where(t => t.Id == request.TeamId)
             .Select(t => new TeamDto(
                 t.Id,
                 t.Name,
@@ -37,6 +39,9 @@ public class GetTeamByIdQueryHandler : IRequestHandler<GetTeamByIdQuery, TeamDto
                 t.UpdatedAt
             ))
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (team == null)
+            throw new NotFoundException($"Team not found");
 
         return team;
     }

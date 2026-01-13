@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { activityApi, type Activity } from '@/api/activity';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatDistanceToNow } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatRelativeTime } from '@/utils/dateFormat';
 import { Clock, ArrowRight } from 'lucide-react';
 
 interface RecentActivityProps {
@@ -61,6 +62,7 @@ const getNavigationPath = (activity: Activity): string | null => {
 export function RecentActivity({ limit = 10, projectId }: RecentActivityProps) {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { language } = useLanguage();
 
   const { data, isLoading } = useQuery({
     queryKey: ['recent-activity', limit, projectId],
@@ -141,7 +143,7 @@ export function RecentActivity({ limit = 10, projectId }: RecentActivityProps) {
                     <div className="flex items-center gap-2 mt-1">
                       <Clock className="h-3 w-3 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                        {formatRelativeTime(activity.timestamp, language)}
                       </span>
                     </div>
                   </div>

@@ -18,12 +18,14 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICacheService _cache;
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateTaskCommandHandler(IUnitOfWork unitOfWork, ICacheService cache, IMediator mediator)
+    public CreateTaskCommandHandler(IUnitOfWork unitOfWork, ICacheService cache, IMediator mediator, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork;
         _cache = cache;
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<TaskDto> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
@@ -54,16 +56,20 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
         if (!projectExists)
             throw new InvalidOperationException($"Project with ID {request.ProjectId} not found");
 
-        // Verify assignee exists if provided
+        // Verify assignee exists and belongs to the same organization if provided
         if (request.AssigneeId.HasValue)
         {
+            var organizationId = _currentUserService.GetOrganizationId();
             var userRepo = _unitOfWork.Repository<User>();
-            var assigneeExists = await userRepo.Query()
+            var assignee = await userRepo.Query()
                 .AsNoTracking()
-                .AnyAsync(u => u.Id == request.AssigneeId.Value, cancellationToken);
+                .FirstOrDefaultAsync(u => u.Id == request.AssigneeId.Value, cancellationToken);
             
-            if (!assigneeExists)
-                throw new InvalidOperationException($"User with ID {request.AssigneeId.Value} not found");
+            if (assignee == null)
+                throw new ValidationException($"User with ID {request.AssigneeId.Value} not found");
+            
+            if (assignee.OrganizationId != organizationId)
+                throw new ValidationException($"User with ID {request.AssigneeId.Value} does not belong to your organization");
         }
 
         // Create task

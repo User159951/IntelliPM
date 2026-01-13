@@ -2,7 +2,7 @@ using MediatR;
 
 namespace IntelliPM.Application.Sprints.Queries;
 
-public record GetSprintByIdQuery(int SprintId) : IRequest<SprintDetailDto?>;
+public record GetSprintByIdQuery(int SprintId) : IRequest<SprintDetailDto>;
 
 public record SprintDetailDto(
     int Id,

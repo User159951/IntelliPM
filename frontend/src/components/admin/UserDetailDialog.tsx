@@ -10,7 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Mail, Calendar, Briefcase, History, Clock } from 'lucide-react';
-import { format } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
+import { formatDate, DateFormats } from '@/utils/dateFormat';
 import { Link } from 'react-router-dom';
 
 interface UserDetailDialogProps {
@@ -20,6 +22,8 @@ interface UserDetailDialogProps {
 }
 
 export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogProps) {
+  const { t } = useTranslation('admin');
+  const { language } = useLanguage();
   const [projectsPage, setProjectsPage] = useState(1);
   const pageSize = 10;
 
@@ -39,8 +43,8 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>User Details</DialogTitle>
-          <DialogDescription>View detailed information about this user</DialogDescription>
+          <DialogTitle>{t('dialogs.userDetail.title')}</DialogTitle>
+          <DialogDescription>{t('dialogs.userDetail.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -69,9 +73,9 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
 
           <Tabs defaultValue="details" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="projects">Projects ({user.projectCount})</TabsTrigger>
-              <TabsTrigger value="history">Activity History</TabsTrigger>
+              <TabsTrigger value="details">{t('dialogs.userDetail.tabs.details')}</TabsTrigger>
+              <TabsTrigger value="projects">{t('dialogs.userDetail.tabs.projects', { count: user.projectCount })}</TabsTrigger>
+              <TabsTrigger value="history">{t('dialogs.userDetail.tabs.history')}</TabsTrigger>
             </TabsList>
 
             {/* Details Tab */}
@@ -80,35 +84,35 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="h-4 w-4" />
-                    Email
+                    {t('dialogs.userDetail.fields.email')}
                   </div>
                   <p className="font-medium">{user.email}</p>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    Member Since
+                    {t('dialogs.userDetail.fields.memberSince')}
                   </div>
                   <p className="font-medium">
-                    {format(new Date(user.createdAt), 'MMM d, yyyy')}
+                    {formatDate(user.createdAt, DateFormats.LONG(language), language)}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">Organization</div>
+                  <div className="text-sm text-muted-foreground">{t('dialogs.userDetail.fields.organization')}</div>
                   <p className="font-medium">{user.organizationName}</p>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-sm text-muted-foreground">Projects</div>
-                  <p className="font-medium">{user.projectCount} project(s)</p>
+                  <div className="text-sm text-muted-foreground">{t('dialogs.userDetail.fields.projects')}</div>
+                  <p className="font-medium">{t('dialogs.userDetail.fields.projectsCount', { count: user.projectCount })}</p>
                 </div>
                 {user.lastLoginAt && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      Last Login
+                      {t('dialogs.userDetail.fields.lastLogin')}
                     </div>
                     <p className="font-medium">
-                      {format(new Date(user.lastLoginAt), 'MMM d, yyyy HH:mm')}
+                      {formatDate(user.lastLoginAt, DateFormats.DATETIME(language), language)}
                     </p>
                   </div>
                 )}
@@ -120,7 +124,7 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
               {user.projectCount === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>This user is not a member of any projects.</p>
+                  <p>{t('dialogs.userDetail.projects.none')}</p>
                 </div>
               ) : isLoadingProjects ? (
                 <div className="space-y-4">
@@ -133,11 +137,11 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Project Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead>{t('dialogs.userDetail.projects.headers.name')}</TableHead>
+                        <TableHead>{t('dialogs.userDetail.projects.headers.type')}</TableHead>
+                        <TableHead>{t('dialogs.userDetail.projects.headers.status')}</TableHead>
+                        <TableHead>{t('dialogs.userDetail.projects.headers.created')}</TableHead>
+                        <TableHead>{t('dialogs.userDetail.projects.headers.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -153,11 +157,11 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                             </Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {format(new Date(project.createdAt), 'MMM d, yyyy')}
+                            {formatDate(project.createdAt, DateFormats.LONG(language), language)}
                           </TableCell>
                           <TableCell>
                             <Button variant="ghost" size="sm" asChild>
-                              <Link to={`/projects/${project.id}`}>View</Link>
+                              <Link to={`/projects/${project.id}`}>{t('dialogs.userDetail.projects.view')}</Link>
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -167,7 +171,11 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                   {projectsData && projectsData.totalPages && projectsData.totalPages > 1 && (
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-muted-foreground">
-                        Showing {((projectsPage - 1) * pageSize) + 1} to {Math.min(projectsPage * pageSize, projectsData.totalCount ?? 0)} of {projectsData.totalCount ?? 0} projects
+                        {t('dialogs.userDetail.projects.showing', {
+                          start: ((projectsPage - 1) * pageSize) + 1,
+                          end: Math.min(projectsPage * pageSize, projectsData.totalCount ?? 0),
+                          total: projectsData.totalCount ?? 0
+                        })}
                       </p>
                       <div className="flex gap-2">
                         <Button
@@ -176,7 +184,7 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                           onClick={() => setProjectsPage(p => Math.max(1, p - 1))}
                           disabled={projectsPage === 1}
                         >
-                          Previous
+                          {t('dialogs.userDetail.projects.previous')}
                         </Button>
                         <Button
                           variant="outline"
@@ -184,7 +192,7 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                           onClick={() => setProjectsPage(p => p + 1)}
                           disabled={projectsPage >= (projectsData.totalPages ?? 1)}
                         >
-                          Next
+                          {t('dialogs.userDetail.projects.next')}
                         </Button>
                       </div>
                     </div>
@@ -192,7 +200,7 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>No projects found.</p>
+                  <p>{t('dialogs.userDetail.projects.noProjects')}</p>
                 </div>
               )}
             </TabsContent>
@@ -210,17 +218,17 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Timestamp</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead>Entity</TableHead>
-                        <TableHead>Project</TableHead>
+                        <TableHead>{t('dialogs.userDetail.activity.headers.timestamp')}</TableHead>
+                        <TableHead>{t('dialogs.userDetail.activity.headers.action')}</TableHead>
+                        <TableHead>{t('dialogs.userDetail.activity.headers.entity')}</TableHead>
+                        <TableHead>{t('dialogs.userDetail.activity.headers.project')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {activityData.map((activity: { type: string; description: string; timestamp: string; id?: number; entityType?: string; entityName?: string; projectName?: string; projectId?: number }, index: number) => (
                         <TableRow key={activity.id ?? index}>
                           <TableCell className="text-muted-foreground">
-                            {format(new Date(activity.timestamp), 'MMM d, yyyy HH:mm')}
+                            {formatDate(activity.timestamp, DateFormats.DATETIME(language), language)}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">{activity.type}</Badge>
@@ -252,7 +260,7 @@ export function UserDetailDialog({ open, onOpenChange, user }: UserDetailDialogP
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No activity history found.</p>
+                  <p>{t('dialogs.userDetail.activity.noActivity')}</p>
                 </div>
               )}
             </TabsContent>
