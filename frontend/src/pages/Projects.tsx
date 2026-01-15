@@ -537,7 +537,7 @@ export default function Projects() {
             <LoadingState count={6} />
           ) : filteredAndSortedProjects.length === 0 ? (
             <EmptyState
-              icon={FolderKanban}
+              icon={<FolderKanban />}
               title={t('list.empty.active.title', 'No active projects')}
               description={t('list.empty.active.message', 'Get started by creating your first project')}
               action={{
@@ -691,7 +691,7 @@ export default function Projects() {
             <LoadingState count={6} />
           ) : filteredAndSortedProjects.length === 0 ? (
             <EmptyState
-              icon={FolderKanban}
+              icon={<FolderKanban />}
               title={t('list.empty.archived.title', 'No archived projects')}
               description={t('list.empty.archived.message', 'Archived projects will appear here')}
             />
@@ -855,7 +855,7 @@ export default function Projects() {
             <LoadingState count={6} />
           ) : filteredAndSortedProjects.length === 0 ? (
             <EmptyState
-              icon={FolderKanban}
+              icon={<FolderKanban />}
               title={t('list.empty.all.title', 'No projects')}
               description={t('list.empty.all.message', 'Get started by creating your first project')}
               action={{

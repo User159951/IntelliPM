@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace IntelliPM.Infrastructure.Utilities;
+namespace IntelliPM.Application.Common.Utilities;
 
 /// <summary>
 /// Utility class for redacting Personally Identifiable Information (PII) from logs and data.

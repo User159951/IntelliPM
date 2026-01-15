@@ -1,5 +1,5 @@
 using FluentAssertions;
-using IntelliPM.Infrastructure.Utilities;
+using IntelliPM.Application.Common.Utilities;
 using Xunit;
 
 namespace IntelliPM.Tests.Unit.Infrastructure;

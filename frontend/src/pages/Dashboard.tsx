@@ -5,8 +5,7 @@ import { projectsApi } from '@/api/projects';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { EmptyState, ErrorState, LoadingState } from '@/components/states';
+import { EmptyState, ErrorState } from '@/components/states';
 import { 
   FolderKanban, 
   Zap, 
@@ -17,7 +16,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ArrowRight,
-  AlertCircle,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
@@ -190,7 +188,7 @@ export default function Dashboard() {
                 />
               ) : !hasVelocityData ? (
                 <EmptyState
-                  icon={TrendingUp}
+                  icon={<TrendingUp />}
                   title={t('charts.sprintVelocity.noData', 'No completed sprints yet')}
                   className="h-full border-0 shadow-none py-8"
                 />
@@ -248,7 +246,7 @@ export default function Dashboard() {
                 />
               ) : !hasDistributionData ? (
                 <EmptyState
-                  icon={ListTodo}
+                  icon={<ListTodo />}
                   title={t('charts.taskDistribution.noData', 'No tasks yet')}
                   className="h-full border-0 shadow-none py-8"
                 />
@@ -333,7 +331,7 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <EmptyState
-                    icon={FolderKanban}
+                    icon={<FolderKanban />}
                     title={t('recentProjects.empty.message', 'No projects yet')}
                     description="Get started by creating your first project"
                     action={{

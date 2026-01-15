@@ -1,5 +1,5 @@
 using IntelliPM.Application.Common.Interfaces;
-using IntelliPM.Infrastructure.Persistence;
+using IntelliPM.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -10,14 +10,14 @@ namespace IntelliPM.Application.Services;
 /// </summary>
 public class LanguageService : ILanguageService
 {
-    private readonly AppDbContext _context;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<LanguageService> _logger;
     private static readonly string[] SupportedLanguages = { "en", "fr", "ar" };
     private const string DefaultLanguage = "en";
 
-    public LanguageService(AppDbContext context, ILogger<LanguageService> logger)
+    public LanguageService(IUnitOfWork unitOfWork, ILogger<LanguageService> logger)
     {
-        _context = context;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -32,7 +32,8 @@ public class LanguageService : ILanguageService
         // 1. Check user's saved preference
         if (userId > 0)
         {
-            var user = await _context.Users
+            var user = await _unitOfWork.Repository<User>()
+                .Query()
                 .AsNoTracking()
                 .IgnoreQueryFilters() // Need to bypass tenant filter for user lookup
                 .FirstOrDefaultAsync(u => u.Id == userId);
@@ -50,7 +51,8 @@ public class LanguageService : ILanguageService
         // 2. Check organization default language
         if (organizationId > 0)
         {
-            var organization = await _context.Organizations
+            var organization = await _unitOfWork.Repository<Organization>()
+                .Query()
                 .AsNoTracking()
                 .IgnoreQueryFilters() // Need to bypass tenant filter for organization lookup
                 .FirstOrDefaultAsync(o => o.Id == organizationId);
@@ -79,14 +81,15 @@ public class LanguageService : ILanguageService
         return DefaultLanguage;
     }
 
-    public async Task UpdateUserLanguageAsync(int userId, string language)
+    public async System.Threading.Tasks.Task UpdateUserLanguageAsync(int userId, string language)
     {
         if (!IsSupportedLanguage(language))
         {
             throw new ArgumentException($"Unsupported language: {language}. Supported languages are: {string.Join(", ", SupportedLanguages)}", nameof(language));
         }
 
-        var user = await _context.Users
+        var userRepo = _unitOfWork.Repository<User>();
+        var user = await userRepo.Query()
             .IgnoreQueryFilters() // Need to bypass tenant filter for user lookup
             .FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -98,14 +101,16 @@ public class LanguageService : ILanguageService
         user.PreferredLanguage = language;
         user.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await _context.SaveChangesAsync();
+        userRepo.Update(user);
+        await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation("Updated language preference for user {UserId} to {Language}", userId, language);
     }
 
     public async Task<string?> GetOrganizationLanguageAsync(int organizationId)
     {
-        var organization = await _context.Organizations
+        var organization = await _unitOfWork.Repository<Organization>()
+            .Query()
             .AsNoTracking()
             .IgnoreQueryFilters() // Need to bypass tenant filter for organization lookup
             .FirstOrDefaultAsync(o => o.Id == organizationId);

@@ -4,10 +4,6 @@ interface LanguageResponse {
   language: string;
 }
 
-interface UpdateLanguageRequest {
-  language: string;
-}
-
 /**
  * Get user's language preference from backend
  * Uses the new /api/v1/Settings/language endpoint which implements fallback chain:

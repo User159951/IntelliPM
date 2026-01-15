@@ -30,15 +30,15 @@ public class GetGlobalAIStatusQueryHandler : IRequestHandler<GetGlobalAIStatusQu
         // Check cache first
         if (_cache.TryGetValue<bool>(CacheKey, out var cachedEnabled))
         {
-            var globalSetting = await _unitOfWork.Repository<GlobalSetting>()
+            var cachedGlobalSetting = await _unitOfWork.Repository<GlobalSetting>()
                 .Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(gs => gs.Key == GlobalAIEnabledKey, ct);
 
             return new GlobalAIStatusResponse(
                 Enabled: cachedEnabled,
-                LastUpdated: globalSetting?.UpdatedAt,
-                UpdatedById: globalSetting?.UpdatedById,
+                LastUpdated: cachedGlobalSetting?.UpdatedAt,
+                UpdatedById: cachedGlobalSetting?.UpdatedById,
                 Reason: null
             );
         }

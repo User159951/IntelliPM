@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, LoadingState } from '@/components/states';
 import { showSuccess, showError } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
@@ -128,7 +127,7 @@ export default function Teams() {
         <LoadingState count={3} />
       ) : teamsData?.teams?.length === 0 ? (
         <EmptyState
-          icon={Users}
+          icon={<Users />}
           title="No teams yet"
           description="Create your first team to manage capacity"
           action={{

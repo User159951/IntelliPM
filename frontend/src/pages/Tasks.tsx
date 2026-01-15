@@ -9,10 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState, LoadingState } from '@/components/states';
 import { showError } from "@/lib/sweetalert";
-import { Plus, GripVertical, AlertTriangle, ArrowUpDown, Search, X, LayoutGrid, List, Calendar } from 'lucide-react';
+import { Plus, GripVertical, AlertTriangle, ArrowUpDown, Search, X, LayoutGrid, List, Calendar, ListTodo } from 'lucide-react';
 import { TaskDetailSheet } from '@/components/tasks/TaskDetailSheet';
 import { TaskFiltersComponent, type TaskFilters } from '@/components/tasks/TaskFilters';
 import { CreateTaskDialog } from '@/components/tasks/CreateTaskDialog';
@@ -398,36 +397,36 @@ export default function Tasks() {
         <LoadingState count={4} variant="grid" showCard={false} skeletonHeight="h-32" />
       ) : !projectId ? (
         <EmptyState
-          icon={ListTodo}
+          icon={<ListTodo />}
           title={t('empty.noProject', 'No project selected')}
           description="Please select a project to view tasks"
         />
       ) : filteredTasks.length === 0 && (debouncedSearchQuery.trim() || filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') ? (
-        <EmptyState
-          icon={Search}
-          title={debouncedSearchQuery.trim() ? t('empty.noResults', 'No tasks found') : t('empty.noFilters', 'No tasks match your filters')}
-          description={debouncedSearchQuery.trim() ? 'Try adjusting your search query' : 'Try clearing your filters to see more tasks'}
-          actions={
-            <div className="flex gap-2 justify-center">
-              {debouncedSearchQuery.trim() && (
-                <Button
-                  variant="outline"
-                  onClick={() => setSearchQuery('')}
-                >
-                  {t('empty.clearSearch', 'Clear Search')}
-                </Button>
-              )}
-              {(filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') && (
-                <Button
-                  variant="outline"
-                  onClick={() => setFilters({ priority: 'All', assignee: 'All', sprint: 'All', type: 'All', aiStatus: 'All' })}
-                >
-                  {t('empty.clearFilters', 'Clear Filters')}
-                </Button>
-              )}
-            </div>
-          }
-        />
+        <div className="space-y-4">
+          <EmptyState
+            icon={<Search />}
+            title={debouncedSearchQuery.trim() ? t('empty.noResults', 'No tasks found') : t('empty.noFilters', 'No tasks match your filters')}
+            description={debouncedSearchQuery.trim() ? 'Try adjusting your search query' : 'Try clearing your filters to see more tasks'}
+          />
+          <div className="flex gap-2 justify-center">
+            {debouncedSearchQuery.trim() && (
+              <Button
+                variant="outline"
+                onClick={() => setSearchQuery('')}
+              >
+                {t('empty.clearSearch', 'Clear Search')}
+              </Button>
+            )}
+            {(filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') && (
+              <Button
+                variant="outline"
+                onClick={() => setFilters({ priority: 'All', assignee: 'All', sprint: 'All', type: 'All', aiStatus: 'All' })}
+              >
+                {t('empty.clearFilters', 'Clear Filters')}
+              </Button>
+            )}
+          </div>
+        </div>
       ) : viewMode === 'list' ? (
         <TaskListView
           tasks={filteredTasks}

@@ -180,7 +180,7 @@ export default function Agents() {
 
       {!projectId ? (
         <EmptyState
-          icon={Bot}
+          icon={<Bot />}
           title="No project selected"
           description="Select a project to run AI agents and get intelligent insights"
         />

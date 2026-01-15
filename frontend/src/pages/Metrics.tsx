@@ -6,7 +6,7 @@ import type { Project } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState, LoadingState, PageLoader } from '@/components/states';
+import { EmptyState, LoadingState } from '@/components/states';
 import { useState, useMemo } from 'react';
 import { 
   TrendingUp, 
@@ -237,7 +237,7 @@ export default function Metrics() {
                   <Skeleton className="h-[300px]" />
                 ) : burndownChartData.length === 0 ? (
                   <EmptyState
-                    icon={Activity}
+                    icon={<Activity />}
                     title={activeSprint ? 'No burndown data available' : 'No active sprint'}
                     description={activeSprint ? 'Burndown data will appear here once available' : 'Select a project with an active sprint to view burndown chart'}
                     className="h-[300px] border-0 shadow-none py-8"
@@ -290,7 +290,7 @@ export default function Metrics() {
                   <Skeleton className="h-[300px]" />
                 ) : defectChartData.length === 0 ? (
                   <EmptyState
-                    icon={Bug}
+                    icon={<Bug />}
                     title="No open defects"
                     description="Great job! There are no open defects to display"
                     className="h-[300px] border-0 shadow-none py-8"
@@ -340,7 +340,7 @@ export default function Metrics() {
                   <Skeleton className="h-[300px]" />
                 ) : velocityChartData.length === 0 ? (
                   <EmptyState
-                    icon={TrendingUp}
+                    icon={<TrendingUp />}
                     title="No completed sprints available"
                     description="Sprint velocity data will appear here once sprints are completed"
                     className="h-[300px] border-0 shadow-none py-8"
@@ -377,7 +377,7 @@ export default function Metrics() {
                   <Skeleton className="h-[300px]" />
                 ) : !taskDistribution?.distribution ? (
                   <EmptyState
-                    icon={BarChart3}
+                    icon={<BarChart3 />}
                     title="No task data available"
                     description="Task distribution data will appear here once tasks are created"
                     className="h-[300px] border-0 shadow-none py-8"

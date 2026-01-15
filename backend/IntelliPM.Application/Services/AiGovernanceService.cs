@@ -1,20 +1,21 @@
 using System.Text.Json;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Common.Exceptions;
+using IntelliPM.Application.Common.Utilities;
 using IntelliPM.Application.Interfaces;
 using IntelliPM.Application.Interfaces.Services;
 using IntelliPM.Domain.Entities;
-using IntelliPM.Infrastructure.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using IAiGovernanceService = IntelliPM.Application.Interfaces.Services.IAiGovernanceService;
 
 namespace IntelliPM.Application.Services;
 
 /// <summary>
 /// Comprehensive AI governance service implementing quota enforcement, kill switch management, and decision logging.
 /// </summary>
-public class AiGovernanceService : IAiGovernanceService
+public class AiGovernanceService : IntelliPM.Application.Interfaces.Services.IAiGovernanceService
 {
     private const string GlobalAIEnabledKey = "AI.Enabled";
     private const int CacheExpirationMinutes = 5;
@@ -272,7 +273,7 @@ public class AiGovernanceService : IAiGovernanceService
             var sprint = await sprintRepo.Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == sprintId, cancellationToken);
-            return sprint?.Name;
+            return sprint != null ? $"Sprint {sprint.Number}" : null;
         }
         catch
         {
