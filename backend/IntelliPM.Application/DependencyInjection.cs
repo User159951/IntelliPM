@@ -42,12 +42,14 @@ public static class DependencyInjection
         services.AddScoped<IAIAvailabilityService, AIAvailabilityService>();
         services.AddScoped<IAIDecisionLogger, AIDecisionLogger>();
         services.AddScoped<IAIPricingService, AIPricingService>();
+        services.AddScoped<IAiGovernanceService, AiGovernanceService>();
         services.AddScoped<ITaskDependencyValidator, TaskDependencyValidator>();
         services.AddScoped<IMilestoneValidator, MilestoneValidator>();
         services.AddScoped<IReleaseNotesGenerator, ReleaseNotesGenerator>();
         services.AddScoped<WorkflowTransitionValidator>();
         services.AddScoped<IQualityGateChecker, QualityGateChecker>();
         services.AddScoped<IAgentOutputParser, AgentOutputParser>();
+        services.AddScoped<ILanguageService, LanguageService>();
 
         return services;
     }

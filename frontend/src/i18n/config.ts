@@ -50,7 +50,7 @@ i18n
     },
 
     // Supported languages
-    supportedLngs: ['en', 'fr'],
+    supportedLngs: ['en', 'fr', 'ar'],
 
     // Interpolation configuration
     interpolation: {

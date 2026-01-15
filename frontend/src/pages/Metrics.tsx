@@ -6,6 +6,7 @@ import type { Project } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState, LoadingState, PageLoader } from '@/components/states';
 import { useState, useMemo } from 'react';
 import { 
   TrendingUp, 
@@ -194,11 +195,7 @@ export default function Metrics() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
+        <LoadingState count={6} skeletonHeight="h-32" />
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -239,9 +236,12 @@ export default function Metrics() {
                 {burndownLoading ? (
                   <Skeleton className="h-[300px]" />
                 ) : burndownChartData.length === 0 ? (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    {activeSprint ? 'No burndown data available' : 'Select a project with an active sprint'}
-                  </div>
+                  <EmptyState
+                    icon={Activity}
+                    title={activeSprint ? 'No burndown data available' : 'No active sprint'}
+                    description={activeSprint ? 'Burndown data will appear here once available' : 'Select a project with an active sprint to view burndown chart'}
+                    className="h-[300px] border-0 shadow-none py-8"
+                  />
                 ) : (
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -289,9 +289,12 @@ export default function Metrics() {
                 {defectsLoading ? (
                   <Skeleton className="h-[300px]" />
                 ) : defectChartData.length === 0 ? (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    No open defects
-                  </div>
+                  <EmptyState
+                    icon={Bug}
+                    title="No open defects"
+                    description="Great job! There are no open defects to display"
+                    className="h-[300px] border-0 shadow-none py-8"
+                  />
                 ) : (
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -336,9 +339,12 @@ export default function Metrics() {
                 {velocityLoading ? (
                   <Skeleton className="h-[300px]" />
                 ) : velocityChartData.length === 0 ? (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    No completed sprints available
-                  </div>
+                  <EmptyState
+                    icon={TrendingUp}
+                    title="No completed sprints available"
+                    description="Sprint velocity data will appear here once sprints are completed"
+                    className="h-[300px] border-0 shadow-none py-8"
+                  />
                 ) : (
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -370,9 +376,12 @@ export default function Metrics() {
                 {distributionLoading ? (
                   <Skeleton className="h-[300px]" />
                 ) : !taskDistribution?.distribution ? (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    No task data available
-                  </div>
+                  <EmptyState
+                    icon={BarChart3}
+                    title="No task data available"
+                    description="Task distribution data will appear here once tasks are created"
+                    className="h-[300px] border-0 shadow-none py-8"
+                  />
                 ) : (
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">

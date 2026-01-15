@@ -21,6 +21,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const AVAILABLE_LANGUAGES: Language[] = [
   { code: 'en', label: 'English' },
   { code: 'fr', label: 'Français' },
+  { code: 'ar', label: 'العربية' },
 ];
 
 // localStorage key for language preference

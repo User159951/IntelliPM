@@ -9,15 +9,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const LANGUAGE_OPTIONS = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-] as const;
+// Flag mapping for languages
+const LANGUAGE_FLAGS: Record<string, string> = {
+  en: '🇬🇧',
+  fr: '🇫🇷',
+  ar: '🇸🇦',
+};
 
 export function LanguageToggle() {
-  const { language, changeLanguage, isLoading } = useLanguage();
+  const { language, changeLanguage, isLoading, availableLanguages } = useLanguage();
 
-  const currentLanguage = LANGUAGE_OPTIONS.find((lang) => lang.code === language) || LANGUAGE_OPTIONS[0];
+  const currentLanguage = availableLanguages.find((lang) => lang.code === language) || availableLanguages[0];
 
   const handleLanguageChange = async (langCode: string) => {
     if (langCode !== language && !isLoading) {
@@ -41,14 +43,14 @@ export function LanguageToggle() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuRadioGroup value={language} onValueChange={handleLanguageChange}>
-          {LANGUAGE_OPTIONS.map((lang) => (
+          {availableLanguages.map((lang) => (
             <DropdownMenuRadioItem
               key={lang.code}
               value={lang.code}
               className="cursor-pointer"
               disabled={isLoading}
             >
-              <span className="mr-2">{lang.flag}</span>
+              <span className="mr-2">{LANGUAGE_FLAGS[lang.code] || '🌐'}</span>
               <span className={language === lang.code ? 'font-semibold' : ''}>{lang.label}</span>
             </DropdownMenuRadioItem>
           ))}

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState, LoadingState } from '@/components/states';
 import { showSuccess, showError } from "@/lib/sweetalert";
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2, Users, Settings } from 'lucide-react';
@@ -124,29 +125,17 @@ export default function Teams() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-24 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <LoadingState count={3} />
       ) : teamsData?.teams?.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-16">
-          <Users className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">No teams yet</h3>
-          <p className="text-muted-foreground mb-4">Create your first team to manage capacity</p>
-          <Button onClick={() => setIsDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Team
-          </Button>
-        </Card>
+        <EmptyState
+          icon={Users}
+          title="No teams yet"
+          description="Create your first team to manage capacity"
+          action={{
+            label: 'Create Team',
+            onClick: () => setIsDialogOpen(true),
+          }}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {teamsData?.teams?.map((team) => (

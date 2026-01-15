@@ -17,6 +17,13 @@ public class Organization : IAggregateRoot
     /// </summary>
     public string Code { get; set; } = string.Empty;
     
+    /// <summary>
+    /// Organization's default language (ISO 639-1: en, fr, ar).
+    /// Used as fallback when user doesn't have a preferred language.
+    /// Defaults to 'en' if not set.
+    /// </summary>
+    public string? DefaultLanguage { get; set; }
+    
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 

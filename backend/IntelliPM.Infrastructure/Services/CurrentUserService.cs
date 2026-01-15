@@ -125,5 +125,25 @@ public class CurrentUserService : ICurrentUserService
 
         return user.IsInRole("SuperAdmin");
     }
+
+    public string? GetCorrelationId()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext == null)
+        {
+            return null;
+        }
+
+        // Get correlation ID from HttpContext.Items (set by CorrelationIdMiddleware)
+        // Use the same key constant as CorrelationIdMiddleware
+        const string CorrelationIdItemKey = "CorrelationId";
+        if (httpContext.Items.TryGetValue(CorrelationIdItemKey, out var correlationIdObj) &&
+            correlationIdObj is string correlationId)
+        {
+            return correlationId;
+        }
+
+        return null;
+    }
 }
 

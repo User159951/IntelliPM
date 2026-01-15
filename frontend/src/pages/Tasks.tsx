@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState, LoadingState } from '@/components/states';
 import { showError } from "@/lib/sweetalert";
 import { Plus, GripVertical, AlertTriangle, ArrowUpDown, Search, X, LayoutGrid, List, Calendar } from 'lucide-react';
 import { TaskDetailSheet } from '@/components/tasks/TaskDetailSheet';
@@ -394,44 +395,39 @@ export default function Tasks() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="space-y-4">
-              <Skeleton className="h-8 w-24" />
-              {[1, 2, 3].map((j) => (
-                <Skeleton key={j} className="h-32" />
-              ))}
-            </div>
-          ))}
-        </div>
+        <LoadingState count={4} variant="grid" showCard={false} skeletonHeight="h-32" />
       ) : !projectId ? (
-        <Card className="py-16 text-center">
-          <p className="text-muted-foreground">{t('empty.noProject')}</p>
-        </Card>
+        <EmptyState
+          icon={ListTodo}
+          title={t('empty.noProject', 'No project selected')}
+          description="Please select a project to view tasks"
+        />
       ) : filteredTasks.length === 0 && (debouncedSearchQuery.trim() || filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') ? (
-        <Card className="py-16 text-center">
-          <p className="text-muted-foreground">
-            {debouncedSearchQuery.trim() ? t('empty.noResults') : t('empty.noFilters')}
-          </p>
-          <div className="flex gap-2 justify-center mt-4">
-            {debouncedSearchQuery.trim() && (
-              <Button
-                variant="outline"
-                onClick={() => setSearchQuery('')}
-              >
-                {t('empty.clearSearch')}
-              </Button>
-            )}
-            {(filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') && (
-              <Button
-                variant="outline"
-                onClick={() => setFilters({ priority: 'All', assignee: 'All', sprint: 'All', type: 'All', aiStatus: 'All' })}
-              >
-                {t('empty.clearFilters')}
-              </Button>
-            )}
-          </div>
-        </Card>
+        <EmptyState
+          icon={Search}
+          title={debouncedSearchQuery.trim() ? t('empty.noResults', 'No tasks found') : t('empty.noFilters', 'No tasks match your filters')}
+          description={debouncedSearchQuery.trim() ? 'Try adjusting your search query' : 'Try clearing your filters to see more tasks'}
+          actions={
+            <div className="flex gap-2 justify-center">
+              {debouncedSearchQuery.trim() && (
+                <Button
+                  variant="outline"
+                  onClick={() => setSearchQuery('')}
+                >
+                  {t('empty.clearSearch', 'Clear Search')}
+                </Button>
+              )}
+              {(filters.priority !== 'All' || filters.assignee !== 'All' || filters.sprint !== 'All') && (
+                <Button
+                  variant="outline"
+                  onClick={() => setFilters({ priority: 'All', assignee: 'All', sprint: 'All', type: 'All', aiStatus: 'All' })}
+                >
+                  {t('empty.clearFilters', 'Clear Filters')}
+                </Button>
+              )}
+            </div>
+          }
+        />
       ) : viewMode === 'list' ? (
         <TaskListView
           tasks={filteredTasks}

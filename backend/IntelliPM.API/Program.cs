@@ -717,6 +717,17 @@ app.UseSerilogRequestLogging(options =>
         if (httpContext.User?.Identity?.IsAuthenticated == true)
         {
             diagnosticContext.Set("UserId", httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
+            
+            // Add organization ID if available via ICurrentUserService
+            var currentUserService = httpContext.RequestServices.GetService<IntelliPM.Application.Common.Interfaces.ICurrentUserService>();
+            if (currentUserService != null)
+            {
+                var orgId = currentUserService.GetOrganizationId();
+                if (orgId > 0)
+                {
+                    diagnosticContext.Set("OrganizationId", orgId);
+                }
+            }
         }
     };
 });
@@ -818,6 +829,12 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthentication();
+
+// Add logging scope middleware after authentication to include user/organization context
+app.UseMiddleware<IntelliPM.API.Middleware.LoggingScopeMiddleware>();
+
+// Language middleware - sets CultureInfo based on user preference (after authentication)
+app.UseMiddleware<IntelliPM.API.Middleware.LanguageMiddleware>();
 
 // Tenant middleware must run after authentication (to access user claims)
 // and before authorization (so authorization handlers can access tenant context)

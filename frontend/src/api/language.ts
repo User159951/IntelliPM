@@ -1,17 +1,26 @@
 import { apiClient } from './client';
 
+interface LanguageResponse {
+  language: string;
+}
+
+interface UpdateLanguageRequest {
+  language: string;
+}
+
 /**
  * Get user's language preference from backend
- * @returns Promise resolving to the language code (e.g., 'en', 'fr')
+ * Uses the new /api/v1/Settings/language endpoint which implements fallback chain:
+ * 1. User's saved preference
+ * 2. Organization default language
+ * 3. Browser language (from Accept-Language header)
+ * 4. System default ('en')
+ * @returns Promise resolving to the language code (e.g., 'en', 'fr', 'ar')
  */
 export const getUserLanguage = async (): Promise<string> => {
   try {
-    const settings = await apiClient.get<Record<string, string>>(
-      '/api/v1/Settings?category=General'
-    );
-    // Extract "Default.Language" from the settings
-    const language = settings['Default.Language'];
-    return language || 'en'; // Default to 'en' if not found
+    const response = await apiClient.get<LanguageResponse>('/api/v1/Settings/language');
+    return response.language || 'en'; // Default to 'en' if not found
   } catch (error) {
     // If backend fails, return default language
     console.warn('Failed to fetch user language from backend:', error);
@@ -21,14 +30,15 @@ export const getUserLanguage = async (): Promise<string> => {
 
 /**
  * Update user's language preference on backend
- * @param language - Language code to set (e.g., 'en', 'fr')
+ * Uses the new /api/v1/Settings/language endpoint
+ * @param language - Language code to set (e.g., 'en', 'fr', 'ar')
  * @returns Promise that resolves when update is complete
  */
 export const updateUserLanguage = async (language: string): Promise<void> => {
   try {
-    await apiClient.put<{ key: string; value: string; category: string }>(
-      `/api/v1/Settings/Default.Language`,
-      { value: language, category: 'General' }
+    await apiClient.put<LanguageResponse>(
+      '/api/v1/Settings/language',
+      { language }
     );
   } catch (error) {
     // Log error but don't throw - language change should still work locally

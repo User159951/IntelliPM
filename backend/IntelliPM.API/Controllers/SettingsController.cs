@@ -21,12 +21,18 @@ public class SettingsController : BaseApiController
     private readonly IMediator _mediator;
     private readonly ILogger<SettingsController> _logger;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ILanguageService _languageService;
 
-    public SettingsController(IMediator mediator, ILogger<SettingsController> logger, ICurrentUserService currentUserService)
+    public SettingsController(
+        IMediator mediator, 
+        ILogger<SettingsController> logger, 
+        ICurrentUserService currentUserService,
+        ILanguageService languageService)
     {
         _mediator = mediator;
         _logger = logger;
         _currentUserService = currentUserService;
+        _languageService = languageService;
     }
 
     /// <summary>
@@ -185,6 +191,85 @@ public class SettingsController : BaseApiController
     }
 
     /// <summary>
+    /// Get current user's language preference
+    /// </summary>
+    [HttpGet("language")]
+    [ProducesResponseType(typeof(LanguageResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetLanguage(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId();
+            var organizationId = _currentUserService.GetOrganizationId();
+            
+            if (userId == 0)
+            {
+                return Unauthorized();
+            }
+
+            var acceptLanguageHeader = Request.Headers["Accept-Language"].ToString();
+            var language = await _languageService.GetUserLanguageAsync(userId, organizationId, acceptLanguageHeader);
+            
+            return Ok(new LanguageResponse { Language = language });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user language");
+            return Problem(
+                title: "Error retrieving language",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Update current user's language preference
+    /// </summary>
+    [HttpPut("language")]
+    [ProducesResponseType(typeof(LanguageResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateLanguage(
+        [FromBody] UpdateLanguageRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId();
+            
+            if (userId == 0)
+            {
+                return Unauthorized();
+            }
+
+            await _languageService.UpdateUserLanguageAsync(userId, request.Language);
+            
+            return Ok(new LanguageResponse { Language = request.Language });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user language");
+            return Problem(
+                title: "Error updating language",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
     /// Get all settings (backward compatibility - redirects to global)
     /// </summary>
     [HttpGet]
@@ -197,6 +282,11 @@ public class SettingsController : BaseApiController
         return await GetGlobalSettings(cancellationToken);
     }
 }
+
+public record UpdateSettingRequest(string Value, string? Category = null);
+public record SendTestEmailRequest(string Email);
+public record LanguageResponse(string Language);
+public record UpdateLanguageRequest(string Language);
 
 public record UpdateSettingRequest(string Value, string? Category = null);
 public record SendTestEmailRequest(string Email);

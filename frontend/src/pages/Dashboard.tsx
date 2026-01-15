@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { EmptyState, ErrorState, LoadingState } from '@/components/states';
 import { 
   FolderKanban, 
   Zap, 
@@ -181,15 +182,18 @@ export default function Dashboard() {
                   <Skeleton className="h-full w-full" />
                 </div>
               ) : velocityError ? (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{t('charts.sprintVelocity.error', 'Failed to load velocity data')}</AlertDescription>
-                </Alert>
+                <ErrorState
+                  title={t('charts.sprintVelocity.error', 'Failed to load velocity data')}
+                  message="Please try again later"
+                  onRetry={() => window.location.reload()}
+                  className="h-full py-8"
+                />
               ) : !hasVelocityData ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <TrendingUp className="h-12 w-12 mb-3 opacity-50" />
-                  <p className="text-sm">{t('charts.sprintVelocity.noData', 'No completed sprints yet')}</p>
-                </div>
+                <EmptyState
+                  icon={TrendingUp}
+                  title={t('charts.sprintVelocity.noData', 'No completed sprints yet')}
+                  className="h-full border-0 shadow-none py-8"
+                />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartVelocityData}>
@@ -236,15 +240,18 @@ export default function Dashboard() {
                   <Skeleton className="h-full w-full" />
                 </div>
               ) : distributionError ? (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{t('charts.taskDistribution.error', 'Failed to load distribution data')}</AlertDescription>
-                </Alert>
+                <ErrorState
+                  title={t('charts.taskDistribution.error', 'Failed to load distribution data')}
+                  message="Please try again later"
+                  onRetry={() => window.location.reload()}
+                  className="h-full py-8"
+                />
               ) : !hasDistributionData ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <ListTodo className="h-12 w-12 mb-3 opacity-50" />
-                  <p className="text-sm">{t('charts.taskDistribution.noData', 'No tasks yet')}</p>
-                </div>
+                <EmptyState
+                  icon={ListTodo}
+                  title={t('charts.taskDistribution.noData', 'No tasks yet')}
+                  className="h-full border-0 shadow-none py-8"
+                />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartDistributionData}>
@@ -325,15 +332,16 @@ export default function Dashboard() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">
-                      {t('recentProjects.empty.message')}
-                    </p>
-                    <Button onClick={() => navigate('/projects')}>
-                      {t('recentProjects.empty.button')}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={FolderKanban}
+                    title={t('recentProjects.empty.message', 'No projects yet')}
+                    description="Get started by creating your first project"
+                    action={{
+                      label: t('recentProjects.empty.button', 'Create Project'),
+                      onClick: () => navigate('/projects'),
+                    }}
+                    className="border-0 shadow-none"
+                  />
                 )}
               </div>
             )}

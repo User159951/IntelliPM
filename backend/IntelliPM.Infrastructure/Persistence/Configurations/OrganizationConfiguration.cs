@@ -25,6 +25,9 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(o => o.DefaultLanguage)
+            .HasMaxLength(10); // ISO 639-1 codes are 2-3 characters, but allow some buffer
+
         builder.Property(o => o.CreatedAt)
             .IsRequired();
 

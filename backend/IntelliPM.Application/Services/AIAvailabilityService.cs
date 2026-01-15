@@ -39,10 +39,12 @@ public interface IAIAvailabilityService
 /// </summary>
 public class AIAvailabilityService : IAIAvailabilityService
 {
+    private const string GlobalAIEnabledKey = "AI.Enabled";
+    private const int CacheExpirationMinutes = 5;
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AIAvailabilityService> _logger;
-    private const int CacheExpirationMinutes = 5;
 
     public AIAvailabilityService(
         IUnitOfWork unitOfWork,
@@ -52,6 +54,43 @@ public class AIAvailabilityService : IAIAvailabilityService
         _unitOfWork = unitOfWork;
         _cache = cache;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Checks if AI is enabled globally (system-wide kill switch).
+    /// </summary>
+    private async System.Threading.Tasks.Task<bool> IsGlobalAIEnabledAsync(CancellationToken ct)
+    {
+        var cacheKey = "ai_global_enabled";
+
+        // Check cache first
+        if (_cache.TryGetValue<bool>(cacheKey, out var cachedValue))
+        {
+            return cachedValue;
+        }
+
+        try
+        {
+            var globalSettingRepo = _unitOfWork.Repository<GlobalSetting>();
+            var globalSetting = await globalSettingRepo.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(gs => gs.Key == GlobalAIEnabledKey, ct);
+
+            // Default to enabled if setting doesn't exist (backward compatibility)
+            var isEnabled = globalSetting == null || 
+                           bool.TryParse(globalSetting.Value, out var parsed) && parsed;
+
+            // Cache result for 5 minutes
+            _cache.Set(cacheKey, isEnabled, TimeSpan.FromMinutes(CacheExpirationMinutes));
+
+            return isEnabled;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking global AI enabled status, defaulting to enabled");
+            // Default to enabled on error to avoid breaking existing functionality
+            return true;
+        }
     }
 
     public async System.Threading.Tasks.Task<bool> IsAIEnabledForOrganization(int organizationId, CancellationToken ct)
@@ -105,7 +144,20 @@ public class AIAvailabilityService : IAIAvailabilityService
 
     public async System.Threading.Tasks.Task CheckQuotaAsync(int organizationId, string quotaType, CancellationToken ct)
     {
-        // First check if AI is enabled
+        // First check global AI kill switch
+        var isGlobalAIEnabled = await IsGlobalAIEnabledAsync(ct);
+        if (!isGlobalAIEnabled)
+        {
+            _logger.LogWarning(
+                "AI execution blocked for organization {OrganizationId} - Global AI kill switch is disabled",
+                organizationId);
+            throw new AIDisabledException(
+                "AI features are currently disabled system-wide. Please contact support.",
+                organizationId,
+                "Global AI kill switch disabled");
+        }
+
+        // Then check if AI is enabled for organization
         await ThrowIfAIDisabled(organizationId, ct);
 
         // Get active quota

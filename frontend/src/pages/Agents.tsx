@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/states';
 import { showToast, showError } from "@/lib/sweetalert";
 import { QuotaExceededAlert } from '@/components/ai-governance/QuotaExceededAlert';
 import { AIDisabledAlert } from '@/components/ai-governance/AIDisabledAlert';
@@ -178,10 +179,11 @@ export default function Agents() {
       </div>
 
       {!projectId ? (
-        <Card className="py-16 text-center">
-          <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Select a project to run AI agents</p>
-        </Card>
+        <EmptyState
+          icon={Bot}
+          title="No project selected"
+          description="Select a project to run AI agents and get intelligent insights"
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {agents.map((agent) => {

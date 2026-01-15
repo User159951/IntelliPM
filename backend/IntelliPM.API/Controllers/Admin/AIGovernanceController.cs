@@ -398,6 +398,92 @@ public class AdminAIGovernanceController : BaseApiController
             );
         }
     }
+
+    /// <summary>
+    /// Toggle global AI kill switch (SuperAdmin only).
+    /// Emergency kill switch to immediately disable/enable all AI features system-wide.
+    /// This affects all organizations regardless of their individual settings.
+    /// </summary>
+    /// <param name="request">Toggle request with enabled status and reason</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Toggle operation result</returns>
+    [HttpPost("global/toggle")]
+    [ProducesResponseType(typeof(ToggleGlobalAIResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ToggleGlobalAI(
+        [FromBody] ToggleGlobalAIRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            // Only SuperAdmin can toggle global AI kill switch
+            if (!_currentUserService.IsSuperAdmin())
+            {
+                return Forbid("Only SuperAdmin can toggle global AI kill switch");
+            }
+
+            var command = new ToggleGlobalAICommand
+            {
+                Enabled = request.Enabled,
+                Reason = request.Reason
+            };
+
+            var result = await _mediator.Send(command, ct);
+            return Ok(result);
+        }
+        catch (Application.Common.Exceptions.ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+        }
+        catch (Application.Common.Exceptions.UnauthorizedException)
+        {
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling global AI kill switch");
+            return Problem(
+                title: "Error toggling global AI",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
+
+    /// <summary>
+    /// Get global AI kill switch status (SuperAdmin only).
+    /// Returns the current state of the global AI kill switch.
+    /// </summary>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Global AI status</returns>
+    [HttpGet("global/status")]
+    [ProducesResponseType(typeof(GlobalAIStatusResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetGlobalAIStatus(CancellationToken ct = default)
+    {
+        try
+        {
+            // Only SuperAdmin can view global AI status
+            if (!_currentUserService.IsSuperAdmin())
+            {
+                return Forbid("Only SuperAdmin can view global AI status");
+            }
+
+            var query = new GetGlobalAIStatusQuery();
+            var result = await _mediator.Send(query, ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting global AI status");
+            return Problem(
+                title: "Error retrieving global AI status",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+    }
 }
 
 /// <summary>
@@ -430,6 +516,14 @@ public record DisableAIRequest(
 /// </summary>
 public record EnableAIRequest(
     string TierName,
+    string Reason
+);
+
+/// <summary>
+/// Request model for toggling global AI kill switch.
+/// </summary>
+public record ToggleGlobalAIRequest(
+    bool Enabled,
     string Reason
 );
 

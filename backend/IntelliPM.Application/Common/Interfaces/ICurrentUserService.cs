@@ -36,5 +36,11 @@ public interface ICurrentUserService
     /// </summary>
     /// <returns>True if user has "SuperAdmin" role, false otherwise</returns>
     bool IsSuperAdmin();
+
+    /// <summary>
+    /// Gets the correlation ID for the current request.
+    /// </summary>
+    /// <returns>Correlation ID or null if not available</returns>
+    string? GetCorrelationId();
 }
 

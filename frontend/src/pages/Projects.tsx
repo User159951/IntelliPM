@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { EmptyState, LoadingState } from '@/components/states';
 import { showToast, showError, showWarning } from '@/lib/sweetalert';
 import { Plus, FolderKanban, MoreHorizontal, Loader2, Pencil, Trash2, CalendarIcon, X, Check, ChevronsUpDown, ArrowUpDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -533,29 +534,17 @@ export default function Projects() {
         </TabsList>
         <TabsContent value="active" className="mt-4">
           {isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-48" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-4 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <LoadingState count={6} />
           ) : filteredAndSortedProjects.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center py-16">
-              <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">{t('list.empty.active.title')}</h3>
-              <p className="text-muted-foreground mb-4">{t('list.empty.active.message')}</p>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                {t('list.empty.active.button')}
-              </Button>
-            </Card>
+            <EmptyState
+              icon={FolderKanban}
+              title={t('list.empty.active.title', 'No active projects')}
+              description={t('list.empty.active.message', 'Get started by creating your first project')}
+              action={{
+                label: t('list.empty.active.button', 'Create Project'),
+                onClick: () => setIsDialogOpen(true),
+              }}
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredAndSortedProjects.map((project) => (
@@ -699,25 +688,13 @@ export default function Projects() {
         </TabsContent>
         <TabsContent value="archived" className="mt-4">
           {isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-48" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-4 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <LoadingState count={6} />
           ) : filteredAndSortedProjects.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center py-16">
-              <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">{t('list.empty.archived.title')}</h3>
-              <p className="text-muted-foreground mb-4">{t('list.empty.archived.message')}</p>
-            </Card>
+            <EmptyState
+              icon={FolderKanban}
+              title={t('list.empty.archived.title', 'No archived projects')}
+              description={t('list.empty.archived.message', 'Archived projects will appear here')}
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredAndSortedProjects.map((project) => (
@@ -875,29 +852,17 @@ export default function Projects() {
         </TabsContent>
         <TabsContent value="all" className="mt-4">
           {isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-48" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-4 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <LoadingState count={6} />
           ) : filteredAndSortedProjects.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center py-16">
-              <FolderKanban className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">{t('list.empty.all.title')}</h3>
-              <p className="text-muted-foreground mb-4">{t('list.empty.all.message')}</p>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                {t('list.empty.all.button')}
-              </Button>
-            </Card>
+            <EmptyState
+              icon={FolderKanban}
+              title={t('list.empty.all.title', 'No projects')}
+              description={t('list.empty.all.message', 'Get started by creating your first project')}
+              action={{
+                label: t('list.empty.all.button', 'Create Project'),
+                onClick: () => setIsDialogOpen(true),
+              }}
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredAndSortedProjects.map((project) => (

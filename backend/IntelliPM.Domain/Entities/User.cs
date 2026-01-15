@@ -18,6 +18,12 @@ public class User : IAggregateRoot
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
+    
+    /// <summary>
+    /// User's preferred language (ISO 639-1: en, fr, ar).
+    /// Null means use organization default or browser language.
+    /// </summary>
+    public string? PreferredLanguage { get; set; }
 
     // Navigation
     public Organization Organization { get; set; } = null!;
