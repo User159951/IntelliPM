@@ -843,6 +843,164 @@
         }
       }
     },
+    "/api/admin/ai/global/toggle": {
+      "post": {
+        "tags": [
+          "AdminAIGovernance"
+        ],
+        "summary": "Toggle global AI kill switch (SuperAdmin only).\r\nEmergency kill switch to immediately disable/enable all AI features system-wide.\r\nThis affects all organizations regardless of their individual settings.",
+        "parameters": [
+          {
+            "name": "X-Api-Version",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Toggle request with enabled status and reason",
+          "content": {
+            "application/json; version=1.0": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelliPM.API.Controllers.Admin.ToggleGlobalAIRequest"
+              }
+            },
+            "text/json; version=1.0": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelliPM.API.Controllers.Admin.ToggleGlobalAIRequest"
+              }
+            },
+            "application/*\u002Bjson; version=1.0": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelliPM.API.Controllers.Admin.ToggleGlobalAIRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.Application.AI.Commands.ToggleGlobalAIResponse"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.Application.AI.Commands.ToggleGlobalAIResponse"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.Application.AI.Commands.ToggleGlobalAIResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/ai/global/status": {
+      "get": {
+        "tags": [
+          "AdminAIGovernance"
+        ],
+        "summary": "Get global AI kill switch status (SuperAdmin only).\r\nReturns the current state of the global AI kill switch.",
+        "parameters": [
+          {
+            "name": "X-Api-Version",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.Application.AI.Queries.GlobalAIStatusResponse"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.Application.AI.Queries.GlobalAIStatusResponse"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.Application.AI.Queries.GlobalAIStatusResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/ai-quota/members": {
       "get": {
         "tags": [
@@ -16531,6 +16689,183 @@
         }
       }
     },
+    "/api/v1/Settings/language": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Get current user\u0027s language preference",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.API.Controllers.LanguageResponse"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.API.Controllers.LanguageResponse"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.API.Controllers.LanguageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server Error",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Update current user\u0027s language preference",
+        "requestBody": {
+          "content": {
+            "application/json; version=1.0": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelliPM.API.Controllers.UpdateLanguageRequest"
+              }
+            },
+            "text/json; version=1.0": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelliPM.API.Controllers.UpdateLanguageRequest"
+              }
+            },
+            "application/*\u002Bjson; version=1.0": {
+              "schema": {
+                "$ref": "#/components/schemas/IntelliPM.API.Controllers.UpdateLanguageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.API.Controllers.LanguageResponse"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.API.Controllers.LanguageResponse"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntelliPM.API.Controllers.LanguageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server Error",
+            "content": {
+              "text/plain; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "application/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              },
+              "text/json; version=1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/Settings": {
       "get": {
         "tags": [
@@ -21715,6 +22050,19 @@
         },
         "additionalProperties": false
       },
+      "IntelliPM.API.Controllers.Admin.ToggleGlobalAIRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Request model for toggling global AI kill switch."
+      },
       "IntelliPM.API.Controllers.Admin.UpdateAIQuotaTemplateRequest": {
         "type": "object",
         "properties": {
@@ -22292,6 +22640,15 @@
         },
         "additionalProperties": false
       },
+      "IntelliPM.API.Controllers.LanguageResponse": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "IntelliPM.API.Controllers.LoginRequest": {
         "type": "object",
         "properties": {
@@ -22731,6 +23088,15 @@
         },
         "additionalProperties": false
       },
+      "IntelliPM.API.Controllers.UpdateLanguageRequest": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "IntelliPM.API.Controllers.UpdateProjectRequest": {
         "type": "object",
         "properties": {
@@ -23057,6 +23423,26 @@
           },
           "message": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IntelliPM.Application.AI.Commands.ToggleGlobalAIResponse": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "toggledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "updatedById": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -23948,6 +24334,29 @@
           },
           "hasOverride": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IntelliPM.Application.AI.Queries.GlobalAIStatusResponse": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedById": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
