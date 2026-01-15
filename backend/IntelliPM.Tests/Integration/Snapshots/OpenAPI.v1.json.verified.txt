@@ -8712,51 +8712,6 @@
         }
       }
     },
-    "/api/v1/Health/smtp": {
-      "get": {
-        "tags": [
-          "Health"
-        ],
-        "summary": "\u26A0\uFE0F WARNING: DEBUG-ONLY ENDPOINT \u26A0\uFE0F\r\n\r\nDEV-ONLY: SMTP connection diagnostics endpoint.\r\nTests SMTP connectivity without sending an email.\r\n\r\nThis endpoint is ONLY available in DEBUG builds and will be COMPLETELY DISABLED in Release builds.",
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
-    "/api/v1/Health/smtp/send-test": {
-      "post": {
-        "tags": [
-          "Health"
-        ],
-        "summary": "\u26A0\uFE0F WARNING: DEBUG-ONLY ENDPOINT \u26A0\uFE0F\r\n\r\nDEV-ONLY: Send a test email via SMTP.\r\nUses IEmailService to send a welcome email to the specified address.\r\n\r\nThis endpoint is ONLY available in DEBUG builds and will be COMPLETELY DISABLED in Release builds.",
-        "requestBody": {
-          "content": {
-            "application/json; version=1.0": {
-              "schema": {
-                "$ref": "#/components/schemas/IntelliPM.API.Controllers.HealthController.SendTestEmailRequest"
-              }
-            },
-            "text/json; version=1.0": {
-              "schema": {
-                "$ref": "#/components/schemas/IntelliPM.API.Controllers.HealthController.SendTestEmailRequest"
-              }
-            },
-            "application/*\u002Bjson; version=1.0": {
-              "schema": {
-                "$ref": "#/components/schemas/IntelliPM.API.Controllers.HealthController.SendTestEmailRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success"
-          }
-        }
-      }
-    },
     "/api/v1/health/api": {
       "get": {
         "tags": [
@@ -20296,36 +20251,6 @@
         }
       }
     },
-    "/api/v1/Test/sentry": {
-      "get": {
-        "tags": [
-          "Test"
-        ],
-        "summary": "Test endpoint to verify Sentry integration",
-        "responses": {
-          "500": {
-            "description": "Server Error",
-            "content": {
-              "text/plain; version=1.0": {
-                "schema": {
-                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
-                }
-              },
-              "application/json; version=1.0": {
-                "schema": {
-                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
-                }
-              },
-              "text/json; version=1.0": {
-                "schema": {
-                  "$ref": "#/components/schemas/Microsoft.AspNetCore.Mvc.ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/Users": {
       "get": {
         "tags": [
@@ -22315,16 +22240,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "IntelliPM.API.Controllers.HealthController.SendTestEmailRequest": {
-        "type": "object",
-        "properties": {
-          "to": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false,
-        "description": "Request model for send-test email endpoint"
       },
       "IntelliPM.API.Controllers.ImproveTaskRequest": {
         "type": "object",
