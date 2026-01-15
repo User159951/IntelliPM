@@ -273,6 +273,13 @@ public class AppDbContext : DbContext
             .HasForeignKey(u => u.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
+        
+        // Performance index for User (multi-tenant queries)
+        // Note: UserId is the primary key, so (UserId, OrganizationId) composite is redundant
+        // OrganizationId index already exists, adding CreatedAt for sorting
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.CreatedAt)
+            .HasDatabaseName("IX_Users_CreatedAt");
 
         // Project
         modelBuilder.Entity<Project>()
@@ -289,6 +296,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Project>()
             .Property(p => p.RowVersion)
             .IsRowVersion();
+        
+        // Performance indexes for Project (multi-tenant queries)
+        modelBuilder.Entity<Project>()
+            .HasIndex(p => new { p.OrganizationId, p.CreatedAt })
+            .HasDatabaseName("IX_Projects_OrganizationId_CreatedAt");
+        // Single-column indexes for sorting
+        modelBuilder.Entity<Project>()
+            .HasIndex(p => p.CreatedAt)
+            .HasDatabaseName("IX_Projects_CreatedAt");
+        modelBuilder.Entity<Project>()
+            .HasIndex(p => p.UpdatedAt)
+            .HasDatabaseName("IX_Projects_UpdatedAt");
 
         // ProjectMembers
         modelBuilder.Entity<ProjectMember>()
@@ -438,6 +457,27 @@ public class AppDbContext : DbContext
             .HasForeignKey(t => t.OrganizationId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
+        
+        // Performance indexes for ProjectTask (multi-tenant queries)
+        modelBuilder.Entity<ProjectTask>()
+            .HasIndex(t => new { t.OrganizationId, t.CreatedAt })
+            .HasDatabaseName("IX_ProjectTasks_OrganizationId_CreatedAt");
+        modelBuilder.Entity<ProjectTask>()
+            .HasIndex(t => new { t.OrganizationId, t.ProjectId })
+            .HasDatabaseName("IX_ProjectTasks_OrganizationId_ProjectId");
+        modelBuilder.Entity<ProjectTask>()
+            .HasIndex(t => new { t.OrganizationId, t.AssigneeId })
+            .HasDatabaseName("IX_ProjectTasks_OrganizationId_AssigneeId");
+        modelBuilder.Entity<ProjectTask>()
+            .HasIndex(t => new { t.OrganizationId, t.Status })
+            .HasDatabaseName("IX_ProjectTasks_OrganizationId_Status");
+        // Single-column indexes for sorting
+        modelBuilder.Entity<ProjectTask>()
+            .HasIndex(t => t.CreatedAt)
+            .HasDatabaseName("IX_ProjectTasks_CreatedAt");
+        modelBuilder.Entity<ProjectTask>()
+            .HasIndex(t => t.UpdatedAt)
+            .HasDatabaseName("IX_ProjectTasks_UpdatedAt");
 
         // Configure AgentExecutionLog decimal precision and foreign key
         modelBuilder.Entity<AgentExecutionLog>()

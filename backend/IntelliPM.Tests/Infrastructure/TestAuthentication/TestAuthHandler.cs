@@ -24,9 +24,8 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory loggerFactory,
         UrlEncoder encoder,
-        ISystemClock clock,
         IConfiguration configuration)
-        : base(options, loggerFactory, encoder, clock)
+        : base(options, loggerFactory, encoder)
     {
         _configuration = configuration;
     }

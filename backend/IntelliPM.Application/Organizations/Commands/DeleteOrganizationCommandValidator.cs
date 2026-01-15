@@ -14,4 +14,3 @@ public class DeleteOrganizationCommandValidator : AbstractValidator<DeleteOrgani
             .WithMessage("Organization ID must be greater than 0");
     }
 }
-

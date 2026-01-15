@@ -1,0 +1,3 @@
+# This directory contains OpenAPI contract snapshots
+# Snapshots are generated automatically by ContractTests when tests run
+# The snapshot file will be created on first test run

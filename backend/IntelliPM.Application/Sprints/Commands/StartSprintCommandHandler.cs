@@ -109,6 +109,7 @@ public class StartSprintCommandHandler : IRequestHandler<StartSprintCommand, Sta
                 await notificationRepo.AddAsync(new Notification
                 {
                     UserId = memberId,
+                    OrganizationId = sprint.OrganizationId,
                     Type = "sprint_started",
                     Message = $"{starter?.FirstName} {starter?.LastName} started Sprint {sprint.Number}",
                     EntityType = "sprint",

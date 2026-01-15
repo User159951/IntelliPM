@@ -375,13 +375,13 @@ namespace IntelliPM.Infrastructure.Persistence.Migrations
                 name: "IX_AIDecisionLogs_ApprovalDeadline_Status",
                 table: "AIDecisionLogs",
                 columns: new[] { "ApprovalDeadline", "Status" },
-                filter: "[ApprovalDeadline] IS NOT NULL AND [Status] = 0");
+                filter: "[ApprovalDeadline] IS NOT NULL AND [Status] = 'Pending'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AIDecisionLogs_PendingApprovals",
                 table: "AIDecisionLogs",
                 columns: new[] { "RequiresHumanApproval", "Status", "CreatedAt" },
-                filter: "[RequiresHumanApproval] = 1 AND [Status] = 0");
+                filter: "[RequiresHumanApproval] = 1 AND [Status] = 'Pending'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AIDecisionLogs_RejectedByUserId",

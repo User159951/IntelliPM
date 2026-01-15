@@ -354,16 +354,44 @@ export interface RegisterTeamRequest {
 
 // Metrics types
 export interface MetricsSummary {
-  totalProjects?: number;
-  activeSprints?: number;
-  openTasks?: number;
-  blockedTasks?: number;
-  defectsCount?: number;
-  velocity?: number;
-  throughput?: number;
-  defectRate?: number;
-  sprintHealth?: string;
-  deliveryPredictability?: number;
+  // Project metrics
+  totalProjects: number;
+  
+  // Task metrics
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  blockedTasks: number;
+  todoTasks: number;
+  openTasks: number;
+  completionPercentage: number;
+  averageCompletionTimeHours: number;
+  
+  // Sprint metrics
+  totalSprints: number;
+  activeSprints: number;
+  velocity: number;
+  
+  // Defect metrics
+  defectsCount: number;
+  totalDefects: number;
+  
+  // Agent metrics
+  totalAgentExecutions: number;
+  agentSuccessRate: number;
+  averageAgentResponseTimeMs: number;
+  
+  // Trends
+  trends?: TrendData;
+}
+
+export interface TrendData {
+  projectsTrend: number;
+  sprintsTrend: number;
+  openTasksTrend: number;
+  blockedTasksTrend: number;
+  defectsTrend: number;
+  velocityTrend: number;
 }
 
 // Insight types

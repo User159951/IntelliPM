@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IntelliPM.Application.Teams.Queries;
 
-public class GetTeamByIdQueryHandler : IRequestHandler<GetTeamByIdQuery, TeamDto?>
+public class GetTeamByIdQueryHandler : IRequestHandler<GetTeamByIdQuery, TeamDto>
 {
     private readonly IUnitOfWork _unitOfWork;
 

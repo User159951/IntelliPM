@@ -61,9 +61,10 @@ public class DeleteAttachmentCommandHandler : IRequestHandler<DeleteAttachmentCo
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Optionally delete the physical file (can be done asynchronously or via background job)
+        // Verify organization ownership before deletion
         try
         {
-            await _fileStorageService.DeleteFileAsync(attachment.StoredFileName, cancellationToken);
+            await _fileStorageService.DeleteFileAsync(attachment.StoredFileName, request.OrganizationId, cancellationToken);
         }
         catch (Exception ex)
         {

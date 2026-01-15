@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Admin.Dashboard.Queries;
@@ -10,11 +9,12 @@ namespace IntelliPM.API.Controllers.Admin;
 
 /// <summary>
 /// Controller for admin dashboard statistics (Admin only).
+/// Admin can access their own organization's dashboard; SuperAdmin can access all organizations.
 /// </summary>
 [ApiController]
 [Route("api/admin/dashboard")]
 [ApiVersion("1.0")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[RequireAdmin]
 public class DashboardController : BaseApiController
 {
     private readonly IMediator _mediator;

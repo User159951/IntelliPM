@@ -15,7 +15,7 @@ namespace IntelliPM.API.Controllers.Admin;
 [ApiController]
 [Route("api/admin/users")]
 [ApiVersion("1.0")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[RequireAdmin]
 public class UsersController : BaseApiController
 {
     private readonly IMediator _mediator;

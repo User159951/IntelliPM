@@ -4,9 +4,12 @@ namespace IntelliPM.Application.Tasks.Commands;
 
 /// <summary>
 /// Validator for ChangeTaskStatusCommand.
+/// Validates task status changes including workflow transition rules.
 /// </summary>
 public class ChangeTaskStatusCommandValidator : AbstractValidator<ChangeTaskStatusCommand>
 {
+    private static readonly string[] ValidStatuses = { "Todo", "InProgress", "InReview", "Done", "Blocked" };
+
     public ChangeTaskStatusCommandValidator()
     {
         RuleFor(x => x.TaskId)
@@ -20,11 +23,8 @@ public class ChangeTaskStatusCommandValidator : AbstractValidator<ChangeTaskStat
         RuleFor(x => x.NewStatus)
             .NotEmpty()
             .WithMessage("New status is required")
-            .Must(status => status == "Todo" || 
-                status == "InProgress" || 
-                status == "Blocked" || 
-                status == "Done")
-            .WithMessage("Status must be one of: Todo, InProgress, Blocked, Done");
+            .Must(status => ValidStatuses.Contains(status))
+            .WithMessage($"Status must be one of: {string.Join(", ", ValidStatuses)}");
     }
 }
 

@@ -82,6 +82,7 @@ public class InviteMemberCommandHandler : IRequestHandler<InviteMemberCommand, i
         await notificationRepo.AddAsync(new Notification
         {
             UserId = invitedUser.Id,
+            OrganizationId = organizationId,
             Type = "project_invite",
             Message = $"{currentUser?.FirstName} {currentUser?.LastName} invited you to join project '{project.Name}'",
             EntityType = "project",

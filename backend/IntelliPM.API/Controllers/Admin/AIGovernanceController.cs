@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Application.AI.Commands;
 using IntelliPM.Application.AI.Queries;
@@ -7,6 +6,7 @@ using IntelliPM.Application.AI.DTOs;
 using IntelliPM.Application.Common.Models;
 using IntelliPM.Application.Common.Interfaces;
 using System.Text;
+using IntelliPM.API.Authorization;
 
 namespace IntelliPM.API.Controllers.Admin;
 
@@ -17,7 +17,7 @@ namespace IntelliPM.API.Controllers.Admin;
 /// </summary>
 [ApiController]
 [Route("api/admin/ai")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[RequireAdmin]
 public class AdminAIGovernanceController : BaseApiController
 {
     private readonly IMediator _mediator;

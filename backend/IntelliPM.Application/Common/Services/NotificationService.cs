@@ -9,6 +9,7 @@ public interface INotificationService
 {
     System.Threading.Tasks.Task CreateNotificationAsync(
         int userId,
+        int organizationId,
         string type,
         string message,
         string? entityType = null,
@@ -28,6 +29,7 @@ public class NotificationService : INotificationService
 
     public async System.Threading.Tasks.Task CreateNotificationAsync(
         int userId,
+        int organizationId,
         string type,
         string message,
         string? entityType = null,
@@ -37,9 +39,20 @@ public class NotificationService : INotificationService
     {
         var notificationRepo = _unitOfWork.Repository<Notification>();
 
+        // Validate that user exists in the organization
+        var userRepo = _unitOfWork.Repository<User>();
+        var user = await userRepo.Query()
+            .FirstOrDefaultAsync(u => u.Id == userId && u.OrganizationId == organizationId, cancellationToken);
+        
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User {userId} does not exist in organization {organizationId}");
+        }
+
         var notification = new Notification
         {
             UserId = userId,
+            OrganizationId = organizationId,
             Type = type,
             Message = message,
             EntityType = entityType,

@@ -1,10 +1,10 @@
 using IntelliPM.Domain.Entities;
 using IntelliPM.Infrastructure.Persistence;
 using IntelliPM.Infrastructure.Persistence.Seeding;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using IntelliPM.API.Authorization;
 
 namespace IntelliPM.API.Controllers.Admin;
 
@@ -15,7 +15,7 @@ namespace IntelliPM.API.Controllers.Admin;
 /// </summary>
 [ApiController]
 [Route("api/admin/data-seeding")]
-[Authorize(Roles = "SuperAdmin")]
+[RequireSuperAdmin]
 public class DataSeedingController : BaseApiController
 {
     private readonly AppDbContext _context;

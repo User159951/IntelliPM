@@ -6,5 +6,5 @@ namespace IntelliPM.Application.Features.Releases.Queries;
 /// <summary>
 /// Query to retrieve a release by its ID.
 /// </summary>
-public record GetReleaseByIdQuery(int Id) : IRequest<ReleaseDto>;
+public record GetReleaseByIdQuery(int Id) : IRequest<ReleaseDto?>;
 

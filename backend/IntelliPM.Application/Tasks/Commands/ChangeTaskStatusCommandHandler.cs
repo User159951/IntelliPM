@@ -98,6 +98,7 @@ public class ChangeTaskStatusCommandHandler : IRequestHandler<ChangeTaskStatusCo
         if (request.NewStatus == "Done")
         {
             var completer = await userRepo.GetByIdAsync(request.UpdatedBy, cancellationToken);
+            var organizationId = project?.OrganizationId ?? task.OrganizationId;
             
             var notificationRepo = _unitOfWork.Repository<Notification>();
             
@@ -107,6 +108,7 @@ public class ChangeTaskStatusCommandHandler : IRequestHandler<ChangeTaskStatusCo
                 await notificationRepo.AddAsync(new Notification
                 {
                     UserId = task.AssigneeId.Value,
+                    OrganizationId = organizationId,
                     Type = "task_completed",
                     Message = $"{completer?.FirstName} {completer?.LastName} completed '{task.Title}'",
                     EntityType = "task",
@@ -124,6 +126,7 @@ public class ChangeTaskStatusCommandHandler : IRequestHandler<ChangeTaskStatusCo
                 await notificationRepo.AddAsync(new Notification
                 {
                     UserId = project.OwnerId,
+                    OrganizationId = organizationId,
                     Type = "task_completed",
                     Message = $"{completer?.FirstName} {completer?.LastName} completed '{task.Title}'",
                     EntityType = "task",

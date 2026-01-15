@@ -1,10 +1,10 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Admin.SystemHealth.Queries;
 using IntelliPM.Application.Common.Exceptions;
 using Microsoft.Extensions.Logging;
+using IntelliPM.API.Authorization;
 
 namespace IntelliPM.API.Controllers.Admin;
 
@@ -14,7 +14,7 @@ namespace IntelliPM.API.Controllers.Admin;
 [ApiController]
 [Route("api/admin/system-health")]
 [ApiVersion("1.0")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[RequireAdmin]
 public class SystemHealthController : BaseApiController
 {
     private readonly IMediator _mediator;

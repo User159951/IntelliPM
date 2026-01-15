@@ -110,7 +110,7 @@ public class SemanticKernelAgentService : IAgentService
             OrganizationId = organizationId > 0 ? organizationId : throw new InvalidOperationException("OrganizationId is required for AgentExecutionLog"),
             AgentId = "task-improver",
             UserId = userId > 0 ? userId.ToString() : "system",
-            UserInput = taskDescription,
+            UserInput = taskDescription ?? string.Empty,
             Status = "Pending",
             ExecutionCostUsd = 0m,
             CreatedAt = DateTime.UtcNow
@@ -136,7 +136,7 @@ Be concise and practical. Format your response in markdown.";
             var chatHistory = new ChatHistory(systemPrompt);
             chatHistory.AddUserMessage($"Improve this task description: {taskDescription}");
             
-            var promptLength = systemPrompt.Length + taskDescription.Length;
+            var promptLength = systemPrompt.Length + (taskDescription?.Length ?? 0);
             stepStopwatch.Stop();
             timings["A_PromptBuild"] = stepStopwatch.ElapsedMilliseconds;
             

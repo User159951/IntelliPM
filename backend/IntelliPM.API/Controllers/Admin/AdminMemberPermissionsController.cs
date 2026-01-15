@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Permissions.Commands;
@@ -8,6 +7,7 @@ using IntelliPM.Application.Permissions.DTOs;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Models;
 using Microsoft.Extensions.Logging;
+using IntelliPM.API.Authorization;
 using ApplicationException = IntelliPM.Application.Common.Exceptions.ApplicationException;
 
 namespace IntelliPM.API.Controllers.Admin;
@@ -19,7 +19,7 @@ namespace IntelliPM.API.Controllers.Admin;
 [ApiController]
 [Route("api/admin/permissions")]
 [ApiVersion("1.0")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[RequireAdmin]
 public class AdminMemberPermissionsController : BaseApiController
 {
     private readonly IMediator _mediator;

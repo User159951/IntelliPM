@@ -223,8 +223,8 @@ public class AttachmentsController : BaseApiController
                 return NotFound(new { error = "Attachment not found" });
             }
 
-            // Get file stream using stored filename
-            var fileStream = await _fileStorageService.GetFileAsync(attachmentEntity.StoredFileName, ct);
+            // Get file stream using stored filename, verifying organization ownership
+            var fileStream = await _fileStorageService.GetFileAsync(attachmentEntity.StoredFileName, organizationId, ct);
 
             // Return file with appropriate content type
             return File(

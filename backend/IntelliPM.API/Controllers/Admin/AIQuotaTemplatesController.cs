@@ -1,9 +1,9 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using IntelliPM.Application.AI.Commands;
 using IntelliPM.Application.AI.Queries;
 using IntelliPM.Application.AI.DTOs;
+using IntelliPM.API.Authorization;
 
 namespace IntelliPM.API.Controllers.Admin;
 
@@ -14,7 +14,7 @@ namespace IntelliPM.API.Controllers.Admin;
 /// </summary>
 [ApiController]
 [Route("api/admin/ai-quota-templates")]
-[Authorize(Roles = "SuperAdmin")]
+[RequireSuperAdmin]
 public class AIQuotaTemplatesController : BaseApiController
 {
     private readonly IMediator _mediator;

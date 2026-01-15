@@ -12,7 +12,7 @@ namespace IntelliPM.Application.Features.Milestones.Queries;
 /// Handler for GetMilestoneByIdQuery.
 /// Retrieves a milestone by its ID, verifying it belongs to the user's organization.
 /// </summary>
-public class GetMilestoneByIdQueryHandler : IRequestHandler<GetMilestoneByIdQuery, MilestoneDto?>
+public class GetMilestoneByIdQueryHandler : IRequestHandler<GetMilestoneByIdQuery, MilestoneDto>
 {
     private readonly IUnitOfWork _unitOfWork;
 

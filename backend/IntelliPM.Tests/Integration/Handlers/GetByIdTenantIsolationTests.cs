@@ -496,7 +496,7 @@ public class GetByIdTenantIsolationTests : IClassFixture<AIAgentHandlerTestFacto
 
         // Assert
         result.Should().NotBeNull();
-        result.Id.Should().Be(_release1.Id);
+        result!.Id.Should().Be(_release1.Id);
         result.Name.Should().Be("Release1");
     }
 

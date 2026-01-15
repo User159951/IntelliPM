@@ -78,6 +78,7 @@ public class AssignTaskCommandHandler : IRequestHandler<AssignTaskCommand, Assig
         // Create notification when a task is assigned
         if (request.AssigneeId.HasValue)
         {
+            var organizationId = _currentUserService.GetOrganizationId();
             var userRepo = _unitOfWork.Repository<User>();
             var assignee = await userRepo.GetByIdAsync(request.AssigneeId.Value, cancellationToken);
             var assigner = await userRepo.GetByIdAsync(request.UpdatedBy, cancellationToken);
@@ -86,6 +87,7 @@ public class AssignTaskCommandHandler : IRequestHandler<AssignTaskCommand, Assig
             await notificationRepo.AddAsync(new Notification
             {
                 UserId = request.AssigneeId.Value,
+                OrganizationId = organizationId,
                 Type = "task_assigned",
                 Message = $"{assigner?.FirstName} {assigner?.LastName} assigned you to '{task.Title}'",
                 EntityType = "task",

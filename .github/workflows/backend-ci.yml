@@ -58,3 +58,14 @@ jobs:
             --filter "FullyQualifiedName!~Integration&FullyQualifiedName!~E2E&FullyQualifiedName!~Infrastructure"
         working-directory: ./backend
 
+      # 7. Exécution des tests de contrat OpenAPI pour prévenir les breaking changes
+      - name: Run OpenAPI contract tests
+        run: |
+          dotnet test \
+            --configuration Release \
+            --no-build \
+            --logger "console;verbosity=detailed" \
+            --filter "FullyQualifiedName~ContractTests"
+        working-directory: ./backend
+        continue-on-error: false
+

@@ -50,13 +50,15 @@ public class AIDecisionLogConfiguration : IEntityTypeConfiguration<AIDecisionLog
             .HasDatabaseName("IX_AIDecisionLogs_EntityType_EntityId");
 
         // Index for pending approvals (filtered index for performance)
+        // Note: Status is stored as string (enum name), so compare to 'Pending' not 0
         builder.HasIndex(a => new { a.RequiresHumanApproval, a.Status, a.CreatedAt })
-            .HasFilter("[RequiresHumanApproval] = 1 AND [Status] = 0")
+            .HasFilter("[RequiresHumanApproval] = 1 AND [Status] = 'Pending'")
             .HasDatabaseName("IX_AIDecisionLogs_PendingApprovals");
 
         // Index for approval deadline (for expiration queries)
+        // Note: Status is stored as string (enum name), so compare to 'Pending' not 0
         builder.HasIndex(a => new { a.ApprovalDeadline, a.Status })
-            .HasFilter("[ApprovalDeadline] IS NOT NULL AND [Status] = 0")
+            .HasFilter("[ApprovalDeadline] IS NOT NULL AND [Status] = 'Pending'")
             .HasDatabaseName("IX_AIDecisionLogs_ApprovalDeadline_Status");
 
         // Index for rejected decisions

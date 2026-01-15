@@ -5,6 +5,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IntelliPM.Application.Notifications.Queries;
 
+/// <summary>
+/// Handler for GetNotificationsQuery
+/// Filters notifications by UserId and OrganizationId to ensure tenant isolation
+/// </summary>
 public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuery, GetNotificationsResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -18,17 +22,21 @@ public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuer
     {
         var notificationRepo = _unitOfWork.Repository<Notification>();
 
+        // Filter by both UserId and OrganizationId for tenant isolation
         var baseQuery = notificationRepo.Query()
-            .Where(n => n.UserId == request.UserId);
+            .Where(n => n.UserId == request.UserId && n.OrganizationId == request.OrganizationId);
 
         if (request.UnreadOnly)
         {
             baseQuery = baseQuery.Where(n => !n.IsRead);
         }
 
+        // Order by CreatedAt descending (most recent first)
         var query = baseQuery.OrderByDescending(n => n.CreatedAt);
 
+        // Apply pagination: skip offset, then take limit
         var notifications = await query
+            .Skip(request.Offset)
             .Take(request.Limit)
             .Select(n => new NotificationDto
             {
@@ -43,9 +51,11 @@ public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuer
             })
             .ToListAsync(cancellationToken);
 
-        // Get total unread count
+        // Get total unread count filtered by UserId and OrganizationId
         var unreadCount = await notificationRepo.Query()
-            .CountAsync(n => n.UserId == request.UserId && !n.IsRead, cancellationToken);
+            .CountAsync(n => n.UserId == request.UserId 
+                          && n.OrganizationId == request.OrganizationId 
+                          && !n.IsRead, cancellationToken);
 
         return new GetNotificationsResponse
         {

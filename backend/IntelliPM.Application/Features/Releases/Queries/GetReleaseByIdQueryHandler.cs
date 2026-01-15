@@ -12,7 +12,7 @@ namespace IntelliPM.Application.Features.Releases.Queries;
 /// Handler for GetReleaseByIdQuery.
 /// Retrieves a release by its ID with all related data.
 /// </summary>
-public class GetReleaseByIdQueryHandler : IRequestHandler<GetReleaseByIdQuery, ReleaseDto>
+public class GetReleaseByIdQueryHandler : IRequestHandler<GetReleaseByIdQuery, ReleaseDto?>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<GetReleaseByIdQueryHandler> _logger;
@@ -25,7 +25,7 @@ public class GetReleaseByIdQueryHandler : IRequestHandler<GetReleaseByIdQuery, R
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<ReleaseDto> Handle(GetReleaseByIdQuery request, CancellationToken cancellationToken)
+    public async Task<ReleaseDto?> Handle(GetReleaseByIdQuery request, CancellationToken cancellationToken)
     {
         var release = await _unitOfWork.Repository<Release>()
             .Query()

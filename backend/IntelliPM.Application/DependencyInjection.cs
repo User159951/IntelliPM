@@ -35,7 +35,9 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IMentionParser, MentionParser>();
+        services.AddScoped<ICommentSanitizationService, CommentSanitizationService>();
         services.AddScoped<INotificationPreferenceService, NotificationPreferenceService>();
+        services.AddScoped<IFileValidationService, FileValidationService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IAIAvailabilityService, AIAvailabilityService>();
         services.AddScoped<IAIDecisionLogger, AIDecisionLogger>();

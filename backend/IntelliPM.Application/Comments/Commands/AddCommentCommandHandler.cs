@@ -20,17 +20,20 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, AddCo
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly IMentionParser _mentionParser;
+    private readonly ICommentSanitizationService _sanitizationService;
     private readonly ILogger<AddCommentCommandHandler> _logger;
 
     public AddCommentCommandHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         IMentionParser mentionParser,
+        ICommentSanitizationService sanitizationService,
         ILogger<AddCommentCommandHandler> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _mentionParser = mentionParser ?? throw new ArgumentNullException(nameof(mentionParser));
+        _sanitizationService = sanitizationService ?? throw new ArgumentNullException(nameof(sanitizationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -44,8 +47,11 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, AddCo
             throw new UnauthorizedException("User must be authenticated");
         }
 
-        // Validate entity exists (based on EntityType)
+        // Validate entity exists (based on EntityType) and belongs to user's organization
         await ValidateEntityExistsAsync(request.EntityType, request.EntityId, organizationId, ct);
+
+        // Sanitize content to prevent XSS attacks
+        var sanitizedContent = _sanitizationService.SanitizeForStorage(request.Content);
 
         // Create comment
         var comment = new Comment
@@ -53,7 +59,7 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, AddCo
             OrganizationId = organizationId,
             EntityType = request.EntityType,
             EntityId = request.EntityId,
-            Content = request.Content,
+            Content = sanitizedContent,
             AuthorId = userId,
             ParentCommentId = request.ParentCommentId,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -64,8 +70,8 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, AddCo
         await _unitOfWork.Repository<Comment>().AddAsync(comment, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
-        // Parse mentions from content
-        var parsedMentions = _mentionParser.ParseMentions(request.Content);
+        // Parse mentions from sanitized content (mentions are preserved during sanitization)
+        var parsedMentions = _mentionParser.ParseMentions(sanitizedContent);
         var mentionedUserIds = await _mentionParser.ResolveMentionedUserIds(parsedMentions, organizationId, ct);
 
         // Create mention entities
@@ -149,7 +155,7 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, AddCo
                 EntityId = request.EntityId,
                 EntityTitle = entityTitle,
                 MentionText = mentionEntity.MentionText,
-                CommentContent = request.Content,
+                CommentContent = sanitizedContent,
                 OrganizationId = organizationId
             };
 
@@ -171,7 +177,7 @@ public class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, AddCo
             comment.Id,
             userId,
             authorName,
-            request.Content,
+            sanitizedContent,
             comment.CreatedAt,
             mentionedUserIds.Distinct().ToList()
         );

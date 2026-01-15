@@ -678,7 +678,8 @@ app.UseExceptionHandler(appBuilder =>
 });
 
 // Configure middleware
-if (app.Environment.IsDevelopment())
+// Enable Swagger in Development and Testing environments for API contract testing
+if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Testing")
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
@@ -785,16 +786,22 @@ app.Use(async (context, next) =>
             $"max-age={hstsMaxAgeDays * 86400}; includeSubDomains; preload");
     }
 
-    // Content Security Policy
+    // Content Security Policy - Stricter configuration for XSS prevention
+    // Note: 'unsafe-inline' is required for React apps, but we sanitize all user content
+    // 'unsafe-eval' removed for better security (may need to be re-added if React requires it)
     var cspConnectSourcesString = string.Join(" ", cspConnectSources.Select(s => s));
     context.Response.Headers.Append("Content-Security-Policy", 
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "script-src 'self' 'unsafe-inline'; " + // Removed 'unsafe-eval' for better security
         "style-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data: https:; " +
         "font-src 'self' data:; " +
         $"connect-src 'self' {cspConnectSourcesString}; " +
-        "frame-ancestors 'none'");
+        "base-uri 'self'; " + // Prevent base tag injection
+        "form-action 'self'; " + // Prevent form action hijacking
+        "frame-ancestors 'none'; " + // Prevent clickjacking
+        "object-src 'none'; " + // Prevent plugin injection
+        "upgrade-insecure-requests"); // Upgrade HTTP to HTTPS
 
     // Control referrer information
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");

@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.AI.Commands;
@@ -8,6 +7,7 @@ using IntelliPM.Application.AI.DTOs;
 using IntelliPM.Application.Common.Models;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.API.Authorization;
 using ApplicationException = IntelliPM.Application.Common.Exceptions.ApplicationException;
 
 namespace IntelliPM.API.Controllers.Admin;
@@ -20,7 +20,7 @@ namespace IntelliPM.API.Controllers.Admin;
 [ApiController]
 [Route("api/admin/ai-quota")]
 [ApiVersion("1.0")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[RequireAdmin]
 public class AdminAIQuotaController : BaseApiController
 {
     private readonly IMediator _mediator;

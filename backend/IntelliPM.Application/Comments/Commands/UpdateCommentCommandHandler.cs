@@ -1,6 +1,7 @@
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Interfaces;
 using IntelliPM.Application.Comments.Queries;
+using IntelliPM.Application.Services;
 using IntelliPM.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -16,15 +17,18 @@ public class UpdateCommentCommandHandler : IRequestHandler<UpdateCommentCommand,
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICommentSanitizationService _sanitizationService;
     private readonly ILogger<UpdateCommentCommandHandler> _logger;
 
     public UpdateCommentCommandHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
+        ICommentSanitizationService sanitizationService,
         ILogger<UpdateCommentCommandHandler> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _sanitizationService = sanitizationService ?? throw new ArgumentNullException(nameof(sanitizationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -52,8 +56,11 @@ public class UpdateCommentCommandHandler : IRequestHandler<UpdateCommentCommand,
             throw new UnauthorizedException("You can only update your own comments");
         }
 
+        // Sanitize content to prevent XSS attacks
+        var sanitizedContent = _sanitizationService.SanitizeForStorage(request.Content);
+
         // Update comment
-        comment.Content = request.Content;
+        comment.Content = sanitizedContent;
         comment.UpdatedAt = DateTimeOffset.UtcNow;
         comment.IsEdited = true;
 
@@ -68,7 +75,7 @@ public class UpdateCommentCommandHandler : IRequestHandler<UpdateCommentCommand,
             Id = comment.Id,
             EntityType = comment.EntityType,
             EntityId = comment.EntityId,
-            Content = comment.Content,
+            Content = sanitizedContent, // Return sanitized content
             AuthorId = comment.AuthorId,
             AuthorName = $"{comment.Author.FirstName} {comment.Author.LastName}".Trim() != string.Empty
                 ? $"{comment.Author.FirstName} {comment.Author.LastName}".Trim()

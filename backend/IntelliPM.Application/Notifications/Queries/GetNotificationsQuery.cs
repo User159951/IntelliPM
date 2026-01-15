@@ -5,8 +5,10 @@ namespace IntelliPM.Application.Notifications.Queries;
 public class GetNotificationsQuery : IRequest<GetNotificationsResponse>
 {
     public int UserId { get; set; }
+    public int OrganizationId { get; set; }
     public bool UnreadOnly { get; set; } = false;
     public int Limit { get; set; } = 10;
+    public int Offset { get; set; } = 0;
 }
 
 public class GetNotificationsResponse

@@ -1,9 +1,9 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Projections.Commands;
 using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.API.Authorization;
 
 namespace IntelliPM.API.Controllers.Admin;
 
@@ -13,7 +13,7 @@ namespace IntelliPM.API.Controllers.Admin;
 [ApiController]
 [Route("api/admin/read-models")]
 [ApiVersion("1.0")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[RequireAdmin]
 public class ReadModelsController : BaseApiController
 {
     private readonly IMediator _mediator;

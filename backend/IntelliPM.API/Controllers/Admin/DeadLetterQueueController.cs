@@ -1,21 +1,22 @@
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
 using IntelliPM.Application.Admin.DeadLetterQueue.Queries;
 using IntelliPM.Application.Admin.DeadLetterQueue.Commands;
 using IntelliPM.Application.Common.Exceptions;
 using IntelliPM.Application.Common.Models;
+using IntelliPM.API.Authorization;
 
 namespace IntelliPM.API.Controllers.Admin;
 
 /// <summary>
 /// Controller for managing dead letter queue messages (Admin only).
+/// Admin can access their own organization's dead letter queue; SuperAdmin can access all organizations.
 /// </summary>
 [ApiController]
 [Route("api/admin/dead-letter-queue")]
 [ApiVersion("1.0")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[RequireAdmin]
 public class DeadLetterQueueController : BaseApiController
 {
     private readonly IMediator _mediator;

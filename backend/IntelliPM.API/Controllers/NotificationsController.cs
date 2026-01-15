@@ -45,11 +45,14 @@ public class NotificationsController : BaseApiController
                 limit = 10;
             }
 
+            var organizationId = GetOrganizationId();
             var query = new GetNotificationsQuery
             {
                 UserId = userId,
+                OrganizationId = organizationId,
                 UnreadOnly = unreadOnly,
-                Limit = limit
+                Limit = limit,
+                Offset = 0 // Can be extended to support offset parameter
             };
 
             var result = await _mediator.Send(query, ct);
