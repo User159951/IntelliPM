@@ -9,6 +9,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using MockQueryable.Moq;
 
 namespace IntelliPM.Tests.Unit.Services;
 
@@ -55,9 +56,13 @@ public class AiGovernanceServiceTests
             Value = "false"
         };
         globalSettingRepoMock.Setup(r => r.Query())
-            .Returns(new[] { globalSetting }.AsQueryable());
+            .Returns(new[] { globalSetting }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<GlobalSetting>())
             .Returns(globalSettingRepoMock.Object);
+        
+        // Mock organization AI enabled (so we get the global exception, not org exception)
+        _availabilityServiceMock.Setup(s => s.IsAIEnabledForOrganization(organizationId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         // Act
         Func<System.Threading.Tasks.Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
@@ -77,7 +82,7 @@ public class AiGovernanceServiceTests
         // Mock global AI enabled
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
         globalSettingRepoMock.Setup(r => r.Query())
-            .Returns(Array.Empty<GlobalSetting>().AsQueryable());
+            .Returns(Array.Empty<GlobalSetting>().AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<GlobalSetting>())
             .Returns(globalSettingRepoMock.Object);
 
@@ -102,7 +107,7 @@ public class AiGovernanceServiceTests
         // Mock global AI enabled
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
         globalSettingRepoMock.Setup(r => r.Query())
-            .Returns(Array.Empty<GlobalSetting>().AsQueryable());
+            .Returns(Array.Empty<GlobalSetting>().AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<GlobalSetting>())
             .Returns(globalSettingRepoMock.Object);
 
@@ -137,7 +142,7 @@ public class AiGovernanceServiceTests
         // Mock global AI enabled
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
         globalSettingRepoMock.Setup(r => r.Query())
-            .Returns(Array.Empty<GlobalSetting>().AsQueryable());
+            .Returns(Array.Empty<GlobalSetting>().AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<GlobalSetting>())
             .Returns(globalSettingRepoMock.Object);
 
@@ -159,10 +164,12 @@ public class AiGovernanceServiceTests
     [Fact]
     public async System.Threading.Tasks.Task IsGlobalAIEnabledAsync_WhenSettingDoesNotExist_ReturnsTrue()
     {
-        // Arrange
+        // Arrange - Clear cache first to ensure fresh query
+        _cache.Remove("ai_global_enabled");
+        
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
         globalSettingRepoMock.Setup(r => r.Query())
-            .Returns(Array.Empty<GlobalSetting>().AsQueryable());
+            .Returns(Array.Empty<GlobalSetting>().AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<GlobalSetting>())
             .Returns(globalSettingRepoMock.Object);
 
@@ -176,7 +183,9 @@ public class AiGovernanceServiceTests
     [Fact]
     public async System.Threading.Tasks.Task IsGlobalAIEnabledAsync_WhenSettingIsTrue_ReturnsTrue()
     {
-        // Arrange
+        // Arrange - Clear cache first to ensure fresh query
+        _cache.Remove("ai_global_enabled");
+        
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
         var globalSetting = new GlobalSetting
         {
@@ -184,7 +193,7 @@ public class AiGovernanceServiceTests
             Value = "true"
         };
         globalSettingRepoMock.Setup(r => r.Query())
-            .Returns(new[] { globalSetting }.AsQueryable());
+            .Returns(new[] { globalSetting }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<GlobalSetting>())
             .Returns(globalSettingRepoMock.Object);
 
@@ -198,7 +207,9 @@ public class AiGovernanceServiceTests
     [Fact]
     public async System.Threading.Tasks.Task IsGlobalAIEnabledAsync_WhenSettingIsFalse_ReturnsFalse()
     {
-        // Arrange
+        // Arrange - Clear cache first to ensure fresh query
+        _cache.Remove("ai_global_enabled");
+        
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
         var globalSetting = new GlobalSetting
         {
@@ -206,7 +217,7 @@ public class AiGovernanceServiceTests
             Value = "false"
         };
         globalSettingRepoMock.Setup(r => r.Query())
-            .Returns(new[] { globalSetting }.AsQueryable());
+            .Returns(new[] { globalSetting }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<GlobalSetting>())
             .Returns(globalSettingRepoMock.Object);
 
@@ -256,7 +267,7 @@ public class AiGovernanceServiceTests
         var projectRepoMock = new Mock<IRepository<Project>>();
         var project = new Project { Id = 1, Name = "Test Project" };
         projectRepoMock.Setup(r => r.Query())
-            .Returns(new[] { project }.AsQueryable());
+            .Returns(new[] { project }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<Project>())
             .Returns(projectRepoMock.Object);
 

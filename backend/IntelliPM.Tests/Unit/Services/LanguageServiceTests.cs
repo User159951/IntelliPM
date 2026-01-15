@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Moq;
 using Microsoft.EntityFrameworkCore;
+using MockQueryable.Moq;
 
 namespace IntelliPM.Tests.Unit.Services;
 
@@ -42,7 +43,7 @@ public class LanguageServiceTests
 
         var userRepoMock = new Mock<IRepository<User>>();
         userRepoMock.Setup(r => r.Query())
-            .Returns(new[] { user }.AsQueryable());
+            .Returns(new[] { user }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<User>())
             .Returns(userRepoMock.Object);
 
@@ -83,13 +84,13 @@ public class LanguageServiceTests
 
         var userRepoMock = new Mock<IRepository<User>>();
         userRepoMock.Setup(r => r.Query())
-            .Returns(new[] { user }.AsQueryable());
+            .Returns(new[] { user }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<User>())
             .Returns(userRepoMock.Object);
 
         var orgRepoMock = new Mock<IRepository<Organization>>();
         orgRepoMock.Setup(r => r.Query())
-            .Returns(new[] { organization }.AsQueryable());
+            .Returns(new[] { organization }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<Organization>())
             .Returns(orgRepoMock.Object);
 
@@ -129,13 +130,13 @@ public class LanguageServiceTests
 
         var userRepoMock = new Mock<IRepository<User>>();
         userRepoMock.Setup(r => r.Query())
-            .Returns(new[] { user }.AsQueryable());
+            .Returns(new[] { user }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<User>())
             .Returns(userRepoMock.Object);
 
         var orgRepoMock = new Mock<IRepository<Organization>>();
         orgRepoMock.Setup(r => r.Query())
-            .Returns(new[] { organization }.AsQueryable());
+            .Returns(new[] { organization }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<Organization>())
             .Returns(orgRepoMock.Object);
 
@@ -175,13 +176,13 @@ public class LanguageServiceTests
 
         var userRepoMock = new Mock<IRepository<User>>();
         userRepoMock.Setup(r => r.Query())
-            .Returns(new[] { user }.AsQueryable());
+            .Returns(new[] { user }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<User>())
             .Returns(userRepoMock.Object);
 
         var orgRepoMock = new Mock<IRepository<Organization>>();
         orgRepoMock.Setup(r => r.Query())
-            .Returns(new[] { organization }.AsQueryable());
+            .Returns(new[] { organization }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<Organization>())
             .Returns(orgRepoMock.Object);
 
@@ -213,7 +214,7 @@ public class LanguageServiceTests
 
         var userRepoMock = new Mock<IRepository<User>>();
         userRepoMock.Setup(r => r.Query())
-            .Returns(new[] { user }.AsQueryable());
+            .Returns(new[] { user }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<User>())
             .Returns(userRepoMock.Object);
         _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -249,7 +250,7 @@ public class LanguageServiceTests
 
         var userRepoMock = new Mock<IRepository<User>>();
         userRepoMock.Setup(r => r.Query())
-            .Returns(new[] { user }.AsQueryable());
+            .Returns(new[] { user }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<User>())
             .Returns(userRepoMock.Object);
 
@@ -263,7 +264,7 @@ public class LanguageServiceTests
         // Arrange
         var userRepoMock = new Mock<IRepository<User>>();
         userRepoMock.Setup(r => r.Query())
-            .Returns(Array.Empty<User>().AsQueryable());
+            .Returns(Array.Empty<User>().AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<User>())
             .Returns(userRepoMock.Object);
 
@@ -286,7 +287,7 @@ public class LanguageServiceTests
 
         var orgRepoMock = new Mock<IRepository<Organization>>();
         orgRepoMock.Setup(r => r.Query())
-            .Returns(new[] { organization }.AsQueryable());
+            .Returns(new[] { organization }.AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<Organization>())
             .Returns(orgRepoMock.Object);
 
@@ -303,7 +304,7 @@ public class LanguageServiceTests
         // Arrange
         var orgRepoMock = new Mock<IRepository<Organization>>();
         orgRepoMock.Setup(r => r.Query())
-            .Returns(Array.Empty<Organization>().AsQueryable());
+            .Returns(Array.Empty<Organization>().AsQueryable().BuildMock());
         _unitOfWorkMock.Setup(u => u.Repository<Organization>())
             .Returns(orgRepoMock.Object);
 
