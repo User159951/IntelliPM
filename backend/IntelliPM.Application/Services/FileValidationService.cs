@@ -175,7 +175,8 @@ public class FileValidationService : IFileValidationService
         sanitized = sanitized.Trim().TrimStart('.').TrimEnd('.');
 
         // Ensure filename is not empty after sanitization
-        if (string.IsNullOrWhiteSpace(sanitized))
+        // Also check if the result only contains underscores (from replaced dangerous chars)
+        if (string.IsNullOrWhiteSpace(sanitized) || sanitized.All(c => c == '_'))
         {
             sanitized = "file";
         }

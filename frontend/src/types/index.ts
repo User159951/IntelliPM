@@ -371,10 +371,14 @@ export interface MetricsSummary {
   totalSprints: number;
   activeSprints: number;
   velocity: number;
+  throughput?: number;
+  deliveryPredictability?: number;
+  sprintHealth?: string;
   
   // Defect metrics
   defectsCount: number;
   totalDefects: number;
+  defectRate?: number;
   
   // Agent metrics
   totalAgentExecutions: number;

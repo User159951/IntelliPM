@@ -40,7 +40,7 @@ export default function Dashboard() {
   const { t } = useTranslation('dashboard');
   
   // Fetch metrics summary
-  const { data: metrics, isLoading: metricsLoading, error: metricsError } = useQuery({
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['metrics'],
     queryFn: () => metricsApi.get(),
   });

@@ -17,13 +17,11 @@ public class UpdateTaskCommandValidator : AbstractValidator<UpdateTaskCommand>
             .WithMessage("Task ID must be greater than 0");
 
         RuleFor(x => x.Title)
-            .MinimumLength(1)
-            .WithMessage("Task title cannot be empty")
+            .Must(title => title == null || !string.IsNullOrWhiteSpace(title))
+            .WithMessage("Task title cannot be empty or whitespace only")
             .MaximumLength(500)
             .WithMessage("Task title cannot exceed 500 characters")
-            .Must(title => string.IsNullOrWhiteSpace(title) || !string.IsNullOrWhiteSpace(title.Trim()))
-            .WithMessage("Task title cannot be whitespace only")
-            .When(x => !string.IsNullOrWhiteSpace(x.Title));
+            .When(x => x.Title != null);
 
         RuleFor(x => x.Description)
             .MinimumLength(1)

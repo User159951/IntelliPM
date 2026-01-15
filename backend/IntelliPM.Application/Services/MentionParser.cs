@@ -53,9 +53,10 @@ public class MentionParser : IMentionParser
     // Regex pattern for @username mentions
     // Supports: alphanumeric, dots, underscores, hyphens
     // Example: @john.doe, @user_123, @test-user
-    // Pattern is anchored to word boundaries to prevent injection
+    // Uses negative lookbehind to prevent matching email addresses (user@example.com)
+    // The @ must be at the start of the string or preceded by whitespace/non-word char
     private static readonly Regex MentionRegex = new Regex(
-        @"@([a-zA-Z0-9._-]+)",
+        @"(?<![a-zA-Z0-9])@([a-zA-Z0-9._-]+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
 

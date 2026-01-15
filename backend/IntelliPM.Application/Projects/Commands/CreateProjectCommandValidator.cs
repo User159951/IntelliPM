@@ -46,9 +46,9 @@ public class CreateProjectCommandValidator : AbstractValidator<CreateProjectComm
             .WithMessage("Valid owner ID is required");
 
         RuleFor(x => x.Status)
-            .Must(status => string.IsNullOrWhiteSpace(status) || ValidStatuses.Contains(status))
+            .Must(status => status == null || ValidStatuses.Contains(status))
             .WithMessage($"Status must be one of: {string.Join(", ", ValidStatuses)}")
-            .When(x => !string.IsNullOrWhiteSpace(x.Status));
+            .When(x => x.Status != null);
 
         RuleFor(x => x.StartDate)
             .Must(date => !date.HasValue || date.Value >= DateTimeOffset.UtcNow.AddYears(-1))
