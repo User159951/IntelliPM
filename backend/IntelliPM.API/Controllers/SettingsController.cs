@@ -212,7 +212,7 @@ public class SettingsController : BaseApiController
             var acceptLanguageHeader = Request.Headers["Accept-Language"].ToString();
             var language = await _languageService.GetUserLanguageAsync(userId, organizationId, acceptLanguageHeader);
             
-            return Ok(new LanguageResponse { Language = language });
+            return Ok(new LanguageResponse(language));
         }
         catch (Exception ex)
         {
@@ -248,7 +248,7 @@ public class SettingsController : BaseApiController
 
             await _languageService.UpdateUserLanguageAsync(userId, request.Language);
             
-            return Ok(new LanguageResponse { Language = request.Language });
+            return Ok(new LanguageResponse(request.Language));
         }
         catch (ArgumentException ex)
         {
@@ -287,7 +287,4 @@ public record UpdateSettingRequest(string Value, string? Category = null);
 public record SendTestEmailRequest(string Email);
 public record LanguageResponse(string Language);
 public record UpdateLanguageRequest(string Language);
-
-public record UpdateSettingRequest(string Value, string? Category = null);
-public record SendTestEmailRequest(string Email);
 

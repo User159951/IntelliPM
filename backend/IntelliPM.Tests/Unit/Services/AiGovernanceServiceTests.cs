@@ -41,7 +41,7 @@ public class AiGovernanceServiceTests
     }
 
     [Fact]
-    public async Task ValidateAIExecutionAsync_WhenGlobalAIDisabled_ThrowsAIDisabledException()
+    public async System.Threading.Tasks.Task ValidateAIExecutionAsync_WhenGlobalAIDisabled_ThrowsAIDisabledException()
     {
         // Arrange
         var organizationId = 1;
@@ -60,7 +60,7 @@ public class AiGovernanceServiceTests
             .Returns(globalSettingRepoMock.Object);
 
         // Act
-        Func<Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
+        Func<System.Threading.Tasks.Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
 
         // Assert
         await act.Should().ThrowAsync<AIDisabledException>()
@@ -68,7 +68,7 @@ public class AiGovernanceServiceTests
     }
 
     [Fact]
-    public async Task ValidateAIExecutionAsync_WhenOrgAIDisabled_ThrowsAIDisabledException()
+    public async System.Threading.Tasks.Task ValidateAIExecutionAsync_WhenOrgAIDisabled_ThrowsAIDisabledException()
     {
         // Arrange
         var organizationId = 1;
@@ -86,14 +86,14 @@ public class AiGovernanceServiceTests
             .ReturnsAsync(false);
 
         // Act
-        Func<Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
+        Func<System.Threading.Tasks.Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
 
         // Assert
         await act.Should().ThrowAsync<AIDisabledException>();
     }
 
     [Fact]
-    public async Task ValidateAIExecutionAsync_WhenQuotaExceeded_ThrowsAIQuotaExceededException()
+    public async System.Threading.Tasks.Task ValidateAIExecutionAsync_WhenQuotaExceeded_ThrowsAIQuotaExceededException()
     {
         // Arrange
         var organizationId = 1;
@@ -121,14 +121,14 @@ public class AiGovernanceServiceTests
                 "Free"));
 
         // Act
-        Func<Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
+        Func<System.Threading.Tasks.Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
 
         // Assert
         await act.Should().ThrowAsync<AIQuotaExceededException>();
     }
 
     [Fact]
-    public async Task ValidateAIExecutionAsync_WhenAllChecksPass_DoesNotThrow()
+    public async System.Threading.Tasks.Task ValidateAIExecutionAsync_WhenAllChecksPass_DoesNotThrow()
     {
         // Arrange
         var organizationId = 1;
@@ -147,17 +147,17 @@ public class AiGovernanceServiceTests
 
         // Mock quota check passes
         _availabilityServiceMock.Setup(s => s.CheckQuotaAsync(organizationId, quotaType, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Returns(System.Threading.Tasks.Task.CompletedTask);
 
         // Act
-        Func<Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
+        Func<System.Threading.Tasks.Task> act = async () => await _service.ValidateAIExecutionAsync(organizationId, quotaType);
 
         // Assert
         await act.Should().NotThrowAsync();
     }
 
     [Fact]
-    public async Task IsGlobalAIEnabledAsync_WhenSettingDoesNotExist_ReturnsTrue()
+    public async System.Threading.Tasks.Task IsGlobalAIEnabledAsync_WhenSettingDoesNotExist_ReturnsTrue()
     {
         // Arrange
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
@@ -174,7 +174,7 @@ public class AiGovernanceServiceTests
     }
 
     [Fact]
-    public async Task IsGlobalAIEnabledAsync_WhenSettingIsTrue_ReturnsTrue()
+    public async System.Threading.Tasks.Task IsGlobalAIEnabledAsync_WhenSettingIsTrue_ReturnsTrue()
     {
         // Arrange
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
@@ -196,7 +196,7 @@ public class AiGovernanceServiceTests
     }
 
     [Fact]
-    public async Task IsGlobalAIEnabledAsync_WhenSettingIsFalse_ReturnsFalse()
+    public async System.Threading.Tasks.Task IsGlobalAIEnabledAsync_WhenSettingIsFalse_ReturnsFalse()
     {
         // Arrange
         var globalSettingRepoMock = new Mock<IRepository<GlobalSetting>>();
@@ -218,7 +218,7 @@ public class AiGovernanceServiceTests
     }
 
     [Fact]
-    public async Task LogAIExecutionAsync_WhenCalled_ReturnsDecisionLogId()
+    public async System.Threading.Tasks.Task LogAIExecutionAsync_WhenCalled_ReturnsDecisionLogId()
     {
         // Arrange
         var organizationId = 1;

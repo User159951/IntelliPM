@@ -1,43 +1,31 @@
 using IntelliPM.Application.Services;
-using IntelliPM.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
+using IntelliPM.Application.Common.Interfaces;
+using IntelliPM.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Moq;
+using Microsoft.EntityFrameworkCore;
 
 namespace IntelliPM.Tests.Unit.Services;
 
 public class LanguageServiceTests
 {
-    private readonly AppDbContext _context;
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly Mock<ILogger<LanguageService>> _loggerMock;
     private readonly LanguageService _service;
 
     public LanguageServiceTests()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new AppDbContext(options);
+        _unitOfWorkMock = new Mock<IUnitOfWork>();
         _loggerMock = new Mock<ILogger<LanguageService>>();
-        _service = new LanguageService(_context, _loggerMock.Object);
+        _service = new LanguageService(_unitOfWorkMock.Object, _loggerMock.Object);
     }
 
     [Fact]
-    public async Task GetUserLanguageAsync_UserHasPreference_ReturnsUserPreference()
+    public async System.Threading.Tasks.Task GetUserLanguageAsync_UserHasPreference_ReturnsUserPreference()
     {
         // Arrange
-        var organization = new IntelliPM.Domain.Entities.Organization
-        {
-            Id = 1,
-            Name = "Test Org",
-            Code = "test",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        _context.Organizations.Add(organization);
-
-        var user = new IntelliPM.Domain.Entities.User
+        var user = new User
         {
             Id = 1,
             Username = "testuser",
@@ -51,8 +39,12 @@ public class LanguageServiceTests
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+
+        var userRepoMock = new Mock<IRepository<User>>();
+        userRepoMock.Setup(r => r.Query())
+            .Returns(new[] { user }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<User>())
+            .Returns(userRepoMock.Object);
 
         // Act
         var result = await _service.GetUserLanguageAsync(1, 1);
@@ -62,20 +54,10 @@ public class LanguageServiceTests
     }
 
     [Fact]
-    public async Task GetUserLanguageAsync_NoUserPreference_UsesOrganizationDefault()
+    public async System.Threading.Tasks.Task GetUserLanguageAsync_NoUserPreference_UsesOrganizationDefault()
     {
         // Arrange
-        var organization = new IntelliPM.Domain.Entities.Organization
-        {
-            Id = 1,
-            Name = "Test Org",
-            Code = "test",
-            DefaultLanguage = "ar",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        _context.Organizations.Add(organization);
-
-        var user = new IntelliPM.Domain.Entities.User
+        var user = new User
         {
             Id = 1,
             Username = "testuser",
@@ -89,8 +71,27 @@ public class LanguageServiceTests
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+
+        var organization = new Organization
+        {
+            Id = 1,
+            Name = "Test Org",
+            Code = "test",
+            DefaultLanguage = "ar",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var userRepoMock = new Mock<IRepository<User>>();
+        userRepoMock.Setup(r => r.Query())
+            .Returns(new[] { user }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<User>())
+            .Returns(userRepoMock.Object);
+
+        var orgRepoMock = new Mock<IRepository<Organization>>();
+        orgRepoMock.Setup(r => r.Query())
+            .Returns(new[] { organization }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<Organization>())
+            .Returns(orgRepoMock.Object);
 
         // Act
         var result = await _service.GetUserLanguageAsync(1, 1);
@@ -100,19 +101,10 @@ public class LanguageServiceTests
     }
 
     [Fact]
-    public async Task GetUserLanguageAsync_NoPreference_UsesBrowserLanguage()
+    public async System.Threading.Tasks.Task GetUserLanguageAsync_NoPreference_UsesBrowserLanguage()
     {
         // Arrange
-        var organization = new IntelliPM.Domain.Entities.Organization
-        {
-            Id = 1,
-            Name = "Test Org",
-            Code = "test",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        _context.Organizations.Add(organization);
-
-        var user = new IntelliPM.Domain.Entities.User
+        var user = new User
         {
             Id = 1,
             Username = "testuser",
@@ -126,8 +118,26 @@ public class LanguageServiceTests
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+
+        var organization = new Organization
+        {
+            Id = 1,
+            Name = "Test Org",
+            Code = "test",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var userRepoMock = new Mock<IRepository<User>>();
+        userRepoMock.Setup(r => r.Query())
+            .Returns(new[] { user }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<User>())
+            .Returns(userRepoMock.Object);
+
+        var orgRepoMock = new Mock<IRepository<Organization>>();
+        orgRepoMock.Setup(r => r.Query())
+            .Returns(new[] { organization }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<Organization>())
+            .Returns(orgRepoMock.Object);
 
         // Act
         var result = await _service.GetUserLanguageAsync(1, 1, "fr-FR,fr;q=0.9");
@@ -137,19 +147,10 @@ public class LanguageServiceTests
     }
 
     [Fact]
-    public async Task GetUserLanguageAsync_NoPreference_DefaultsToEnglish()
+    public async System.Threading.Tasks.Task GetUserLanguageAsync_NoPreference_DefaultsToEnglish()
     {
         // Arrange
-        var organization = new IntelliPM.Domain.Entities.Organization
-        {
-            Id = 1,
-            Name = "Test Org",
-            Code = "test",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        _context.Organizations.Add(organization);
-
-        var user = new IntelliPM.Domain.Entities.User
+        var user = new User
         {
             Id = 1,
             Username = "testuser",
@@ -163,8 +164,26 @@ public class LanguageServiceTests
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+
+        var organization = new Organization
+        {
+            Id = 1,
+            Name = "Test Org",
+            Code = "test",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var userRepoMock = new Mock<IRepository<User>>();
+        userRepoMock.Setup(r => r.Query())
+            .Returns(new[] { user }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<User>())
+            .Returns(userRepoMock.Object);
+
+        var orgRepoMock = new Mock<IRepository<Organization>>();
+        orgRepoMock.Setup(r => r.Query())
+            .Returns(new[] { organization }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<Organization>())
+            .Returns(orgRepoMock.Object);
 
         // Act
         var result = await _service.GetUserLanguageAsync(1, 1, "de-DE,de;q=0.9");
@@ -174,19 +193,10 @@ public class LanguageServiceTests
     }
 
     [Fact]
-    public async Task UpdateUserLanguageAsync_ValidLanguage_UpdatesUserPreference()
+    public async System.Threading.Tasks.Task UpdateUserLanguageAsync_ValidLanguage_UpdatesUserPreference()
     {
         // Arrange
-        var organization = new IntelliPM.Domain.Entities.Organization
-        {
-            Id = 1,
-            Name = "Test Org",
-            Code = "test",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        _context.Organizations.Add(organization);
-
-        var user = new IntelliPM.Domain.Entities.User
+        var user = new User
         {
             Id = 1,
             Username = "testuser",
@@ -200,32 +210,29 @@ public class LanguageServiceTests
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+
+        var userRepoMock = new Mock<IRepository<User>>();
+        userRepoMock.Setup(r => r.Query())
+            .Returns(new[] { user }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<User>())
+            .Returns(userRepoMock.Object);
+        _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
 
         // Act
         await _service.UpdateUserLanguageAsync(1, "ar");
 
         // Assert
-        var updatedUser = await _context.Users.FindAsync(1);
-        Assert.NotNull(updatedUser);
-        Assert.Equal("ar", updatedUser.PreferredLanguage);
+        Assert.Equal("ar", user.PreferredLanguage);
+        userRepoMock.Verify(r => r.Update(user), Times.Once);
+        _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateUserLanguageAsync_UnsupportedLanguage_ThrowsArgumentException()
+    public async System.Threading.Tasks.Task UpdateUserLanguageAsync_UnsupportedLanguage_ThrowsArgumentException()
     {
         // Arrange
-        var organization = new IntelliPM.Domain.Entities.Organization
-        {
-            Id = 1,
-            Name = "Test Org",
-            Code = "test",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        _context.Organizations.Add(organization);
-
-        var user = new IntelliPM.Domain.Entities.User
+        var user = new User
         {
             Id = 1,
             Username = "testuser",
@@ -239,25 +246,36 @@ public class LanguageServiceTests
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+
+        var userRepoMock = new Mock<IRepository<User>>();
+        userRepoMock.Setup(r => r.Query())
+            .Returns(new[] { user }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<User>())
+            .Returns(userRepoMock.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => _service.UpdateUserLanguageAsync(1, "de"));
     }
 
     [Fact]
-    public async Task UpdateUserLanguageAsync_UserNotFound_ThrowsInvalidOperationException()
+    public async System.Threading.Tasks.Task UpdateUserLanguageAsync_UserNotFound_ThrowsInvalidOperationException()
     {
+        // Arrange
+        var userRepoMock = new Mock<IRepository<User>>();
+        userRepoMock.Setup(r => r.Query())
+            .Returns(Array.Empty<User>().AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<User>())
+            .Returns(userRepoMock.Object);
+
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.UpdateUserLanguageAsync(999, "en"));
     }
 
     [Fact]
-    public async Task GetOrganizationLanguageAsync_OrganizationExists_ReturnsDefaultLanguage()
+    public async System.Threading.Tasks.Task GetOrganizationLanguageAsync_OrganizationExists_ReturnsDefaultLanguage()
     {
         // Arrange
-        var organization = new IntelliPM.Domain.Entities.Organization
+        var organization = new Organization
         {
             Id = 1,
             Name = "Test Org",
@@ -265,8 +283,12 @@ public class LanguageServiceTests
             DefaultLanguage = "fr",
             CreatedAt = DateTimeOffset.UtcNow
         };
-        _context.Organizations.Add(organization);
-        await _context.SaveChangesAsync();
+
+        var orgRepoMock = new Mock<IRepository<Organization>>();
+        orgRepoMock.Setup(r => r.Query())
+            .Returns(new[] { organization }.AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<Organization>())
+            .Returns(orgRepoMock.Object);
 
         // Act
         var result = await _service.GetOrganizationLanguageAsync(1);
@@ -276,8 +298,15 @@ public class LanguageServiceTests
     }
 
     [Fact]
-    public async Task GetOrganizationLanguageAsync_OrganizationNotFound_ReturnsNull()
+    public async System.Threading.Tasks.Task GetOrganizationLanguageAsync_OrganizationNotFound_ReturnsNull()
     {
+        // Arrange
+        var orgRepoMock = new Mock<IRepository<Organization>>();
+        orgRepoMock.Setup(r => r.Query())
+            .Returns(Array.Empty<Organization>().AsQueryable());
+        _unitOfWorkMock.Setup(u => u.Repository<Organization>())
+            .Returns(orgRepoMock.Object);
+
         // Act
         var result = await _service.GetOrganizationLanguageAsync(999);
 
