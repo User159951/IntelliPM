@@ -12,7 +12,9 @@
   "charts": {
     "sprintVelocity": {
       "title": "Vélocité des sprints",
-      "description": "Points d'histoire complétés par sprint"
+      "description": "Points d'histoire complétés par sprint",
+      "error": "Échec du chargement des données de vélocité",
+      "noData": "Aucun sprint complété pour le moment"
     },
     "taskDistribution": {
       "title": "Répartition des tâches",

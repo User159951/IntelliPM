@@ -65,8 +65,50 @@ export default function AdminMemberAIQuotas() {
       setEditingMember(null);
       showSuccess('Member AI quota updated successfully');
     },
-    onError: (error: Error) => {
-      showError('Failed to update member AI quota', error.message);
+    onError: (error: unknown) => {
+      // Extract detailed error message from API response
+      const apiError = error as { 
+        response?: { 
+          data?: { 
+            message?: string; 
+            detail?: string; 
+            error?: string;
+          }; 
+          status?: number;
+        }; 
+        message?: string;
+      };
+      
+      let errorMessage = 'An unknown error occurred';
+      
+      // Try to get the most specific error message
+      if (apiError.response?.data?.message) {
+        errorMessage = apiError.response.data.message;
+      } else if (apiError.response?.data?.detail) {
+        errorMessage = apiError.response.data.detail;
+      } else if (apiError.response?.data?.error) {
+        errorMessage = apiError.response.data.error;
+      } else if (apiError.message) {
+        errorMessage = apiError.message;
+      }
+      
+      // Add context for 404 errors
+      if (apiError.response?.status === 404) {
+        if (editingMember) {
+          errorMessage = `User ${editingMember.fullName} (ID: ${editingMember.userId}) not found. ${errorMessage}`;
+        } else {
+          errorMessage = `Resource not found. ${errorMessage}`;
+        }
+      }
+      
+      console.error('Failed to update member AI quota:', {
+        error,
+        userId: editingMember?.userId,
+        errorMessage,
+        status: apiError.response?.status,
+      });
+      
+      showError('Failed to update quota', errorMessage);
     },
   });
 

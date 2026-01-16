@@ -294,6 +294,23 @@ All colors MUST be HSL.
   animation-delay: 0.4s;
 }
 
+/* SweetAlert2 z-index fixes for nested modals */
+.swal2-top-level {
+  z-index: 99999 !important;
+}
+
+.swal2-container {
+  z-index: 10000 !important;
+}
+
+.swal2-container.swal2-backdrop-show {
+  z-index: 99999 !important;
+}
+
+.swal2-backdrop-show {
+  z-index: 99998 !important;
+}
+
 /* Print styles for Release Notes Viewer */
 @media print {
   /* Hide buttons and tabs when printing */

@@ -559,6 +559,133 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/ai/global/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Toggle global AI kill switch (SuperAdmin only).
+         *     Emergency kill switch to immediately disable/enable all AI features system-wide.
+         *     This affects all organizations regardless of their individual settings.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "X-Api-Version"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Toggle request with enabled status and reason */
+            requestBody?: {
+                content: {
+                    "application/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.Admin.ToggleGlobalAIRequest"];
+                    "text/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.Admin.ToggleGlobalAIRequest"];
+                    "application/*+json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.Admin.ToggleGlobalAIRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["IntelliPM.Application.AI.Commands.ToggleGlobalAIResponse"];
+                        "application/json; version=1.0": components["schemas"]["IntelliPM.Application.AI.Commands.ToggleGlobalAIResponse"];
+                        "text/json; version=1.0": components["schemas"]["IntelliPM.Application.AI.Commands.ToggleGlobalAIResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai/global/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get global AI kill switch status (SuperAdmin only).
+         *     Returns the current state of the global AI kill switch.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "X-Api-Version"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["IntelliPM.Application.AI.Queries.GlobalAIStatusResponse"];
+                        "application/json; version=1.0": components["schemas"]["IntelliPM.Application.AI.Queries.GlobalAIStatusResponse"];
+                        "text/json; version=1.0": components["schemas"]["IntelliPM.Application.AI.Queries.GlobalAIStatusResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/ai-quota/members": {
         parameters: {
             query?: never;
@@ -6757,7 +6884,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/Milestones/../projects/{projectId}/milestones": {
+    "/api/v1/projects/{projectId}/milestones": {
         parameters: {
             query?: never;
             header?: never;
@@ -6890,7 +7017,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/Milestones/../projects/{projectId}/milestones/next": {
+    "/api/v1/projects/{projectId}/milestones/next": {
         parameters: {
             query?: never;
             header?: never;
@@ -6953,7 +7080,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/Milestones/../projects/{projectId}/milestones/statistics": {
+    "/api/v1/projects/{projectId}/milestones/statistics": {
         parameters: {
             query?: never;
             header?: never;
@@ -9403,6 +9530,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/Projects/{projectId}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current user's permissions for a specific project */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Project ID */
+                    projectId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Permissions retrieved successfully */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["IntelliPM.API.Controllers.ProjectPermissionsResponse"];
+                        "application/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.ProjectPermissionsResponse"];
+                        "text/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.ProjectPermissionsResponse"];
+                    };
+                };
+                /** @description User is not authenticated */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+                /** @description Project not found or user is not a member */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ReadModels/task-board/{projectId}": {
         parameters: {
             query?: never;
@@ -9793,7 +9983,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/Releases/../projects/{projectId}/releases": {
+    "/api/v1/projects/{projectId}/releases": {
         parameters: {
             query?: never;
             header?: never;
@@ -10084,7 +10274,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/Releases/../projects/{projectId}/sprints/available": {
+    "/api/v1/projects/{projectId}/sprints/available": {
         parameters: {
             query?: never;
             header?: never;
@@ -10139,7 +10329,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/Releases/../projects/{projectId}/releases/statistics": {
+    "/api/v1/projects/{projectId}/releases/statistics": {
         parameters: {
             query?: never;
             header?: never;
@@ -11624,6 +11814,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/Settings/language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current user's language preference */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["IntelliPM.API.Controllers.LanguageResponse"];
+                        "application/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.LanguageResponse"];
+                        "text/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.LanguageResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+                /** @description Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+            };
+        };
+        /** Update current user's language preference */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.UpdateLanguageRequest"];
+                    "text/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.UpdateLanguageRequest"];
+                    "application/*+json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.UpdateLanguageRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["IntelliPM.API.Controllers.LanguageResponse"];
+                        "application/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.LanguageResponse"];
+                        "text/json; version=1.0": components["schemas"]["IntelliPM.API.Controllers.LanguageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+                /** @description Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/Settings": {
         parameters: {
             query?: never;
@@ -13029,6 +13340,28 @@ export interface paths {
                         "text/json; version=1.0": components["schemas"]["IntelliPM.Application.Tasks.Queries.GetBlockedTasksResponse"];
                     };
                 };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
                 /** @description Server Error */
                 500: {
                     headers: {
@@ -13078,6 +13411,28 @@ export interface paths {
                         "text/plain; version=1.0": components["schemas"]["IntelliPM.Application.Tasks.Queries.TaskDto"][];
                         "application/json; version=1.0": components["schemas"]["IntelliPM.Application.Tasks.Queries.TaskDto"][];
                         "text/json; version=1.0": components["schemas"]["IntelliPM.Application.Tasks.Queries.TaskDto"][];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "application/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
+                        "text/json; version=1.0": components["schemas"]["Microsoft.AspNetCore.Mvc.ProblemDetails"];
                     };
                 };
                 /** @description Server Error */
@@ -14958,6 +15313,11 @@ export interface components {
             version?: string;
             applied?: boolean;
         };
+        /** @description Request model for toggling global AI kill switch. */
+        "IntelliPM.API.Controllers.Admin.ToggleGlobalAIRequest": {
+            enabled?: boolean;
+            reason?: string;
+        };
         /** @description Request model for updating an AI quota template. */
         "IntelliPM.API.Controllers.Admin.UpdateAIQuotaTemplateRequest": {
             description?: string | null;
@@ -15152,6 +15512,9 @@ export interface components {
             /** Format: int32 */
             projectId?: number | null;
         };
+        "IntelliPM.API.Controllers.LanguageResponse": {
+            language?: string;
+        };
         "IntelliPM.API.Controllers.LoginRequest": {
             username?: string;
             password?: string;
@@ -15220,6 +15583,12 @@ export interface components {
              * @description Updated progress percentage (0-100).
              */
             progress?: number;
+        };
+        "IntelliPM.API.Controllers.ProjectPermissionsResponse": {
+            permissions?: string[];
+            projectRole?: string | null;
+            /** Format: int32 */
+            projectId?: number;
         };
         "IntelliPM.API.Controllers.RegisterTeamRequest": {
             name?: string;
@@ -15306,6 +15675,9 @@ export interface components {
             foundInEnvironment?: string | null;
             stepsToReproduce?: string | null;
             resolution?: string | null;
+        };
+        "IntelliPM.API.Controllers.UpdateLanguageRequest": {
+            language?: string;
         };
         "IntelliPM.API.Controllers.UpdateProjectRequest": {
             name?: string | null;
@@ -15427,6 +15799,14 @@ export interface components {
             userId?: number;
             success?: boolean;
             message?: string;
+        };
+        "IntelliPM.Application.AI.Commands.ToggleGlobalAIResponse": {
+            enabled?: boolean;
+            /** Format: date-time */
+            toggledAt?: string;
+            reason?: string;
+            /** Format: int32 */
+            updatedById?: number;
         };
         "IntelliPM.Application.AI.Commands.UpdateAIQuotaResponse": {
             /** Format: int32 */
@@ -15787,6 +16167,14 @@ export interface components {
             /** Format: double */
             maxCostPerPeriod?: number;
             hasOverride?: boolean;
+        };
+        "IntelliPM.Application.AI.Queries.GlobalAIStatusResponse": {
+            enabled?: boolean;
+            /** Format: date-time */
+            lastUpdated?: string | null;
+            /** Format: int32 */
+            updatedById?: number | null;
+            reason?: string | null;
         };
         "IntelliPM.Application.AI.Queries.PeriodInfoDto": {
             /** Format: date-time */
@@ -16991,6 +17379,8 @@ export interface components {
         };
         "IntelliPM.Application.Queries.Metrics.MetricsSummaryDto": {
             /** Format: int32 */
+            totalProjects?: number;
+            /** Format: int32 */
             totalTasks?: number;
             /** Format: int32 */
             completedTasks?: number;
@@ -17000,6 +17390,8 @@ export interface components {
             blockedTasks?: number;
             /** Format: int32 */
             todoTasks?: number;
+            /** Format: int32 */
+            openTasks?: number;
             /** Format: double */
             completionPercentage?: number;
             /** Format: double */
@@ -17008,12 +17400,19 @@ export interface components {
             totalSprints?: number;
             /** Format: int32 */
             activeSprints?: number;
+            /** Format: double */
+            velocity?: number;
+            /** Format: int32 */
+            defectsCount?: number;
+            /** Format: int32 */
+            totalDefects?: number;
             /** Format: int32 */
             totalAgentExecutions?: number;
             /** Format: double */
             agentSuccessRate?: number;
             /** Format: int32 */
             averageAgentResponseTimeMs?: number;
+            trends?: components["schemas"]["IntelliPM.Application.Queries.Metrics.TrendData"];
         };
         "IntelliPM.Application.Queries.Metrics.SprintBurndownResponse": {
             days?: components["schemas"]["IntelliPM.Application.Queries.Metrics.BurndownDayData"][];
@@ -17047,6 +17446,20 @@ export interface components {
         };
         "IntelliPM.Application.Queries.Metrics.TeamVelocityResponse": {
             velocity?: components["schemas"]["IntelliPM.Application.Queries.Metrics.TeamVelocityData"][];
+        };
+        "IntelliPM.Application.Queries.Metrics.TrendData": {
+            /** Format: double */
+            projectsTrend?: number;
+            /** Format: double */
+            sprintsTrend?: number;
+            /** Format: double */
+            openTasksTrend?: number;
+            /** Format: double */
+            blockedTasksTrend?: number;
+            /** Format: double */
+            defectsTrend?: number;
+            /** Format: double */
+            velocityTrend?: number;
         };
         "IntelliPM.Application.Reports.DTOs.AIDecisionRoleReportDto": {
             role?: string;

@@ -6,7 +6,6 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { milestonesApi } from '@/api/milestones';
 import { Rocket, Flag, Calendar, Star, AlertCircle } from 'lucide-react';
-import { isBefore, isAfter, isToday } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatDate, DateFormats } from '@/utils/dateFormat';
 import { cn } from '@/lib/utils';
@@ -183,10 +182,6 @@ export function MilestoneTimeline({ projectId, onMilestoneClick }: MilestoneTime
           <div className="relative min-w-full" style={{ height: '200px' }}>
             {timelineData.milestones.map((milestone) => {
               const TypeIcon = getTypeIcon(milestone.type);
-              // Date comparison for styling (variables kept for potential future use)
-              void isBefore(milestone.date, new Date());
-              void isAfter(milestone.date, new Date());
-              void isToday(milestone.date);
 
               return (
                 <div

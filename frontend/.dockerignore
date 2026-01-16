@@ -47,4 +47,3 @@ coverage
 Dockerfile
 .dockerignore
 docker-compose*.yml
-

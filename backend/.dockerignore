@@ -1,0 +1,51 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/publish/
+
+# IDE
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.suo
+**/.editorconfig
+
+# Dependencies
+**/node_modules/
+
+# Logs
+**/logs/
+**/*.log
+
+# Uploads
+**/uploads/
+
+# Secrets
+**/secrets.json
+**/.env
+**/.env.*
+
+# Git
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# Docker
+**/Dockerfile
+**/docker-compose*.yml
+**/.dockerignore
+
+# OS
+**/.DS_Store
+**/Thumbs.db
+
+# Testing
+**/TestResults/
+**/*.trx
+
+# Database
+**/*.db
+**/*.db-shm
+**/*.db-wal

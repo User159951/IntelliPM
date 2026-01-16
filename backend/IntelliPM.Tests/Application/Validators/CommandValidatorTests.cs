@@ -40,7 +40,7 @@ public class CreateProjectCommandValidatorTests
     [InlineData("")]
     [InlineData("  ")]
     [InlineData("ab")] // Too short
-    public void Validate_WithInvalidName_ShouldFail(string name)
+    public void Validate_WithInvalidName_ShouldFail(string? name)
     {
         // Arrange
         var command = new CreateProjectCommand(
@@ -83,7 +83,7 @@ public class CreateProjectCommandValidatorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("InvalidType")]
-    public void Validate_WithInvalidType_ShouldFail(string type)
+    public void Validate_WithInvalidType_ShouldFail(string? type)
     {
         // Arrange
         var command = new CreateProjectCommand(
@@ -339,7 +339,7 @@ public class CreateTaskCommandValidatorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
-    public void Validate_WithInvalidTitle_ShouldFail(string title)
+    public void Validate_WithInvalidTitle_ShouldFail(string? title)
     {
         // Arrange
         var command = new CreateTaskCommand(
@@ -386,7 +386,7 @@ public class CreateTaskCommandValidatorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
-    public void Validate_WithInvalidDescription_ShouldFail(string description)
+    public void Validate_WithInvalidDescription_ShouldFail(string? description)
     {
         // Arrange
         var command = new CreateTaskCommand(
@@ -411,7 +411,7 @@ public class CreateTaskCommandValidatorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("InvalidPriority")]
-    public void Validate_WithInvalidPriority_ShouldFail(string priority)
+    public void Validate_WithInvalidPriority_ShouldFail(string? priority)
     {
         // Arrange
         var command = new CreateTaskCommand(
@@ -613,7 +613,7 @@ public class ChangeTaskStatusCommandValidatorTests
     [InlineData("")]
     [InlineData("InvalidStatus")]
     [InlineData("inprogress")] // Case sensitive
-    public void Validate_WithInvalidStatus_ShouldFail(string status)
+    public void Validate_WithInvalidStatus_ShouldFail(string? status)
     {
         // Arrange
         var command = new ChangeTaskStatusCommand(

@@ -40,7 +40,7 @@ public class ReleasesController : BaseApiController
     /// <response code="200">Releases retrieved successfully</response>
     /// <response code="400">Invalid request parameters</response>
     /// <response code="403">Insufficient permissions</response>
-    [HttpGet("../projects/{projectId}/releases")]
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId}/releases")]
     [RequirePermission("releases.view")]
     [ProducesResponseType(typeof(List<ReleaseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -133,7 +133,7 @@ public class ReleasesController : BaseApiController
     /// <returns>List of available sprints</returns>
     /// <response code="200">Available sprints retrieved successfully</response>
     /// <response code="403">Insufficient permissions</response>
-    [HttpGet("../projects/{projectId}/sprints/available")]
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId}/sprints/available")]
     [RequirePermission("sprints.view")]
     [ProducesResponseType(typeof(List<ReleaseSprintDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -171,7 +171,7 @@ public class ReleasesController : BaseApiController
     /// <returns>Release statistics</returns>
     /// <response code="200">Statistics retrieved successfully</response>
     /// <response code="403">Insufficient permissions</response>
-    [HttpGet("../projects/{projectId}/releases/statistics")]
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId}/releases/statistics")]
     [RequirePermission("releases.view")]
     [ProducesResponseType(typeof(IntelliPM.Application.Features.Releases.DTOs.ReleaseStatisticsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -206,7 +206,7 @@ public class ReleasesController : BaseApiController
     /// <response code="201">Release created successfully</response>
     /// <response code="400">Invalid request data</response>
     /// <response code="403">Insufficient permissions</response>
-    [HttpPost("../projects/{projectId}/releases")]
+    [HttpPost("~/api/v{version:apiVersion}/projects/{projectId}/releases")]
     [RequirePermission("releases.create")]
     [ProducesResponseType(typeof(ReleaseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

@@ -19,7 +19,7 @@ public class AuthService : IAuthService
         _tokenService = tokenService;
     }
 
-    public async Task<(string AccessToken, string RefreshToken)> LoginAsync(string username, string password, CancellationToken ct)
+    public async Task<LoginResult> LoginAsync(string username, string password, CancellationToken ct)
     {
         // Allow login with either username or email
         var user = await _context.Users
@@ -53,7 +53,14 @@ public class AuthService : IAuthService
         _context.RefreshTokens.Add(rt);
         await _context.SaveChangesAsync(ct);
 
-        return (accessToken, refreshToken);
+        return new LoginResult(
+            user.Id,
+            user.Username,
+            user.Email,
+            user.GlobalRole.ToString(),
+            accessToken,
+            refreshToken
+        );
     }
 
     public async Task<int> RegisterAsync(string username, string email, string password, string firstName, string lastName, CancellationToken ct)

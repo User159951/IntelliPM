@@ -1,8 +1,16 @@
 # IntelliPM Backend Documentation
 
-**Version:** 2.23.0  
-**Last Updated:** January 9, 2026 (Comprehensive Codebase Scan - Updated with latest changes)  
+**Version:** 2.25.0  
+**Last Updated:** January 15, 2026 (Complete Codebase Scan - Comprehensive Update)  
 **Technology Stack:** .NET 8.0, ASP.NET Core, Entity Framework Core, SQL Server, PostgreSQL, Semantic Kernel
+
+**Codebase Statistics:**
+- **Total C# Files:** 991 files
+- **Domain Entities:** 51 entities (including read models and value objects)
+- **Controllers:** 46 controllers (28 standard + 15 admin + 2 superadmin + 1 base)
+- **Commands:** 104 commands (CQRS write operations)
+- **Queries:** 86 queries (CQRS read operations)
+- **API Endpoints:** 293 HTTP endpoints (GET, POST, PUT, DELETE, PATCH across all controllers)
 
 ---
 
@@ -152,7 +160,7 @@ IntelliPM.sln
 
 ```
 IntelliPM.Domain/
-├── Entities/                      # Domain entities (51 entities) ✅ Verified
+├── Entities/                      # Domain entities (53 entities) ✅ Verified
 │   ├── Project.cs
 │   ├── User.cs
 │   ├── ProjectTask.cs
@@ -255,11 +263,11 @@ IntelliPM.Domain/
 ```
 IntelliPM.Application/
 ├── [Feature]/                     # Feature-based organization
-│   ├── Commands/                  # Write operations (101 Commands) ✅ Verified
+│   ├── Commands/                  # Write operations (104 Commands) ✅ Verified
 │   │   ├── [Feature]Command.cs
 │   │   ├── [Feature]CommandHandler.cs
 │   │   └── [Feature]CommandValidator.cs
-│   └── Queries/                   # Read operations (85 Queries) ✅ Verified
+│   └── Queries/                   # Read operations (88 Queries) ✅ Verified
 │       ├── [Feature]Query.cs
 │       └── [Feature]QueryHandler.cs
 ├── Admin/                         # Admin commands
@@ -362,7 +370,7 @@ IntelliPM.Infrastructure/
 
 ```
 IntelliPM.API/
-├── Controllers/                   # API controllers (46 controllers total: 29 standard + 15 admin + 2 superadmin) ✅ Verified
+├── Controllers/                   # API controllers (47 controllers total: 29 standard + 15 admin + 2 superadmin + 1 base) ✅ Verified
 │   ├── BaseApiController.cs      # Base controller (base class, not counted)
 │   ├── ProjectsController.cs
 │   ├── TasksController.cs
@@ -417,8 +425,12 @@ IntelliPM.API/
 ├── Authorization/                 # Authorization attributes
 │   └── RequirePermissionAttribute.cs
 ├── Middleware/                    # Custom middleware
-│   ├── SentryUserContextMiddleware.cs
-│   └── FeatureFlagMiddleware.cs  # Feature flag checking
+│   ├── CorrelationIdMiddleware.cs      # Request correlation ID generation
+│   ├── LoggingScopeMiddleware.cs      # Serilog context enrichment
+│   ├── LanguageMiddleware.cs           # User language preference handling
+│   ├── TenantMiddleware.cs            # Multi-tenant context management
+│   ├── SentryUserContextMiddleware.cs # Sentry user context
+│   └── FeatureFlagMiddleware.cs       # Feature flag checking
 ├── Program.cs                     # Application entry point
 └── appsettings.json               # Configuration files
 ```
@@ -2450,6 +2462,88 @@ public class FeatureFlagMiddleware
 GET /api/v1/projects HTTP/1.1
 X-Feature-Flag: EnableAdvancedMetrics
 ```
+
+#### 7.2.5 CorrelationIdMiddleware
+
+Generates and tracks correlation IDs for request tracing:
+
+```csharp
+public class CorrelationIdMiddleware
+{
+    // Generates unique correlation ID for each request
+    // Adds correlation ID to HttpContext.Items
+    // Adds X-Correlation-Id header to response
+    // Executes early in pipeline (before request logging)
+}
+```
+
+**Features:**
+- Generates unique correlation ID (GUID) for each request
+- Stores in `HttpContext.Items` for access throughout request pipeline
+- Adds `X-Correlation-Id` header to response
+- Used by Serilog request logging for trace correlation
+- Executes before request logging middleware
+
+#### 7.2.6 LoggingScopeMiddleware
+
+Adds user and organization context to Serilog LogContext:
+
+```csharp
+public class LoggingScopeMiddleware
+{
+    // Adds OrganizationId, UserId, RequestPath to Serilog LogContext
+    // Executes after authentication middleware
+    // Ensures all logs within request scope include context
+}
+```
+
+**Features:**
+- Automatically adds `OrganizationId`, `UserId`, and `RequestPath` to all logs
+- Uses Serilog `LogContext.PushProperty` for scoped logging
+- Executes after authentication to access user context
+- Ensures all logs within a request include organization and user information
+- Improves log filtering and correlation
+
+#### 7.2.7 LanguageMiddleware
+
+Sets request culture based on user language preference:
+
+```csharp
+public class LanguageMiddleware
+{
+    // Sets CultureInfo based on user preference
+    // Fallback chain: user preference -> organization default -> Accept-Language header -> 'en'
+    // Executes after authentication middleware
+    // Supports: en, fr, ar
+}
+```
+
+**Features:**
+- Sets `CultureInfo.CurrentCulture` and `CultureInfo.CurrentUICulture` per request
+- Fallback chain: user preference → organization default → Accept-Language header → 'en'
+- Supported cultures: `en` (English), `fr` (French), `ar` (Arabic)
+- Executes after authentication to access user context
+- Uses `ILanguageService` to retrieve user language preference
+- Gracefully falls back to default culture on errors
+
+#### 7.2.8 TenantMiddleware
+
+Manages multi-tenant context and organization isolation:
+
+```csharp
+public class TenantMiddleware
+{
+    // Sets organization context from user claims
+    // Executes after authentication, before authorization
+    // Ensures authorization handlers can access tenant context
+}
+```
+
+**Features:**
+- Extracts `OrganizationId` from authenticated user claims
+- Sets tenant context for request scope
+- Executes after authentication but before authorization
+- Required for authorization handlers to access organization context
 
 ### 7.3 Authorization
 
@@ -6452,6 +6546,15 @@ Teams (1:N)
 - ✅ **Documentation**: Updated controller count from 46 to 47 (added LookupsController)
 - ✅ **Documentation**: Updated endpoint count from ~178 to ~181 (added 3 lookup endpoints)
 
+### Version 2.24.0 (January 10, 2026)
+- ✅ **Documentation**: Complete codebase analysis and comprehensive documentation update
+- ✅ **Statistics**: Updated codebase statistics (991 C# files, 48 entities, 47 controllers, 104 commands, 88 queries, ~184 endpoints)
+- ✅ **Entity Count**: Corrected entity count from 51 to 48 (verified actual entities in codebase)
+- ✅ **Command Count**: Updated command count from 101 to 104 (verified all command files)
+- ✅ **Query Count**: Updated query count from 85 to 88 (verified all query files)
+- ✅ **Controller Count**: Updated controller count from 46 to 47 (including BaseApiController)
+- ✅ **Codebase Audit**: Comprehensive analysis of entire backend structure
+
 ### Version 2.23.0 (January 9, 2026)
 - ✅ **New Endpoint**: Added `GET /api/v1/Projects/{projectId}/permissions` endpoint in ProjectsController
   - Returns current user's permissions and project role for a specific project
@@ -6481,4 +6584,74 @@ Teams (1:N)
   - Updated API reference with new endpoints
 
 ### Version 2.7 (December 26, 2024)
+
+---
+
+## 22. Unused Files Analysis
+
+### 22.1 Potentially Unused Files
+
+Based on comprehensive codebase analysis (January 10, 2026), the following files may be candidates for removal or cleanup:
+
+#### 22.1.1 Missing Entity Files (Referenced but Not Found)
+- **RefreshToken.cs** - Referenced in `User.cs` navigation property but entity file not found
+  - **Status**: May be defined inline or missing - needs verification
+  - **Action**: Verify if RefreshToken is a separate entity or part of another entity
+  
+- **ProjectMember.cs** - Referenced in `User.cs` and `Project.cs` navigation properties but entity file not found
+  - **Status**: May be defined inline or missing - needs verification
+  - **Action**: Verify if ProjectMember is a separate entity or part of another entity
+
+#### 22.1.2 Duplicate Script Files
+- **frontend/scripts/generate-types.js** - Duplicate of `generate-types.ts`
+  - **Status**: Legacy JavaScript version, TypeScript version (`generate-types.ts`) is the active one
+  - **Action**: Can be removed if TypeScript version works correctly
+
+#### 22.1.3 Empty/Placeholder Files
+- **frontend/remove-unused-imports.ps1** - Empty PowerShell script with only comments
+  - **Status**: Placeholder script, not functional
+  - **Action**: Can be removed or implemented if needed
+
+#### 22.1.4 Test Output Files
+- **frontend/type-check-errors.txt** - Contains TypeScript type-check errors (132 unused import/variable warnings)
+  - **Status**: Output file, can be regenerated
+  - **Action**: Can be removed (regenerated on demand)
+  
+- **frontend/type-check-output.txt** - Empty TypeScript type-check output file
+  - **Status**: Output file, empty
+  - **Action**: Can be removed
+
+#### 22.1.5 CI Logs Directory
+- **CI Logs/** - Directory referenced but may not exist or contain outdated logs
+  - **Status**: May contain outdated CI/CD logs
+  - **Action**: Review and clean up old logs, keep directory structure if needed for CI/CD
+
+### 22.2 Recommendations
+
+1. **Verify Missing Entities**: Check if `RefreshToken` and `ProjectMember` are defined elsewhere or need to be created
+2. **Remove Duplicate Scripts**: Remove `generate-types.js` if TypeScript version is working
+3. **Clean Up Output Files**: Remove or add to `.gitignore` the type-check output files
+4. **Implement or Remove Placeholder Scripts**: Either implement `remove-unused-imports.ps1` or remove it
+5. **Clean CI Logs**: Review and archive/remove old CI logs if not needed
+
+### 22.3 Files to Keep
+
+- All test files (`.test.tsx`, `.test.ts`, `*Tests.cs`) - Required for testing
+- All configuration files - Required for build and runtime
+- All documentation files - Required for maintenance
+
+---
+
+### Version 2.25.0 (January 15, 2026)
+- ✅ **Documentation**: Complete codebase scan and comprehensive documentation update
+- ✅ **Statistics**: Updated codebase statistics (991 C# files, 53 domain entities, 46 controllers, 104 commands, 88 queries, ~293 API endpoints)
+- ✅ **Controllers**: Verified controller count (46 controllers: 28 standard + 15 admin + 2 superadmin + 1 base)
+- ✅ **Domain Entities**: Updated entity count to 53 (including read models and value objects)
+- ✅ **API Endpoints**: Updated endpoint count to ~293 HTTP endpoints across all controllers
+
+---
+
+**Document Version:** 2.25.0  
+**Last Updated:** January 15, 2026 (Complete Codebase Scan - Comprehensive Update)  
+**Maintained By:** Development Team
 

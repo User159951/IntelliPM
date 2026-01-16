@@ -39,6 +39,24 @@ export const showError = (title: string, text?: string) => {
     text: translatedText,
     confirmButtonText: i18next.t('buttons.confirm', { ns: 'common', defaultValue: 'OK' }),
     confirmButtonColor: '#ef4444',
+    allowOutsideClick: false,
+    allowEscapeKey: true,
+    target: document.body,
+    customClass: {
+      container: 'swal2-top-level',
+    },
+    didOpen: () => {
+      // Ensure modal is on top of all other modals
+      const container = document.querySelector('.swal2-container') as HTMLElement;
+      if (container) {
+        container.style.zIndex = '99999';
+      }
+      // Also ensure the backdrop is on top
+      const backdrop = document.querySelector('.swal2-backdrop-show') as HTMLElement;
+      if (backdrop) {
+        backdrop.style.zIndex = '99998';
+      }
+    },
   });
 };
 

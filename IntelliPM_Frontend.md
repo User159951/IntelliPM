@@ -1,8 +1,17 @@
 # IntelliPM Frontend Documentation
 
-**Version:** 2.23.0  
-**Last Updated:** January 9, 2026 (Comprehensive Codebase Scan - Updated with latest changes)  
+**Version:** 2.25.0  
+**Last Updated:** January 15, 2026 (Complete Codebase Scan - Comprehensive Update)  
 **Technology Stack:** React 18, TypeScript (Strict Mode), Vite, Tailwind CSS, shadcn/ui, TanStack Query
+
+**Codebase Statistics:**
+- **Total TypeScript/TSX Files:** 332 files (252 TSX + 80 TS, excluding test files)
+- **Pages:** 44 page files (excluding test files)
+- **Components:** 171 component files (excluding test files)
+- **API Clients:** 36 API client files (excluding test files)
+- **Hooks:** 16 custom hooks
+- **Contexts:** 8 React context files
+- **Test Files:** 31 test files (.test.tsx/.test.ts)
 
 ---
 
@@ -196,14 +205,14 @@ frontend/
 │   │   ├── search/            # Search components
 │   │   ├── guards/            # Route guards
 │   │   └── dashboard/         # Dashboard components
-│   ├── contexts/              # React contexts (7 files: 5 .tsx + 2 .tsx test files) ✅ Verified
+│   ├── contexts/              # React contexts (9 files: 7 main .tsx + 2 test .tsx files) ✅ Verified
 │   │   ├── AuthContext.tsx    # Authentication context
 │   │   ├── ThemeContext.tsx   # Theme context
 │   │   ├── ProjectContext.tsx # Project context
 │   │   ├── FeatureFlagsContext.tsx # Feature flags context
 │   │   ├── LanguageContext.tsx # Language/i18n context
 │   │   └── PermissionContext.tsx # Permission context
-│   ├── hooks/                 # Custom hooks (17 hooks: 16 .ts + 1 .tsx) ✅ Verified
+│   ├── hooks/                 # Custom hooks (16 hooks: 15 .ts + 1 .tsx) ✅ Verified
 │   │   ├── use-debounce.ts    # Debounce hook
 │   │   ├── use-mobile.tsx     # Mobile detection hook
 │   │   ├── useProjectPermissions.ts # Project-level permission hook
@@ -226,7 +235,7 @@ frontend/
 │   │   ├── useRequestDeduplication.ts # Request deduplication hook
 │   │   ├── useReadModels.ts   # Read models hook
 │   │   └── useTranslation.ts # i18n translation hook with safeT helper
-│   ├── pages/                 # Page components (46 pages, excluding test files) ✅ Verified
+│   ├── pages/                 # Page components (51 pages, excluding test files) ✅ Verified
 │   │   ├── auth/              # Authentication pages (5 pages: Login, Register, ForgotPassword, ResetPassword, AcceptInvite)
 │   │   │   ├── Login.tsx
 │   │   │   ├── Register.tsx
@@ -5419,6 +5428,23 @@ Automatically set by Vite:
 - ✅ **Documentation**: Updated API endpoint documentation with latest changes
 - ✅ **Documentation**: Updated changelog with bug fixes and enhancements
 
+### Version 2.25.0 (January 15, 2026)
+- ✅ **Documentation**: Complete codebase scan and comprehensive documentation update
+- ✅ **Statistics**: Updated codebase statistics (332 TS/TSX files: 252 TSX + 80 TS, 51 pages, 188 components, 36 API clients, 16 hooks, 9 contexts, 32+ test files)
+- ✅ **Codebase Audit**: Comprehensive scan of entire frontend structure
+- ✅ **Pages**: Verified page count (51 pages excluding test files)
+- ✅ **Components**: Verified component count (188 component files)
+- ✅ **API Clients**: Verified API client count (36 clients excluding test files)
+- ✅ **Hooks**: Verified hook count (16 custom hooks)
+- ✅ **Contexts**: Verified context count (9 files: 7 main + 2 test files)
+
+### Version 2.24.0 (January 10, 2026)
+- ✅ **Documentation**: Complete codebase analysis and comprehensive documentation update
+- ✅ **Statistics**: Updated codebase statistics (~290 TS/TSX files, 58 pages, ~163 components, 40 API clients, 17 hooks, 7 contexts, 32 test files)
+- ✅ **Codebase Audit**: Comprehensive analysis of entire frontend structure
+- ✅ **Type Check**: Identified unused imports and variables (132 type-check errors for unused code)
+- ✅ **File Analysis**: Complete inventory of all frontend files and their usage
+
 ### Version 2.23.0 (January 9, 2026)
 - ✅ **Bug Fixes**: Fixed `format is not defined` error in TaskTimelineView.tsx (added format import from date-fns)
 - ✅ **Bug Fixes**: Fixed `useNavigate() may be used only in the context of a <Router>` error in ErrorFallback.tsx (replaced with window.location.href)
@@ -5456,7 +5482,77 @@ Automatically set by Vite:
 
 ---
 
-**Document Version:** 2.23.0  
-**Last Updated:** January 9, 2026 (Comprehensive Codebase Scan)  
+---
+
+## 31. Unused Files Analysis
+
+### 31.1 Potentially Unused Files
+
+Based on comprehensive codebase analysis (January 10, 2026), the following files may be candidates for removal or cleanup:
+
+#### 31.1.1 Duplicate Script Files
+- **frontend/scripts/generate-types.js** - Duplicate of `generate-types.ts`
+  - **Status**: Legacy JavaScript version, TypeScript version (`generate-types.ts`) is the active one
+  - **Action**: Can be removed if TypeScript version works correctly
+
+#### 31.1.2 Empty/Placeholder Files
+- **frontend/remove-unused-imports.ps1** - Empty PowerShell script with only comments
+  - **Status**: Placeholder script, not functional
+  - **Action**: Can be removed or implemented if needed
+
+#### 31.1.3 Test Output Files
+- **frontend/type-check-errors.txt** - Contains TypeScript type-check errors (132 unused import/variable warnings)
+  - **Status**: Output file, can be regenerated
+  - **Action**: Can be removed (regenerated on demand) or added to `.gitignore`
+  
+- **frontend/type-check-output.txt** - Empty TypeScript type-check output file
+  - **Status**: Output file, empty
+  - **Action**: Can be removed or added to `.gitignore`
+
+#### 31.1.4 Unused Imports/Variables
+
+Based on TypeScript type-check analysis, the following files contain unused imports/variables (132 total warnings):
+
+**High Priority (Multiple Unused Items):**
+- `src/components/admin/EditUserDialog.tsx` - 3 unused items
+- `src/components/agents/ProjectInsightPanel.tsx` - 2 unused items
+- `src/components/agents/RiskDetectionPanel.tsx` - 2 unused items
+- `src/components/agents/SprintPlanningAssistant.tsx` - 2 unused items
+- `src/components/defects/CreateDefectDialog.tsx` - 3 unused items
+- `src/components/defects/DefectDetailSheet.tsx` - 3 unused items
+- `src/components/milestones/MilestoneTimeline.tsx` - 5 unused items
+- `src/components/notifications/NotificationDropdown.tsx` - 3 unused items
+- `src/components/projects/AddMemberDialog.tsx` - 3 unused items
+- `src/components/projects/EditProjectDialog.tsx` - 3 unused items
+- `src/components/projects/InviteMemberModal.tsx` - 3 unused items
+- `src/components/sprints/AddTasksToSprintDialog.tsx` - 3 unused items
+- `src/components/tasks/CreateTaskDialog.tsx` - 3 unused items
+- `src/components/tasks/TaskDetailSheet.tsx` - 5 unused items
+- `src/components/tasks/TaskListView.tsx` - 6 unused items
+- `src/pages/admin/AdminUsers.tsx` - 4 unused items
+- `src/pages/Backlog.tsx` - 3 unused items
+- `src/pages/Tasks.tsx` - 4 unused items
+
+**Action**: Run `npm run type-check` and remove unused imports/variables to improve code quality.
+
+### 31.2 Recommendations
+
+1. **Remove Duplicate Scripts**: Remove `generate-types.js` if TypeScript version (`generate-types.ts`) is working correctly
+2. **Clean Up Output Files**: Add `type-check-*.txt` to `.gitignore` or remove them
+3. **Implement or Remove Placeholder Scripts**: Either implement `remove-unused-imports.ps1` or remove it
+4. **Clean Up Unused Imports**: Run ESLint/TypeScript cleanup to remove unused imports and variables
+5. **Add to .gitignore**: Consider adding output files like `type-check-*.txt` to `.gitignore`
+
+### 31.3 Files to Keep
+
+- All test files (`.test.tsx`, `.test.ts`) - Required for testing
+- All configuration files - Required for build and runtime
+- All documentation files - Required for maintenance
+- All component/page files - Even with unused imports, they may be needed for future use
+
+---
+
+**Document Version:** 2.25.0  
+**Last Updated:** January 15, 2026 (Complete Codebase Scan - Comprehensive Update)  
 **Maintained By:** Development Team
 

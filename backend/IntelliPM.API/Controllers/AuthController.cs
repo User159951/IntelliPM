@@ -73,16 +73,22 @@ public class AuthController : BaseApiController
         var cmd = new LoginCommand(req.Username, req.Password);
         var result = await _mediator.Send(cmd, ct);
         
-        // Determine if we should use Secure cookies
-        // Use Secure = true if in production OR if request is over HTTPS (e.g., ngrok)
-        var useSecureCookies = !_environment.IsDevelopment() || Request.IsHttps;
-        
         // Set httpOnly cookie instead of returning token in body
+        // IMPORTANT: For cross-origin requests (frontend on different port), we need SameSite=None
+        // SameSite=None REQUIRES Secure=true in modern browsers (Chrome 80+, Firefox, Safari)
+        // Even for localhost/development, we must set Secure=true when using SameSite=None
+        // Browsers exempt localhost from the HTTPS requirement for Secure cookies
+        var sameSiteMode = _environment.IsDevelopment() ? SameSiteMode.None : SameSiteMode.Strict;
+        
+        // When SameSite=None, Secure MUST be true (browser requirement)
+        // When SameSite=Strict/Lax, use Secure only in production or HTTPS
+        var useSecureCookies = sameSiteMode == SameSiteMode.None || !_environment.IsDevelopment() || Request.IsHttps;
+        
         Response.Cookies.Append("auth_token", result.AccessToken, new CookieOptions
         {
             HttpOnly = true,
             Secure = useSecureCookies, // HTTPS only in production or when using HTTPS (ngrok)
-            SameSite = SameSiteMode.Strict,
+            SameSite = sameSiteMode,
             Expires = DateTimeOffset.UtcNow.AddMinutes(15), // Match JWT expiration
             Path = "/",
             Domain = null // Let browser handle domain
@@ -95,7 +101,7 @@ public class AuthController : BaseApiController
             {
                 HttpOnly = true,
                 Secure = useSecureCookies,
-                SameSite = SameSiteMode.Strict,
+                SameSite = sameSiteMode,
                 Expires = DateTimeOffset.UtcNow.AddDays(7),
                 Path = "/"
             });
@@ -157,15 +163,17 @@ public class AuthController : BaseApiController
         var cmd = new RefreshTokenCommand(refreshToken);
         var result = await _mediator.Send(cmd, ct);
         
-        // Determine if we should use Secure cookies
-        var useSecureCookies = !_environment.IsDevelopment() || Request.IsHttps;
-        
+        // Use SameSite=None in development for cross-origin requests
+        var sameSiteMode = _environment.IsDevelopment() ? SameSiteMode.None : SameSiteMode.Strict;
+        // SameSite=None REQUIRES Secure=true in modern browsers
+        var useSecureCookies = sameSiteMode == SameSiteMode.None || !_environment.IsDevelopment() || Request.IsHttps;
+
         // Set new access token cookie
         Response.Cookies.Append("auth_token", result.AccessToken, new CookieOptions
         {
             HttpOnly = true,
             Secure = useSecureCookies,
-            SameSite = SameSiteMode.Strict,
+            SameSite = sameSiteMode,
             Expires = DateTimeOffset.UtcNow.AddMinutes(15),
             Path = "/",
             Domain = null
@@ -178,7 +186,7 @@ public class AuthController : BaseApiController
             {
                 HttpOnly = true,
                 Secure = useSecureCookies,
-                SameSite = SameSiteMode.Strict,
+                SameSite = sameSiteMode,
                 Expires = DateTimeOffset.UtcNow.AddDays(7),
                 Path = "/"
             });
@@ -460,15 +468,17 @@ public class AuthController : BaseApiController
             );
             var result = await _mediator.Send(cmd, ct);
 
-            // Determine if we should use Secure cookies
-            var useSecureCookies = !_environment.IsDevelopment() || Request.IsHttps;
+            // Use SameSite=None in development for cross-origin requests
+            var sameSiteMode = _environment.IsDevelopment() ? SameSiteMode.None : SameSiteMode.Strict;
+            // SameSite=None REQUIRES Secure=true in modern browsers
+            var useSecureCookies = sameSiteMode == SameSiteMode.None || !_environment.IsDevelopment() || Request.IsHttps;
 
             // Set httpOnly cookie for access token
             Response.Cookies.Append("auth_token", result.AccessToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = useSecureCookies,
-                SameSite = SameSiteMode.Strict,
+                SameSite = sameSiteMode,
                 Expires = DateTimeOffset.UtcNow.AddMinutes(15),
                 Path = "/",
                 Domain = null
@@ -481,7 +491,7 @@ public class AuthController : BaseApiController
                 {
                     HttpOnly = true,
                     Secure = useSecureCookies,
-                    SameSite = SameSiteMode.Strict,
+                    SameSite = sameSiteMode,
                     Expires = DateTimeOffset.UtcNow.AddDays(7),
                     Path = "/"
                 });

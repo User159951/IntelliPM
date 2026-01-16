@@ -39,7 +39,7 @@ public class MilestonesController : BaseApiController
     /// <response code="200">Milestones retrieved successfully</response>
     /// <response code="400">Invalid request parameters</response>
     /// <response code="403">Insufficient permissions</response>
-    [HttpGet("../projects/{projectId}/milestones")]
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId}/milestones")]
     [RequirePermission("milestones.view")]
     [ProducesResponseType(typeof(List<MilestoneDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -82,7 +82,7 @@ public class MilestonesController : BaseApiController
     /// <response code="200">Next milestone retrieved successfully</response>
     /// <response code="404">No upcoming milestones found</response>
     /// <response code="403">Insufficient permissions</response>
-    [HttpGet("../projects/{projectId}/milestones/next")]
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId}/milestones/next")]
     [RequirePermission("milestones.view")]
     [ProducesResponseType(typeof(MilestoneDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -122,7 +122,7 @@ public class MilestonesController : BaseApiController
     /// <returns>Milestone statistics</returns>
     /// <response code="200">Statistics retrieved successfully</response>
     /// <response code="403">Insufficient permissions</response>
-    [HttpGet("../projects/{projectId}/milestones/statistics")]
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId}/milestones/statistics")]
     [RequirePermission("milestones.view")]
     [ProducesResponseType(typeof(MilestoneStatisticsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -228,7 +228,7 @@ public class MilestonesController : BaseApiController
     /// <response code="400">Invalid request data</response>
     /// <response code="403">Insufficient permissions</response>
     /// <response code="404">Project not found</response>
-    [HttpPost("../projects/{projectId}/milestones")]
+    [HttpPost("~/api/v{version:apiVersion}/projects/{projectId}/milestones")]
     [RequirePermission("milestones.create")]
     [ProducesResponseType(typeof(MilestoneDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

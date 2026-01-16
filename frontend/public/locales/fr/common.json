@@ -201,8 +201,10 @@
   "roles": {
     "admin": "Administrateur",
     "user": "Utilisateur",
+    "superAdmin": "Super Administrateur",
+    "manager": "Manager",
     "productOwner": "Propriétaire de produit",
-    "scrumMaster": "Maître Scrum",
+    "scrumMaster": "Scrum Master",
     "developer": "Développeur",
     "tester": "Testeur",
     "viewer": "Observateur",

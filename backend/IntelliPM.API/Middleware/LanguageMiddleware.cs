@@ -12,31 +12,31 @@ namespace IntelliPM.API.Middleware;
 public class LanguageMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ILanguageService _languageService;
-    private readonly ICurrentUserService _currentUserService;
     private static readonly string[] SupportedCultures = { "en", "fr", "ar" };
     private const string DefaultCulture = "en";
 
-    public LanguageMiddleware(
-        RequestDelegate next,
+    public LanguageMiddleware(RequestDelegate next)
+    {
+        _next = next ?? throw new ArgumentNullException(nameof(next));
+    }
+
+    /// <summary>
+    /// Scoped services (ILanguageService, ICurrentUserService) are injected via method parameters
+    /// because middleware is a singleton and cannot inject scoped services via constructor.
+    /// </summary>
+    public async Task InvokeAsync(
+        HttpContext context,
         ILanguageService languageService,
         ICurrentUserService currentUserService)
     {
-        _next = next ?? throw new ArgumentNullException(nameof(next));
-        _languageService = languageService ?? throw new ArgumentNullException(nameof(languageService));
-        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
-    }
-
-    public async Task InvokeAsync(HttpContext context)
-    {
         try
         {
-            var userId = _currentUserService.GetUserId();
-            var organizationId = _currentUserService.GetOrganizationId();
+            var userId = currentUserService.GetUserId();
+            var organizationId = currentUserService.GetOrganizationId();
             var acceptLanguageHeader = context.Request.Headers["Accept-Language"].ToString();
 
             // Get user's preferred language with fallback chain
-            var language = await _languageService.GetUserLanguageAsync(userId, organizationId, acceptLanguageHeader);
+            var language = await languageService.GetUserLanguageAsync(userId, organizationId, acceptLanguageHeader);
 
             // Validate and set culture
             if (SupportedCultures.Contains(language, StringComparer.OrdinalIgnoreCase))

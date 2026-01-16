@@ -12,21 +12,21 @@ namespace IntelliPM.API.Middleware;
 public class LoggingScopeMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ICurrentUserService _currentUserService;
 
-    public LoggingScopeMiddleware(
-        RequestDelegate next,
-        ICurrentUserService currentUserService)
+    public LoggingScopeMiddleware(RequestDelegate next)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
-        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    /// <summary>
+    /// Scoped services (ICurrentUserService) are injected via method parameters
+    /// because middleware is a singleton and cannot inject scoped services via constructor.
+    /// </summary>
+    public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService)
     {
         // Get user and organization context
-        var userId = _currentUserService.GetUserId();
-        var organizationId = _currentUserService.GetOrganizationId();
+        var userId = currentUserService.GetUserId();
+        var organizationId = currentUserService.GetOrganizationId();
         var requestPath = context.Request.Path.Value ?? string.Empty;
 
         // Add to Serilog LogContext for automatic inclusion in all logs

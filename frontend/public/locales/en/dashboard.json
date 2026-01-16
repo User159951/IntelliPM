@@ -12,7 +12,9 @@
   "charts": {
     "sprintVelocity": {
       "title": "Sprint Velocity",
-      "description": "Story points completed per sprint"
+      "description": "Story points completed per sprint",
+      "error": "Failed to load velocity data",
+      "noData": "No completed sprints yet"
     },
     "taskDistribution": {
       "title": "Task Distribution",

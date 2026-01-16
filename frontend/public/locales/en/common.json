@@ -201,6 +201,8 @@
   "roles": {
     "admin": "Admin",
     "user": "User",
+    "superAdmin": "Super Admin",
+    "manager": "Manager",
     "productOwner": "Product Owner",
     "scrumMaster": "Scrum Master",
     "developer": "Developer",
